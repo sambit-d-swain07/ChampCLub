@@ -8,8 +8,31 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 let connectionString = process.env.DATABASE_URL || "";
-if (connectionString.includes(":6543") && !connectionString.includes("pgbouncer=true")) {
-  connectionString += (connectionString.includes("?") ? "&" : "?") + "pgbouncer=true";
+
+// Automatically route through Supabase Transaction Pooler (port 6543) instead of Session mode (port 5432)
+if (connectionString.includes("supabase.co") || connectionString.includes("pooler.supabase.com")) {
+  // If direct database URL db.ref.supabase.co:5432 is used, route through pooler
+  if (connectionString.includes("db.") && connectionString.includes(".supabase.co")) {
+    const match = connectionString.match(/db\.([a-zA-Z0-9]+)\.supabase\.co/);
+    if (match) {
+      const ref = match[1];
+      connectionString = connectionString.replace(`db.${ref}.supabase.co:5432`, "aws-1-ap-southeast-1.pooler.supabase.com:6543");
+      connectionString = connectionString.replace(`db.${ref}.supabase.co`, "aws-1-ap-southeast-1.pooler.supabase.com:6543");
+      if (!connectionString.includes(`postgres.${ref}`)) {
+        connectionString = connectionString.replace("postgresql://postgres:", `postgresql://postgres.${ref}:`);
+      }
+    }
+  }
+
+  // Replace session port 5432 with transaction pooler port 6543
+  if (connectionString.includes(":5432")) {
+    connectionString = connectionString.replace(":5432", ":6543");
+  }
+
+  // Ensure transaction pooler pgbouncer parameter is present
+  if (!connectionString.includes("pgbouncer=true")) {
+    connectionString += (connectionString.includes("?") ? "&" : "?") + "pgbouncer=true";
+  }
 }
 
 // Serverless connection pooler configuration
@@ -17,9 +40,9 @@ export const pool =
   globalForPrisma.pool ||
   new Pool({
     connectionString,
-    max: process.env.NODE_ENV === "production" ? 3 : 5,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    max: 1, // Single connection per serverless function to prevent pool exhaustion on Vercel
+    idleTimeoutMillis: 5000, // Release idle connection quickly (5s)
+    connectionTimeoutMillis: 8000,
   });
 
 // Handle idle connection drops gracefully so they don't cause 500 errors
@@ -60,7 +83,8 @@ export async function withDbRetry<T>(
         msg.includes("ETIMEDOUT") ||
         msg.includes("timeout") ||
         msg.includes("closed") ||
-        msg.includes("SASL");
+        msg.includes("SASL") ||
+        msg.includes("EMAXCONN");
 
       if (attempt > retries || !isTransient) {
         throw err;
