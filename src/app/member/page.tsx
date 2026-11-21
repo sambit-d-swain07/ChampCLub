@@ -120,12 +120,17 @@ export default async function MemberPortalPage() {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Recent Court Sessions */}
           <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-emerald-600" />
-                My Court Reservations
-              </CardTitle>
-              <CardDescription className="text-xs">Your reserved slots and game history.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-emerald-600" />
+                  My Court Reservations
+                </CardTitle>
+                <CardDescription className="text-xs">Your reserved slots and game history.</CardDescription>
+              </div>
+              <Link href="/member/bookings" className="text-xs text-emerald-600 hover:underline font-semibold">
+                Manage & Cancel →
+              </Link>
             </CardHeader>
             <CardContent>
               {member?.bookings && member.bookings.length > 0 ? (
