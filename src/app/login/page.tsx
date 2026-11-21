@@ -39,9 +39,11 @@ export default function LoginPage() {
         return;
       }
 
-      // Check where to route
+      // Route by role
       if (e.includes("member")) {
         router.push("/member");
+      } else if (e.includes("staff")) {
+        router.push("/admin/members");
       } else {
         router.push("/admin");
       }
@@ -130,7 +132,7 @@ export default function LoginPage() {
                 variant="outline"
                 size="sm"
                 className="text-[11px] px-2 h-8"
-                onClick={() => quickLogin("owner@chamclub.com", "password123")}
+                onClick={() => quickLogin("owner@championsclub.test", "Password123!")}
                 disabled={loading}
               >
                 <Shield className="h-3 w-3 mr-1 text-emerald-600" /> Owner
@@ -139,7 +141,7 @@ export default function LoginPage() {
                 variant="outline"
                 size="sm"
                 className="text-[11px] px-2 h-8"
-                onClick={() => quickLogin("staff1@chamclub.com", "password123")}
+                onClick={() => quickLogin("staff1@championsclub.test", "Password123!")}
                 disabled={loading}
               >
                 <KeyRound className="h-3 w-3 mr-1 text-blue-600" /> Staff
@@ -148,7 +150,7 @@ export default function LoginPage() {
                 variant="outline"
                 size="sm"
                 className="text-[11px] px-2 h-8"
-                onClick={() => quickLogin("member1@chamclub.com", "password123")}
+                onClick={() => quickLogin("member@championsclub.test", "Password123!")}
                 disabled={loading}
               >
                 <Trophy className="h-3 w-3 mr-1 text-purple-600" /> Member

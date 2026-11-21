@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { resolve, EntitlementResult } from "@/lib/services/entitlement";
-import { hashPassword } from "better-auth/crypto";
 
 type PaymentMethod = "CASH" | "CARD" | "UPI" | "ONLINE";
 
@@ -50,8 +50,8 @@ export async function searchMembers(query?: string): Promise<MemberListItem[]> {
     const ent = await resolve(m.id, now);
     results.push({
       id: m.id,
-      name: m.user.name,
-      email: m.user.email,
+      name: m.user?.name || `Member ${m.membershipNo}`,
+      email: m.user?.email || "No email",
       membershipNo: m.membershipNo,
       qrToken: m.qrToken,
       planName: ent.plan?.name || "NONE",
@@ -130,26 +130,19 @@ export async function createMemberService(data: {
   if (existingUser) {
     userId = existingUser.id;
   } else {
-    const hashedPassword = await hashPassword("password123");
-    const newUser = await prisma.user.create({
-      data: {
+    const defaultPassword = process.env.SEED_MEMBER_PASSWORD || "Member123!";
+    const res = await auth.api.signUpEmail({
+      body: {
         name: data.name,
         email: data.email,
-        role: "MEMBER",
-        emailVerified: true,
+        password: defaultPassword,
       },
     });
-
-    await prisma.account.create({
-      data: {
-        accountId: newUser.id,
-        providerId: "credential",
-        userId: newUser.id,
-        password: hashedPassword,
-      },
+    await prisma.user.update({
+      where: { id: res.user.id },
+      data: { role: "MEMBER" },
     });
-
-    userId = newUser.id;
+    userId = res.user.id;
   }
 
   const memberCount = await prisma.member.count();

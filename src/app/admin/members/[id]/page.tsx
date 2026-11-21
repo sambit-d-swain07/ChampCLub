@@ -80,8 +80,8 @@ export default async function AdminMemberProfilePage({
               </Badge>
             )}
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{member.user.name}</h1>
-          <p className="text-xs text-muted-foreground">{member.user.email}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{member.user?.name || `Member ${member.membershipNo}`}</h1>
+          <p className="text-xs text-muted-foreground">{member.user?.email || "No email linked"}</p>
         </div>
 
         {/* QR Token & Scan Preview */}

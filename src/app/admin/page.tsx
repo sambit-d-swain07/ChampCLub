@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/session";
 import { getDashboardMetrics } from "@/lib/services/dashboard";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +10,14 @@ import { Users, CalendarCheck, IndianRupee, AlertTriangle, ArrowUpRight } from "
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
+  const user = await getCurrentUser();
+  const role = (user as { role?: string })?.role || "MEMBER";
+
+  // STAFF is blocked from the Owner Dashboard (financial metrics & revenue overview)
+  if (role !== "OWNER") {
+    redirect("/admin/members");
+  }
+
   const metrics = await getDashboardMetrics();
 
   return (
@@ -102,7 +112,7 @@ export default async function AdminDashboardPage() {
                 return (
                   <div key={m.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                     <div>
-                      <div className="text-xs font-semibold">{m.member.user.name}</div>
+                      <div className="text-xs font-semibold">{m.member.user?.name || `Member ${m.member.membershipNo}`}</div>
                       <div className="text-[11px] text-muted-foreground">
                         {m.member.membershipNo} • <Badge variant="outline" className="text-[10px]">{m.plan.name}</Badge>
                       </div>
@@ -155,7 +165,7 @@ export default async function AdminDashboardPage() {
                   <TableRow key={b.id}>
                     <TableCell className="text-xs font-medium">{b.court.name.split(" (")[0]}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {b.member?.user.name || b.guestName || "Guest"}
+                      {b.member?.user?.name || b.guestName || "Guest"}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-[10px]">

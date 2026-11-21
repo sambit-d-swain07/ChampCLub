@@ -49,7 +49,7 @@ export default async function MemberCardPage() {
               <div className="text-[10px] tracking-widest uppercase font-semibold text-emerald-200">
                 Official Digital Member Card
               </div>
-              <h2 className="text-xl font-bold tracking-tight mt-1">{member.user.name}</h2>
+              <h2 className="text-xl font-bold tracking-tight mt-1">{member.user?.name || `Member ${member.membershipNo}`}</h2>
               <div className="font-mono text-xs text-emerald-100 mt-0.5">{member.membershipNo}</div>
             </div>
             <div className="h-10 w-10 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">

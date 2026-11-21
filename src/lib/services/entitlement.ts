@@ -57,7 +57,7 @@ export async function resolve(
   if (!member || member.memberships.length === 0) {
     return {
       memberId,
-      name: member?.user.name || "Unknown Member",
+      name: member?.user?.name || (member ? `Member ${member.membershipNo}` : "Unknown Member"),
       membershipNo: member?.membershipNo || null,
       plan: null,
       status: "EXPIRED",
@@ -107,7 +107,7 @@ export async function resolve(
 
   return {
     memberId: member.id,
-    name: member.user.name,
+    name: member.user?.name || `Member ${member.membershipNo}`,
     membershipNo: member.membershipNo,
     plan: {
       id: plan.id,

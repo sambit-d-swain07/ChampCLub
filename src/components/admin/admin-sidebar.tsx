@@ -33,7 +33,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
   const role = user.role;
 
   const links = [
-    { label: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["OWNER", "STAFF"] },
+    { label: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["OWNER"] },
     { label: "Courts & Bookings", href: "/admin/courts", icon: CalendarDays, roles: ["OWNER", "STAFF"] },
     { label: "Members", href: "/admin/members", icon: Users, roles: ["OWNER", "STAFF"] },
     { label: "Pro Shop", href: "/admin/shop", icon: ShoppingBag, roles: ["OWNER", "STAFF"] },
