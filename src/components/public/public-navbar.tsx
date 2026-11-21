@@ -2,119 +2,106 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Trophy, Menu, X } from "lucide-react";
+import { Trophy, Menu, X, ArrowRight } from "lucide-react";
 
 export function PublicNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { label: "Home", href: "/" },
-    { label: "Facilities", href: "/facilities" },
-    { label: "Plans", href: "/plans" },
-    { label: "Contact", href: "/contact" },
+    { label: "Courts & Facilities", href: "/#facilities" },
+    { label: "Availability", href: "/#availability" },
+    { label: "Memberships", href: "/#plans" },
+    { label: "Pro Shop", href: "/#shop" },
+    { label: "Contact", href: "/#contact" },
   ];
 
   return (
-    <header
-      className="sticky top-0 z-30 border-b border-[#2D6A4F]/20"
-      style={{ background: "rgba(15, 42, 31, 0.96)", backdropFilter: "blur(12px)" }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#07271D]/90 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div
-            className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "#2D6A4F" }}
-          >
-            <Trophy className="h-5 w-5 text-white" />
+        <Link href="/" className="flex items-center gap-3.5 group">
+          <div className="h-10 w-10 rounded-full bg-[#C8F13A] text-[#07271D] flex items-center justify-center font-bold shadow-md transition-transform group-hover:scale-105">
+            <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-extrabold text-sm tracking-tight text-white leading-none">
+            <span className="font-display uppercase text-2xl tracking-wider text-[#F4F1EA] block leading-none">
               THE CHAMPIONS CLUB
-            </div>
-            <div className="text-[10px] text-[#74C69D] font-medium mt-0.5">
-              Racquet &amp; Sports
-            </div>
+            </span>
+            <span className="text-[10px] tracking-widest text-[#C8F13A] uppercase font-semibold">
+              BENGALURU • PREMIER RACQUET SPORTS
+            </span>
           </div>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+        <nav className="hidden lg:flex items-center gap-6 text-xs font-bold uppercase tracking-wider text-[#F4F1EA]/80">
           {navLinks.map((link) => (
             <Link
-              key={link.href}
+              key={link.label}
               href={link.href}
-              className="px-3 py-1.5 rounded text-[#74C69D] hover:text-white hover:bg-[#1A3D2B] transition-colors"
+              className="hover:text-[#C8F13A] transition-colors py-2"
             >
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/trial"
-            className="ml-3 px-4 py-2 rounded-lg font-semibold text-[#0F2A1F] text-sm transition-opacity hover:opacity-95"
-            style={{ background: "#74C69D" }}
-          >
-            Book Free Trial
-          </Link>
-          <Link
-            href="/login"
-            className="ml-2 px-3 py-2 rounded-lg font-medium text-xs text-[#F0F4EF]/70 hover:text-white border border-[#74C69D]/20 transition-colors"
-          >
-            Sign In
-          </Link>
         </nav>
 
-        {/* Mobile Hamburger & Quick CTA */}
-        <div className="flex md:hidden items-center gap-2">
+        {/* Action Buttons */}
+        <div className="hidden sm:flex items-center gap-3">
+          <Link
+            href="/login"
+            className="px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider text-[#F4F1EA] hover:text-[#C8F13A] border border-white/20 hover:border-[#C8F13A] transition-all"
+          >
+            Member Login
+          </Link>
           <Link
             href="/trial"
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#0F2A1F]"
-            style={{ background: "#74C69D" }}
+            className="px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all shadow-md flex items-center gap-1.5"
           >
-            Book Trial
+            <span>Start Free Trial</span>
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-md text-[#74C69D] hover:text-white hover:bg-[#1A3D2B] transition-colors focus:outline-none"
-            aria-label="Toggle Navigation Menu"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
+
+        {/* Mobile menu toggle */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="lg:hidden p-2 rounded-xl text-[#F4F1EA] hover:text-[#C8F13A] transition-colors"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div
-          className="md:hidden border-t border-[#2D6A4F]/30 px-6 py-4 space-y-3"
-          style={{ background: "#0F2A1F" }}
-        >
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-sm font-medium text-[#74C69D] hover:text-white transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="pt-2 border-t border-[#2D6A4F]/20 flex flex-col gap-2">
-            <Link
-              href="/trial"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-lg font-semibold text-xs text-[#0F2A1F]"
-              style={{ background: "#74C69D" }}
-            >
-              Book a Free Trial Session
-            </Link>
+        <div className="lg:hidden border-t border-white/10 bg-[#07271D] px-6 py-6 space-y-4">
+          <nav className="flex flex-col space-y-3 text-sm font-bold uppercase tracking-wider text-[#F4F1EA]/80">
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-[#C8F13A] py-1"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="pt-4 border-t border-white/10 flex flex-col gap-2.5">
             <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-lg font-medium text-xs text-white border border-[#74C69D]/30"
+              className="w-full text-center py-3 rounded-full text-xs font-bold uppercase tracking-wider text-[#F4F1EA] border border-white/20"
             >
-              Member &amp; Staff Login
+              Member Login
+            </Link>
+            <Link
+              href="/trial"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full text-center py-3 rounded-full text-xs font-bold uppercase tracking-wider bg-[#C8F13A] text-[#07271D]"
+            >
+              Start Free Trial
             </Link>
           </div>
         </div>

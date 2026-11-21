@@ -55,16 +55,31 @@ export async function resolve(
   });
 
   if (!member || member.memberships.length === 0) {
+    let bookingsToday = 0;
+    if (member?.id) {
+      const startOfDay = new Date(at);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(at);
+      endOfDay.setHours(23, 59, 59, 999);
+      bookingsToday = await prisma.booking.count({
+        where: {
+          memberId: member.id,
+          startsAt: { gte: startOfDay, lte: endOfDay },
+          status: { in: ["HELD", "CONFIRMED"] },
+        },
+      });
+    }
+
     return {
       memberId,
       name: member?.user?.name || (member ? `Member ${member.membershipNo}` : "Unknown Member"),
       membershipNo: member?.membershipNo || null,
       plan: null,
-      status: "EXPIRED",
+      status: member ? "WALK_IN" : "EXPIRED",
       courtDiscountPct: 0,
       shopDiscountPct: 0,
       barDiscountPct: 0,
-      bookingsLeftToday: 0,
+      bookingsLeftToday: member ? Math.max(0, 2 - bookingsToday) : 0,
       endsAt: null,
       graceEndsAt: null,
     };

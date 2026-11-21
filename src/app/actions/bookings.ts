@@ -118,6 +118,52 @@ export async function bookAndConfirmAction(formData: FormData) {
   }
 }
 
+export async function bookMemberCourtAction(formData: FormData) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Authentication required to book a court." };
+    }
+
+    const member = await prisma.member.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!member) {
+      return { success: false, error: "Member profile not found." };
+    }
+
+    const courtId = formData.get("courtId") as string;
+    const startsAt = formData.get("startsAt") as string;
+    const endsAt = formData.get("endsAt") as string;
+    const paymentMethod = (formData.get("paymentMethod") as "CASH" | "CARD" | "UPI" | "ONLINE") || "ONLINE";
+
+    // Strictly enforce memberId from the authenticated session
+    const result = await bookAndConfirm({
+      courtId,
+      startsAt: new Date(startsAt),
+      endsAt: new Date(endsAt),
+      memberId: member.id,
+      paymentMethod,
+    });
+
+    if (result.success) {
+      revalidatePath("/admin/courts");
+      revalidatePath("/member/bookings");
+      revalidatePath("/member/book");
+      revalidatePath("/member");
+      revalidatePath("/api/courts/availability");
+    }
+
+    return result;
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to book court.",
+    };
+  }
+}
+
 export async function joinSocialAction(bookingId: string) {
   try {
     const user = await getCurrentUser();

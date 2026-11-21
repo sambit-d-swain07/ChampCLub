@@ -2,11 +2,18 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy, QrCode, Calendar, Sparkles } from "lucide-react";
-import { SignOutButton } from "@/components/auth/sign-out-button";
+import { resolve } from "@/lib/services/entitlement";
+import {
+  Trophy,
+  QrCode,
+  Calendar,
+  Sparkles,
+  ArrowRight,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -30,188 +37,256 @@ export default async function MemberPortalPage() {
         orderBy: { startsAt: "desc" },
         take: 5,
       },
-      tabs: {
-        where: { status: "OPEN" },
-        include: { orders: true },
-        take: 1,
+      shopOrders: {
+        include: { items: { include: { product: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
       },
     },
   });
 
-  const activeMembership = member?.memberships[0];
-  const isExpired = activeMembership ? new Date(activeMembership.endsAt) < new Date() : true;
+  if (!member) {
+    redirect("/login");
+  }
+
+  const entitlement = await resolve(member.id, new Date());
+  const activeMembership = member.memberships[0];
+  const isWalkIn = entitlement.status === "WALK_IN" || entitlement.status === "EXPIRED";
+
+  // Compute days left
+  let daysLeft = 0;
+  if (entitlement.endsAt) {
+    const diffTime = new Date(entitlement.endsAt).getTime() - Date.now();
+    daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  }
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      {/* Top Navbar */}
-      <header className="h-16 border-b bg-card flex items-center justify-between px-8 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow">
-            <Trophy className="h-5 w-5" />
+    <div className="space-y-8">
+      {/* Prominent Banner if Walk-in / No active plan */}
+      {isWalkIn && (
+        <div className="rounded-2xl p-5 bg-gradient-to-r from-[#0E4433] to-[#155541] border border-[#C8F13A]/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="h-10 w-10 rounded-full bg-[#C8F13A] text-[#07271D] flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#F4F1EA]">
+                Choose a plan to unlock discounts
+              </h3>
+              <p className="text-xs text-[#F4F1EA]/70">
+                You are currently booked under standard walk-in rates. Upgrade to Gold, Silver, or Junior to unlock up to 30% off courts, pro-shop, and cafeteria.
+              </p>
+            </div>
           </div>
-          <div>
-            <div className="font-bold text-sm tracking-tight text-foreground">THE CHAMPIONS CLUB</div>
-            <div className="text-[10px] text-muted-foreground uppercase font-semibold">Member Lounge</div>
-          </div>
+          <Link
+            href="/member/choose-plan"
+            className="px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all shadow-md shrink-0 flex items-center gap-1.5"
+          >
+            <span>Choose a Plan</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-muted-foreground hidden sm:inline">Signed in as <strong className="text-foreground">{user.name}</strong></span>
-          <SignOutButton />
-        </div>
-      </header>
+      )}
 
-      <main className="max-w-5xl mx-auto p-6 md:p-8 space-y-6">
-        {/* Membership Pass Card */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10">
-            <Trophy className="h-64 w-64 -mr-16 -mt-16" />
-          </div>
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs py-0.5">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  {activeMembership?.plan.name || "MEMBER"} PASS
-                </Badge>
-                {isExpired ? (
-                  <Badge variant="destructive" className="text-xs">Expired</Badge>
-                ) : (
-                  <Badge className="bg-emerald-600 text-white text-xs">Active Privilege</Badge>
-                )}
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{user.name}</h1>
-                <p className="text-xs text-slate-300 font-mono mt-1">No: {member?.membershipNo || "CC-2026-PENDING"}</p>
-              </div>
-              <div className="flex flex-wrap gap-4 text-xs text-slate-300">
-                <div>
-                  <span className="text-[10px] uppercase text-slate-400 block">Court Discount</span>
-                  <span className="font-semibold text-white">{activeMembership?.plan.courtDiscountPct ? Number(activeMembership.plan.courtDiscountPct) : 0}% OFF</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase text-slate-400 block">Pro Shop Discount</span>
-                  <span className="font-semibold text-white">{activeMembership?.plan.shopDiscountPct ? Number(activeMembership.plan.shopDiscountPct) : 0}% OFF</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase text-slate-400 block">Bar & F&B Discount</span>
-                  <span className="font-semibold text-white">{activeMembership?.plan.barDiscountPct ? Number(activeMembership.plan.barDiscountPct) : 0}% OFF</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase text-slate-400 block">Valid Until</span>
-                  <span className="font-semibold text-white">
-                    {activeMembership ? new Date(activeMembership.endsAt).toLocaleDateString() : "N/A"}
-                  </span>
-                </div>
-              </div>
+      {/* Hero Pass Card */}
+      <div className="rounded-3xl p-6 sm:p-8 bg-[#0E4433] border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <Trophy className="h-64 w-64 -mr-12 -mt-12 text-[#C8F13A]" />
+        </div>
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#C8F13A] text-[#07271D]">
+                {entitlement.plan?.name || "WALK-IN"} PRIVILEGE
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-[#F4F1EA]">
+                {isWalkIn ? "Walk-in Status" : `${daysLeft} Days Remaining`}
+              </span>
             </div>
 
-            {/* QR Pass */}
-            <Link href="/member/card" className="bg-white text-slate-900 p-3 rounded-xl shadow-md flex flex-col items-center gap-1.5 self-center md:self-end hover:scale-105 transition-transform cursor-pointer">
-              <QrCode className="h-20 w-20 text-slate-900" />
-              <span className="text-[9px] font-mono tracking-widest text-slate-600 uppercase">
-                {member?.qrToken.slice(0, 14) || "FAST-PASS"}
-              </span>
-              <span className="text-[9px] font-semibold text-emerald-700">Open Digital Card →</span>
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-display uppercase tracking-wide text-[#F4F1EA]">
+                {user.name}
+              </h1>
+              <p className="text-xs font-mono text-[#F4F1EA]/60 mt-1">
+                Pass ID: {member.membershipNo}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-4 text-xs text-[#F4F1EA]/80 pt-2 border-t border-white/10">
+              <div>
+                <span className="text-[10px] uppercase text-[#F4F1EA]/50 block">Court Discount</span>
+                <span className="font-bold text-[#C8F13A] text-sm">{entitlement.courtDiscountPct}% OFF</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase text-[#F4F1EA]/50 block">Pro Shop Discount</span>
+                <span className="font-bold text-[#C8F13A] text-sm">{entitlement.shopDiscountPct}% OFF</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase text-[#F4F1EA]/50 block">Bar & Cafe</span>
+                <span className="font-bold text-[#C8F13A] text-sm">{entitlement.barDiscountPct}% OFF</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase text-[#F4F1EA]/50 block">Daily Quota</span>
+                <span className="font-bold text-[#F4F1EA] text-sm">{entitlement.bookingsLeftToday} slots left</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Digital QR Pass */}
+          <Link
+            href="/member/card"
+            className="bg-[#F4F1EA] text-[#07271D] p-4 rounded-2xl shadow-xl flex flex-col items-center gap-2 self-center md:self-end hover:scale-105 transition-transform"
+          >
+            <QrCode className="h-20 w-20 text-[#07271D]" />
+            <span className="text-[10px] font-mono font-bold tracking-widest text-[#07271D]/70 uppercase">
+              {member.qrToken.slice(0, 14)}
+            </span>
+            <span className="text-[10px] font-bold text-[#0B3B2C] hover:underline">
+              Turnstile Digital Pass →
+            </span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Quick Action Buttons */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Link
+          href="/member/book"
+          className="p-5 rounded-2xl bg-[#07271D] border border-white/10 hover:border-[#C8F13A]/50 transition-all flex flex-col justify-between group"
+        >
+          <Calendar className="h-6 w-6 text-[#C8F13A] mb-3 group-hover:scale-110 transition-transform" />
+          <div>
+            <div className="text-sm font-bold text-[#F4F1EA]">Book Court</div>
+            <div className="text-[11px] text-[#F4F1EA]/60">Reserve tennis, padel & badminton</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/member/bookings"
+          className="p-5 rounded-2xl bg-[#07271D] border border-white/10 hover:border-[#C8F13A]/50 transition-all flex flex-col justify-between group"
+        >
+          <Clock className="h-6 w-6 text-[#6FB3E0] mb-3 group-hover:scale-110 transition-transform" />
+          <div>
+            <div className="text-sm font-bold text-[#F4F1EA]">My Bookings</div>
+            <div className="text-[11px] text-[#F4F1EA]/60">View schedule and cancellations</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/member/shop"
+          className="p-5 rounded-2xl bg-[#07271D] border border-white/10 hover:border-[#C8F13A]/50 transition-all flex flex-col justify-between group"
+        >
+          <ShoppingBag className="h-6 w-6 text-[#C8F13A] mb-3 group-hover:scale-110 transition-transform" />
+          <div>
+            <div className="text-sm font-bold text-[#F4F1EA]">Pro Shop</div>
+            <div className="text-[11px] text-[#F4F1EA]/60">Rackets, balls & equipment</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/member/orders"
+          className="p-5 rounded-2xl bg-[#07271D] border border-white/10 hover:border-[#C8F13A]/50 transition-all flex flex-col justify-between group"
+        >
+          <Sparkles className="h-6 w-6 text-[#F4F1EA] mb-3 group-hover:scale-110 transition-transform" />
+          <div>
+            <div className="text-sm font-bold text-[#F4F1EA]">My Orders</div>
+            <div className="text-[11px] text-[#F4F1EA]/60">Order history & fulfillment</div>
+          </div>
+        </Link>
+      </div>
+
+      {/* Two-Column Details: Upcoming Bookings & Recent Orders */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Bookings Card */}
+        <div className="rounded-3xl p-6 bg-[#0E4433] border border-white/10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-display uppercase tracking-wider text-[#F4F1EA]">
+              UPCOMING COURT RESERVATIONS
+            </h3>
+            <Link href="/member/bookings" className="text-xs font-semibold text-[#C8F13A] hover:underline">
+              Manage all →
             </Link>
           </div>
-        </div>
 
-        {/* Member Bookings & Details */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Recent Court Sessions */}
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-emerald-600" />
-                  My Court Reservations
-                </CardTitle>
-                <CardDescription className="text-xs">Your reserved slots and game history.</CardDescription>
-              </div>
-              <Link href="/member/bookings" className="text-xs text-emerald-600 hover:underline font-semibold">
-                Manage & Cancel →
+          {member.bookings && member.bookings.length > 0 ? (
+            <div className="divide-y divide-white/10 text-xs">
+              {member.bookings.map((b) => (
+                <div key={b.id} className="py-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-[#F4F1EA]">{b.court.name}</div>
+                    <div className="text-[11px] text-[#F4F1EA]/60">
+                      {new Date(b.startsAt).toLocaleDateString()} at{" "}
+                      {new Date(b.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-white/10 text-[#C8F13A]">
+                      {b.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 space-y-2">
+              <p className="text-xs text-[#F4F1EA]/50">No court reservations scheduled.</p>
+              <Link
+                href="/member/book"
+                className="inline-block px-4 py-2 rounded-full text-xs font-bold bg-[#C8F13A] text-[#07271D]"
+              >
+                Book a Court
               </Link>
-            </CardHeader>
-            <CardContent>
-              {member?.bookings && member.bookings.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Court</TableHead>
-                      <TableHead className="text-xs">Date & Time</TableHead>
-                      <TableHead className="text-xs text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {member.bookings.map((b) => (
-                      <TableRow key={b.id}>
-                        <TableCell className="text-xs font-medium">{b.court.name.split(" (")[0]}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {new Date(b.startsAt).toLocaleDateString()} {new Date(b.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline" className="text-[10px]">
-                            {b.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-xs text-muted-foreground py-4 text-center">No court reservations recorded yet.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Club Privileges */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold">Active Club Services</CardTitle>
-              <CardDescription className="text-xs">Live tabs and counter checkout privileges.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-muted/40 rounded-lg border flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-semibold">Bar Tab Status</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {member?.tabs && member.tabs.length > 0
-                      ? `Open Tab active: ₹${Number(member.tabs[0].totalAmount).toFixed(0)}`
-                      : "No open tab at Champions Bar"}
-                  </div>
-                </div>
-                <Badge variant={member?.tabs && member.tabs.length > 0 ? "default" : "secondary"} className="text-[10px]">
-                  {member?.tabs && member.tabs.length > 0 ? "OPEN TAB" : "SETTLED"}
-                </Badge>
-              </div>
-
-              <div className="p-4 bg-muted/40 rounded-lg border flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-semibold">Club Entry Privilege</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Scan your digital QR Pass at the turnstiles for instant access.
-                  </div>
-                </div>
-                <Badge className="bg-emerald-600 text-[10px]">AUTHORIZED</Badge>
-              </div>
-
-              <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-semibold text-emerald-950 dark:text-emerald-300">Champions Pro Shop</div>
-                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                    Order balls, overgrips, strings & gear for instant court delivery.
-                  </div>
-                </div>
-                <Link href="/member/shop">
-                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] cursor-pointer">
-                    Open Shop →
-                  </Badge>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
-      </main>
+
+        {/* Recent Orders Card */}
+        <div className="rounded-3xl p-6 bg-[#0E4433] border border-white/10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-display uppercase tracking-wider text-[#F4F1EA]">
+              RECENT PRO SHOP ORDERS
+            </h3>
+            <Link href="/member/orders" className="text-xs font-semibold text-[#C8F13A] hover:underline">
+              View all →
+            </Link>
+          </div>
+
+          {member.shopOrders && member.shopOrders.length > 0 ? (
+            <div className="divide-y divide-white/10 text-xs">
+              {member.shopOrders.map((o) => (
+                <div key={o.id} className="py-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-[#F4F1EA]">
+                      {o.items.length} item{o.items.length > 1 ? "s" : ""} • {o.fulfilment}
+                    </div>
+                    <div className="text-[11px] text-[#F4F1EA]/60">
+                      {new Date(o.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-[#C8F13A]">
+                      ₹{Number(o.totalAmount).toLocaleString("en-IN")}
+                    </div>
+                    <span className="text-[10px] uppercase text-[#F4F1EA]/60">{o.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 space-y-2">
+              <p className="text-xs text-[#F4F1EA]/50">No shop orders yet.</p>
+              <Link
+                href="/member/shop"
+                className="inline-block px-4 py-2 rounded-full text-xs font-bold bg-[#C8F13A] text-[#07271D]"
+              >
+                Browse Pro Shop
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
