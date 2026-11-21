@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { choosePlanAction } from "@/app/actions/members";
-import { Trophy, Check, ArrowRight, Loader2, Sparkles, Shield, AlertCircle } from "lucide-react";
+import { Check, ArrowRight, Loader2, Sparkles, AlertCircle } from "lucide-react";
 
 interface PlanItem {
   id: string;
@@ -48,34 +48,21 @@ export function ChoosePlanView({
   const visiblePlans = plans.filter((p) => {
     const isJunior = p.name.toUpperCase().includes("JUNIOR");
     if (!isJunior) return true;
-    // Junior is shown ONLY if DOB is specified and age < 18
-    return isJuniorEligible;
+    return isJuniorEligible || currentAge === null;
   });
 
-  const handleCheckout = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckout = () => {
+    if (!selectedPlanId) return;
     setError(null);
 
-    const chosenPlan = plans.find((p) => p.id === selectedPlanId);
-    if (chosenPlan?.name.toUpperCase().includes("JUNIOR")) {
-      if (!dob) {
-        setError("Please enter your date of birth to verify eligibility for the Junior plan.");
-        return;
-      }
-      if (!isJuniorEligible) {
-        setError("The Junior plan is restricted to members under 18 years of age.");
-        return;
-      }
-    }
-
     startTransition(async () => {
-      const formData = new FormData();
-      formData.set("planId", selectedPlanId);
-      if (dob) formData.set("dob", dob);
+      const payload = new FormData();
+      payload.set("planId", selectedPlanId);
+      if (dob) payload.set("dob", dob);
 
-      const res = await choosePlanAction(formData);
+      const res = await choosePlanAction(payload);
       if (!res.success) {
-        setError(res.error || "Failed to activate membership.");
+        setError(res.error || "Failed to process membership selection.");
         return;
       }
 
@@ -85,28 +72,28 @@ export function ChoosePlanView({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10">
+    <div className="max-w-5xl mx-auto space-y-8 text-[#1B1B1B]">
       {/* Header */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0E4433] border border-[#C8F13A]/30 text-xs font-semibold tracking-wider text-[#C8F13A]">
-          <Sparkles className="h-3.5 w-3.5" /> WELCOME TO THE CLUB, {userName.toUpperCase()}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-[#1B1B1B]/15 text-xs font-semibold text-[#5F9E4A] shadow-2xs">
+          <Sparkles className="h-3.5 w-3.5" /> WELCOME TO THE CHAMPIONS CLUB
         </div>
-        <h1 className="text-5xl sm:text-7xl font-display uppercase tracking-tight text-[#F4F1EA]">
-          SELECT <span className="font-serif italic lowercase text-[#C8F13A] font-normal">your</span> MEMBERSHIP
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#1B1B1B]">
+          Select your membership tier, {userName}
         </h1>
-        <p className="text-sm max-w-xl mx-auto text-[#F4F1EA]/70">
-          Unlock prioritized booking windows, tournament-grade court privileges, and tiered member discounts at our Pro Shop and Champions Bar.
+        <p className="text-xs sm:text-sm text-[#1B1B1B]/70 max-w-xl mx-auto">
+          Choose a privilege tier below for automated discounts across courts, Pro Shop, and cafe. You can also skip and stay on walk-in rates.
         </p>
       </div>
 
       {/* Date of Birth Verification Strip */}
-      <div className="max-w-md mx-auto bg-[#0E4433] border border-white/10 rounded-2xl p-5 shadow-lg space-y-2">
+      <div className="max-w-md mx-auto bg-white border border-[#1B1B1B]/15 rounded-2xl p-5 shadow-sm space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="dob" className="text-xs font-semibold uppercase tracking-wider text-[#F4F1EA]/80">
+          <label htmlFor="dob" className="text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80">
             Date of Birth
           </label>
           {currentAge !== null && (
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isJuniorEligible ? "bg-[#C8F13A] text-[#07271D]" : "bg-white/10 text-[#F4F1EA]"}`}>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isJuniorEligible ? "bg-[#E8883A] text-[#1B1B1B]" : "bg-[#EDECCF] text-[#1B1B1B]"}`}>
               Age: {currentAge} yrs {isJuniorEligible ? "• Junior Eligible" : "• Adult"}
             </span>
           )}
@@ -116,9 +103,9 @@ export function ChoosePlanView({
           type="date"
           value={dob}
           onChange={(e) => setDob(e.target.value)}
-          className="w-full h-11 px-4 rounded-xl bg-[#07271D] border border-white/15 text-[#F4F1EA] text-sm focus:border-[#C8F13A] focus:outline-none"
+          className="w-full h-11 px-4 rounded-xl bg-[#F6F5E1] border border-[#1B1B1B]/20 text-[#1B1B1B] text-sm focus:border-[#5F9E4A] focus:outline-none"
         />
-        <p className="text-[11px] text-[#F4F1EA]/60">
+        <p className="text-[11px] text-gray-500">
           {currentAge === null
             ? "Enter date of birth to unlock the Junior Membership plan (under 18 only)."
             : isJuniorEligible
@@ -128,7 +115,7 @@ export function ChoosePlanView({
       </div>
 
       {error && (
-        <div className="max-w-md mx-auto p-4 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+        <div className="max-w-md mx-auto p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -144,28 +131,28 @@ export function ChoosePlanView({
             <div
               key={plan.id}
               onClick={() => setSelectedPlanId(plan.id)}
-              className={`relative rounded-3xl p-7 transition-all cursor-pointer flex flex-col justify-between border ${
+              className={`relative rounded-[28px] p-7 transition-all cursor-pointer flex flex-col justify-between border ${
                 isSelected
-                  ? "bg-[#0E4433] border-[#C8F13A] ring-2 ring-[#C8F13A]/50 shadow-2xl scale-[1.02]"
-                  : "bg-[#07271D]/80 border-white/10 hover:border-white/30"
+                  ? "bg-white border-[#5F9E4A] ring-2 ring-[#5F9E4A]/30 shadow-md scale-[1.02]"
+                  : "bg-white border-[#1B1B1B]/15 hover:border-[#1B1B1B]/40"
               }`}
             >
               {isGold && (
-                <div className="absolute -top-3 right-6 bg-[#C8F13A] text-[#07271D] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full shadow">
+                <div className="absolute -top-3 right-6 bg-[#E8883A] text-[#1B1B1B] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full shadow-2xs">
                   MOST POPULAR
                 </div>
               )}
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-display uppercase tracking-wider text-[#F4F1EA]">
+                  <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
                     {plan.name}
                   </h3>
                   <div
                     className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${
                       isSelected
-                        ? "bg-[#C8F13A] border-[#C8F13A] text-[#07271D]"
-                        : "border-white/30"
+                        ? "bg-[#5F9E4A] border-[#5F9E4A] text-white"
+                        : "border-[#1B1B1B]/30"
                     }`}
                   >
                     {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
@@ -173,29 +160,29 @@ export function ChoosePlanView({
                 </div>
 
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold text-[#F4F1EA]">
+                  <span className="text-4xl font-extrabold text-[#1B1B1B]">
                     ₹{plan.price.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-xs text-[#F4F1EA]/60">
+                  <span className="text-xs text-gray-500">
                     / {plan.durationDays} days
                   </span>
                 </div>
 
-                <div className="pt-4 border-t border-white/10 space-y-2.5 text-xs text-[#F4F1EA]/80">
+                <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2.5 text-xs text-[#1B1B1B]/80">
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#C8F13A]" />
+                    <Check className="h-4 w-4 text-[#5F9E4A]" />
                     <span><strong>{plan.courtDiscountPct}% OFF</strong> all Court bookings</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#C8F13A]" />
+                    <Check className="h-4 w-4 text-[#5F9E4A]" />
                     <span><strong>{plan.shopDiscountPct}% OFF</strong> Pro Shop merchandise</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#C8F13A]" />
+                    <Check className="h-4 w-4 text-[#5F9E4A]" />
                     <span><strong>{plan.barDiscountPct}% OFF</strong> Champions Bar & Cafe</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#C8F13A]" />
+                    <Check className="h-4 w-4 text-[#5F9E4A]" />
                     <span>Daily quota: <strong>{isGold ? "4 slots/day" : "2 slots/day"}</strong></span>
                   </div>
                 </div>
@@ -205,8 +192,8 @@ export function ChoosePlanView({
                 <div
                   className={`w-full py-2.5 rounded-full text-center text-xs font-bold tracking-wider uppercase transition-colors ${
                     isSelected
-                      ? "bg-[#C8F13A] text-[#07271D]"
-                      : "bg-white/10 text-[#F4F1EA]/80"
+                      ? "bg-[#1B1B1B] text-[#F6F5E1]"
+                      : "bg-[#F6F5E1] text-[#1B1B1B] hover:bg-[#EDECCF]"
                   }`}
                 >
                   {isSelected ? "Selected Tier" : "Select Plan"}
@@ -218,10 +205,10 @@ export function ChoosePlanView({
       </div>
 
       {/* Action Strip: Demo Checkout & Skip */}
-      <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="pt-6 border-t border-[#1B1B1B]/15 flex flex-col sm:flex-row items-center justify-between gap-4">
         <Link
           href="/member"
-          className="text-xs font-semibold text-[#F4F1EA]/60 hover:text-[#C8F13A] transition-colors py-2 px-4"
+          className="text-xs font-semibold text-[#1B1B1B]/70 hover:text-[#1B1B1B] transition-colors py-2 px-4"
         >
           Skip for now (continue as walk-in member) →
         </Link>
@@ -229,7 +216,7 @@ export function ChoosePlanView({
         <button
           onClick={handleCheckout}
           disabled={isPending || !selectedPlanId}
-          className="w-full sm:w-auto px-8 h-12 rounded-full font-bold text-sm tracking-wide bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all flex items-center justify-center gap-2 shadow-xl disabled:opacity-50 cursor-pointer"
+          className="w-full sm:w-auto px-8 h-12 rounded-full font-bold text-sm tracking-wide bg-[#1B1B1B] hover:bg-black text-[#F6F5E1] transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -245,7 +232,7 @@ export function ChoosePlanView({
         </button>
       </div>
 
-      <p className="text-[11px] text-center text-[#F4F1EA]/40">
+      <p className="text-[11px] text-center text-gray-500">
         Demo checkout simulator: no real payment gateway will be charged. Payment is recorded in the club ledger as ONLINE method.
       </p>
     </div>

@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PublicNavbar } from "@/components/public/public-navbar";
-import { CourtIllustration } from "@/components/public/court-illustration";
+import { HeroSection } from "@/components/public/hero-section";
 import { WeekAvailabilityStrip } from "@/components/public/week-availability-strip";
 import { ContactForm } from "@/components/public/contact-form";
 import { getCourtAvailability, formatKolkataDate } from "@/lib/services/booking";
 import {
   Trophy,
   ArrowRight,
-  Sparkles,
   Check,
   MapPin,
   Clock,
@@ -103,151 +101,112 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0B3B2C] text-[#F4F1EA]">
-      {/* Navbar */}
-      <PublicNavbar />
-
-      {/* 1. HERO SECTION */}
-      <section className="relative px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 max-w-7xl mx-auto w-full text-center space-y-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0E4433] border border-[#C8F13A]/30 text-xs font-semibold tracking-wider text-[#C8F13A]">
-          <Sparkles className="h-3.5 w-3.5" /> BENGALURU&apos;S PREMIER RACQUET DESTINATION
-        </div>
-
-        <h1 className="text-6xl sm:text-8xl md:text-9xl font-display uppercase tracking-tight text-[#F4F1EA] leading-[0.9]">
-          PRECISION <span className="font-serif italic lowercase text-[#C8F13A] font-normal">sporting</span> LUXURY
-        </h1>
-
-        <p className="text-sm sm:text-base max-w-2xl mx-auto text-[#F4F1EA]/70 leading-relaxed font-sans">
-          Championship Plexipave tennis courts, Spanish panoramic glass padel arenas, and Olympic-grade teakwood badminton halls. Book your court or join our sports fraternity.
-        </p>
-
-        {/* Hero CTA Buttons: "Book a Court" and "Sign up" */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-          <Link
-            href="/login?redirect=/member/book"
-            className="px-8 h-12 rounded-full font-bold text-sm tracking-wide bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all flex items-center justify-center gap-2 shadow-xl hover:scale-105"
-          >
-            <span>Book a Court</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/signup"
-            className="px-8 h-12 rounded-full font-bold text-sm tracking-wide text-[#F4F1EA] hover:text-[#C8F13A] border border-white/25 hover:border-[#C8F13A] transition-all flex items-center justify-center gap-2"
-          >
-            Sign up
-          </Link>
-        </div>
-
-        {/* Reference 2 Original Court Illustration */}
-        <div className="pt-8">
-          <CourtIllustration />
-        </div>
-      </section>
+    <div className="min-h-screen flex flex-col bg-[#F6F5E1] text-[#1B1B1B]">
+      {/* 1. HERO SECTION & NAV (Design System Redesign) */}
+      <HeroSection />
 
       {/* 2. THIS WEEK'S AVAILABILITY STRIP */}
-      <section id="availability" className="py-20 px-6 bg-[#07271D] border-t border-b border-white/10">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#C8F13A] block mb-1">
-                LIVE BOOKING ENGINE
-              </span>
-              <h2 className="text-4xl sm:text-5xl font-display uppercase tracking-wider text-[#F4F1EA]">
-                THIS WEEK&apos;S <span className="font-serif italic lowercase text-[#C8F13A] font-normal">court</span> SCHEDULE
-              </h2>
-            </div>
-            <p className="text-xs text-[#F4F1EA]/60 max-w-md">
-              Real-time court availability across Tennis, Padel, and Badminton. Select any day or slot to lock in your match time.
-            </p>
+      <section id="availability" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-widest text-[#5F9E4A] block mb-1">
+              LIVE BOOKING ENGINE
+            </span>
+            <h2 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tight text-[#1B1B1B]">
+              THIS WEEK&apos;S <span className="text-[#5F9E4A]">court</span> SCHEDULE
+            </h2>
           </div>
-
-          <WeekAvailabilityStrip days={weekDays} />
+          <p className="text-xs text-[#1B1B1B]/70 max-w-md">
+            Real-time court availability across Tennis, Padel, and Badminton. Select any day or slot to lock in your match time.
+          </p>
         </div>
+
+        <WeekAvailabilityStrip days={weekDays} />
       </section>
 
       {/* 3. FACILITIES & COURTS */}
-      <section id="facilities" className="py-20 px-6 max-w-7xl mx-auto w-full space-y-12">
+      <section id="facilities" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-12">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#C8F13A] block">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#5F9E4A] block">
             WORLD-CLASS SPECIFICATIONS
           </span>
-          <h2 className="text-5xl sm:text-6xl font-display uppercase tracking-tight text-[#F4F1EA]">
-            THE <span className="font-serif italic lowercase text-[#C8F13A] font-normal">championship</span> COURTS
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold uppercase tracking-tight text-[#1B1B1B]">
+            THE <span className="text-[#5F9E4A]">championship</span> COURTS
           </h2>
-          <p className="text-xs sm:text-sm text-[#F4F1EA]/70">
+          <p className="text-xs sm:text-sm text-[#1B1B1B]/75">
             Engineered to tournament standards with non-glare LED illumination, high-shock absorption surfaces, and acoustic comfort.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Tennis */}
-          <div className="rounded-3xl p-8 bg-[#0E4433] border border-white/10 shadow-xl space-y-4 hover:border-[#C8F13A]/50 transition-all">
-            <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-[#6FB3E0]">
+          <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4 hover:border-[#5F9E4A] transition-all">
+            <div className="h-12 w-12 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#5F9E4A]">
               <Trophy className="h-6 w-6" />
             </div>
-            <h3 className="text-3xl font-display uppercase tracking-wider text-[#F4F1EA]">
+            <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
               CHAMPIONSHIP TENNIS
             </h3>
-            <p className="text-xs text-[#F4F1EA]/70 leading-relaxed">
+            <p className="text-xs text-[#1B1B1B]/75 leading-relaxed">
               2 tournament-grade acrylic cushion hardcourts with 1000-lux anti-glare floodlights. Optimized true bounce for singles and doubles play.
             </p>
-            <div className="pt-4 border-t border-white/10 space-y-2 text-xs text-[#F4F1EA]/80">
+            <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2 text-xs text-[#1B1B1B]/80">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> ITF Class 3 Medium-Paced Acrylic
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> ITF Class 3 Medium-Paced Acrylic
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> 8-head tournament LED illumination
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> 8-head tournament LED illumination
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> Ball machine & coaching rentals
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> Ball machine & coaching rentals
               </div>
             </div>
           </div>
 
           {/* Padel */}
-          <div className="rounded-3xl p-8 bg-[#0E4433] border border-white/10 shadow-xl space-y-4 hover:border-[#C8F13A]/50 transition-all">
-            <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-[#C8F13A]">
+          <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4 hover:border-[#5F9E4A] transition-all">
+            <div className="h-12 w-12 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#E8883A]">
               <Zap className="h-6 w-6" />
             </div>
-            <h3 className="text-3xl font-display uppercase tracking-wider text-[#F4F1EA]">
+            <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
               PANORAMIC PADEL
             </h3>
-            <p className="text-xs text-[#F4F1EA]/70 leading-relaxed">
+            <p className="text-xs text-[#1B1B1B]/75 leading-relaxed">
               2 European panoramic glass arenas with texturized monofilament turf. 4-player high-intensity social and competitive format.
             </p>
-            <div className="pt-4 border-t border-white/10 space-y-2 text-xs text-[#F4F1EA]/80">
+            <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2 text-xs text-[#1B1B1B]/80">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> 12mm tempered safety glass walls
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> 12mm tempered safety glass walls
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> Texturized Mondo supercourt turf
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> Texturized Mondo supercourt turf
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> Friday evening social mixers
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> Friday evening social mixers
               </div>
             </div>
           </div>
 
           {/* Badminton */}
-          <div className="rounded-3xl p-8 bg-[#0E4433] border border-white/10 shadow-xl space-y-4 hover:border-[#C8F13A]/50 transition-all">
-            <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-[#FB923C]">
+          <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4 hover:border-[#5F9E4A] transition-all">
+            <div className="h-12 w-12 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#5F9E4A]">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <h3 className="text-3xl font-display uppercase tracking-wider text-[#F4F1EA]">
+            <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
               ELITE BADMINTON
             </h3>
-            <p className="text-xs text-[#F4F1EA]/70 leading-relaxed">
+            <p className="text-xs text-[#1B1B1B]/75 leading-relaxed">
               2 cushioned teakwood courts finished with BWF-certified anti-skid synthetic mats. Exceptional joint shock absorption and vertical clearance.
             </p>
-            <div className="pt-4 border-t border-white/10 space-y-2 text-xs text-[#F4F1EA]/80">
+            <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2 text-xs text-[#1B1B1B]/80">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> Teakwood sprung subfloor base
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> Teakwood sprung subfloor base
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> 9-meter ceiling clearance
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> 9-meter ceiling clearance
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#C8F13A]" /> Draft-free climate ventilation
+                <Check className="h-4 w-4 text-[#5F9E4A]" /> Draft-free climate ventilation
               </div>
             </div>
           </div>
@@ -255,16 +214,16 @@ export default async function HomePage() {
       </section>
 
       {/* 4. MEMBERSHIP PLANS (FROM DATABASE) */}
-      <section id="plans" className="py-20 px-6 bg-[#07271D] border-t border-b border-white/10">
+      <section id="plans" className="py-20 px-4 sm:px-6 bg-[#EDECCF]/40 border-t border-b border-[#1B1B1B]/15">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-3 max-w-xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#C8F13A] block">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#5F9E4A] block">
               ANNUAL PRIVILEGES
             </span>
-            <h2 className="text-5xl sm:text-6xl font-display uppercase tracking-tight text-[#F4F1EA]">
-              MEMBERSHIP <span className="font-serif italic lowercase text-[#C8F13A] font-normal">tiers</span>
+            <h2 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tight text-[#1B1B1B]">
+              MEMBERSHIP <span className="text-[#5F9E4A]">tiers</span>
             </h2>
-            <p className="text-xs sm:text-sm text-[#F4F1EA]/70">
+            <p className="text-xs sm:text-sm text-[#1B1B1B]/75">
               Select your privilege level. Enjoy tiered discounts across courts, pro shop gear, and the club cafeteria.
             </p>
           </div>
@@ -275,48 +234,48 @@ export default async function HomePage() {
               return (
                 <div
                   key={plan.id}
-                  className={`relative rounded-3xl p-8 flex flex-col justify-between border ${
+                  className={`relative rounded-[28px] p-8 flex flex-col justify-between border ${
                     isGold
-                      ? "bg-[#0E4433] border-[#C8F13A] ring-2 ring-[#C8F13A]/50 shadow-2xl"
-                      : "bg-[#0B3B2C] border-white/10"
+                      ? "bg-white border-[#5F9E4A] ring-2 ring-[#5F9E4A]/30 shadow-md"
+                      : "bg-white border-[#1B1B1B]/20"
                   }`}
                 >
                   {isGold && (
-                    <div className="absolute -top-3.5 right-8 bg-[#C8F13A] text-[#07271D] text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full shadow">
+                    <div className="absolute -top-3.5 right-8 bg-[#E8883A] text-[#1B1B1B] text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full shadow-sm">
                       RECOMMENDED
                     </div>
                   )}
 
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-3xl font-display uppercase tracking-wider text-[#F4F1EA]">
+                      <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
                         {plan.name}
                       </h3>
                       <div className="flex items-baseline gap-1 mt-3">
-                        <span className="text-5xl font-extrabold text-[#F4F1EA]">
+                        <span className="text-5xl font-extrabold text-[#1B1B1B]">
                           ₹{Number(plan.price).toLocaleString("en-IN")}
                         </span>
-                        <span className="text-xs text-[#F4F1EA]/60">
+                        <span className="text-xs text-gray-500">
                           / {plan.durationDays} days
                         </span>
                       </div>
                     </div>
 
-                    <div className="space-y-3 text-xs text-[#F4F1EA]/80 pt-4 border-t border-white/10">
+                    <div className="space-y-3 text-xs text-[#1B1B1B]/80 pt-4 border-t border-[#1B1B1B]/15">
                       <div className="flex items-center gap-2.5">
-                        <Check className="h-4 w-4 text-[#C8F13A]" />
+                        <Check className="h-4 w-4 text-[#5F9E4A]" />
                         <span><strong>{Number(plan.courtDiscountPct)}% OFF</strong> court reservations</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <Check className="h-4 w-4 text-[#C8F13A]" />
+                        <Check className="h-4 w-4 text-[#5F9E4A]" />
                         <span><strong>{Number(plan.shopDiscountPct)}% OFF</strong> Pro Shop merchandise</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <Check className="h-4 w-4 text-[#C8F13A]" />
+                        <Check className="h-4 w-4 text-[#5F9E4A]" />
                         <span><strong>{Number(plan.barDiscountPct)}% OFF</strong> Champions Bar & Lounge</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <Check className="h-4 w-4 text-[#C8F13A]" />
+                        <Check className="h-4 w-4 text-[#5F9E4A]" />
                         <span>Daily Booking Quota: <strong>{isGold ? "4 slots/day" : "2 slots/day"}</strong></span>
                       </div>
                     </div>
@@ -325,10 +284,10 @@ export default async function HomePage() {
                   <div className="mt-8 pt-4">
                     <Link
                       href="/signup"
-                      className={`w-full h-12 rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                      className={`w-full h-12 rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
                         isGold
-                          ? "bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] shadow-lg"
-                          : "bg-white/10 hover:bg-white/20 text-[#F4F1EA]"
+                          ? "bg-[#1B1B1B] hover:bg-black text-[#F6F5E1] shadow-md"
+                          : "border border-[#1B1B1B]/30 hover:border-[#1B1B1B] text-[#1B1B1B] hover:bg-[#F6F5E1]"
                       }`}
                     >
                       <span>Join Now</span>
@@ -343,19 +302,19 @@ export default async function HomePage() {
       </section>
 
       {/* 5. PRO SHOP PREVIEW (FROM DATABASE) */}
-      <section id="shop" className="py-20 px-6 max-w-7xl mx-auto w-full space-y-12">
+      <section id="shop" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#C8F13A] block mb-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#5F9E4A] block mb-1">
               PRO-GRADE EQUIPMENT
             </span>
-            <h2 className="text-4xl sm:text-5xl font-display uppercase tracking-wider text-[#F4F1EA]">
-              CHAMPIONS <span className="font-serif italic lowercase text-[#C8F13A] font-normal">pro</span> SHOP
+            <h2 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tight text-[#1B1B1B]">
+              CHAMPIONS <span className="text-[#5F9E4A]">pro</span> SHOP
             </h2>
           </div>
           <Link
             href="/member/shop"
-            className="text-xs font-bold text-[#C8F13A] hover:underline flex items-center gap-1.5 self-start md:self-auto"
+            className="text-xs font-bold text-[#5F9E4A] hover:underline flex items-center gap-1.5 self-start md:self-auto"
           >
             <span>Visit Full Pro Shop</span>
             <ArrowRight className="h-4 w-4" />
@@ -366,19 +325,19 @@ export default async function HomePage() {
           {products.map((p) => (
             <div
               key={p.id}
-              className="rounded-2xl p-4 bg-[#0E4433] border border-white/10 hover:border-[#C8F13A]/50 transition-all flex flex-col justify-between"
+              className="rounded-2xl p-4 bg-white border border-[#1B1B1B]/15 hover:border-[#5F9E4A] transition-all flex flex-col justify-between shadow-2xs"
             >
-              <div className="space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#C8F13A]">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#E8883A]">
                   {p.category}
                 </span>
-                <h4 className="text-xs font-bold text-[#F4F1EA] line-clamp-2">{p.name}</h4>
+                <h4 className="text-xs font-bold text-[#1B1B1B] line-clamp-2">{p.name}</h4>
               </div>
-              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-                <span className="text-sm font-extrabold text-[#F4F1EA]">
+              <div className="mt-4 pt-3 border-t border-[#1B1B1B]/15 flex items-center justify-between">
+                <span className="text-sm font-extrabold text-[#1B1B1B]">
                   ₹{Number(p.price).toLocaleString("en-IN")}
                 </span>
-                <span className="text-[10px] text-[#C8F13A] font-semibold">
+                <span className="text-[10px] text-[#5F9E4A] font-semibold">
                   {p.stockQty > 0 ? "In Stock" : "Backorder"}
                 </span>
               </div>
@@ -388,35 +347,35 @@ export default async function HomePage() {
       </section>
 
       {/* 6. VISIT THE CLUB & INQUIRIES SECTION */}
-      <section id="contact" className="py-20 px-6 bg-[#07271D] border-t border-white/10">
+      <section id="contact" className="py-20 px-4 sm:px-6 bg-[#EDECCF]/30 border-t border-[#1B1B1B]/15">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           {/* Club Info & Pitch */}
           <div className="space-y-6">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#C8F13A] block">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#5F9E4A] block">
               VISIT THE CLUB
             </span>
-            <h2 className="text-5xl sm:text-6xl font-display uppercase tracking-tight text-[#F4F1EA]">
-              EXPERIENCE <span className="font-serif italic lowercase text-[#C8F13A] font-normal">championship</span> CALIBER
+            <h2 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tight text-[#1B1B1B]">
+              EXPERIENCE <span className="text-[#5F9E4A]">championship</span> CALIBER
             </h2>
-            <p className="text-xs sm:text-sm text-[#F4F1EA]/70 leading-relaxed max-w-lg">
+            <p className="text-xs sm:text-sm text-[#1B1B1B]/75 leading-relaxed max-w-lg">
               Visit The Champions Club in the heart of Indiranagar. Experience our world-class courts, Pro Shop, and members lounge, or contact our concierge for corporate and private bookings.
             </p>
 
             <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-3 text-xs text-[#F4F1EA]/80">
-                <MapPin className="h-5 w-5 text-[#C8F13A] shrink-0" />
+              <div className="flex items-center gap-3 text-xs text-[#1B1B1B]/80">
+                <MapPin className="h-5 w-5 text-[#5F9E4A] shrink-0" />
                 <span>124 Club Crescent, Indiranagar, Bengaluru, KA 560038</span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-[#F4F1EA]/80">
-                <Clock className="h-5 w-5 text-[#C8F13A] shrink-0" />
+              <div className="flex items-center gap-3 text-xs text-[#1B1B1B]/80">
+                <Clock className="h-5 w-5 text-[#5F9E4A] shrink-0" />
                 <span>Open 7 Days a Week: 06:00 AM – 10:00 PM</span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-[#F4F1EA]/80">
-                <Phone className="h-5 w-5 text-[#C8F13A] shrink-0" />
+              <div className="flex items-center gap-3 text-xs text-[#1B1B1B]/80">
+                <Phone className="h-5 w-5 text-[#5F9E4A] shrink-0" />
                 <span>+91 80 4910 8800 • Concierge & Inquiries</span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-[#F4F1EA]/80">
-                <Mail className="h-5 w-5 text-[#C8F13A] shrink-0" />
+              <div className="flex items-center gap-3 text-xs text-[#1B1B1B]/80">
+                <Mail className="h-5 w-5 text-[#5F9E4A] shrink-0" />
                 <span>concierge@thechampionsclub.in</span>
               </div>
             </div>
@@ -424,7 +383,7 @@ export default async function HomePage() {
             <div className="pt-2">
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 px-8 h-12 rounded-full font-bold text-xs uppercase tracking-wider bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all shadow-xl"
+                className="inline-flex items-center gap-2 px-8 h-12 rounded-full font-bold text-xs uppercase tracking-wider bg-[#1B1B1B] hover:bg-black text-[#F6F5E1] transition-all shadow-md"
               >
                 <span>Apply for Club Membership</span>
                 <ArrowRight className="h-4 w-4" />
@@ -433,11 +392,11 @@ export default async function HomePage() {
           </div>
 
           {/* Contact & Inquiries Card */}
-          <div className="rounded-3xl p-8 bg-[#0E4433] border border-white/10 shadow-2xl space-y-4">
-            <h3 className="text-2xl font-display uppercase tracking-wider text-[#F4F1EA]">
+          <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4">
+            <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
               CLUB CONCIERGE & INQUIRIES
             </h3>
-            <p className="text-xs text-[#F4F1EA]/70">
+            <p className="text-xs text-gray-600">
               Interested in corporate tournament bookings, junior academy coaching, or private events? Send us a quick note.
             </p>
 
@@ -447,23 +406,24 @@ export default async function HomePage() {
       </section>
 
       {/* 7. FOOTER */}
-      <footer className="py-12 px-6 bg-[#07271D] border-t border-white/10 text-xs text-[#F4F1EA]/60">
+      <footer className="py-12 px-4 sm:px-6 bg-[#F6F5E1] border-t border-[#1B1B1B]/15 text-xs text-[#1B1B1B]/70">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-[#C8F13A] text-[#07271D] flex items-center justify-center font-bold">
-              <Trophy className="h-4 w-4" />
+            <div className="h-9 w-9 rounded-full border border-[#1B1B1B]/20 flex items-center justify-center font-bold text-lg select-none bg-white shadow-2xs">
+              <span className="text-[#E8883A]">c</span>
+              <span className="text-[#5F9E4A]">.</span>
             </div>
             <div>
-              <span className="font-display uppercase text-lg tracking-wider text-[#F4F1EA] block leading-none">
+              <span className="font-bold uppercase text-base tracking-wider text-[#1B1B1B] block leading-none">
                 THE CHAMPIONS CLUB
               </span>
-              <span className="text-[9px] text-[#C8F13A] font-semibold tracking-widest uppercase">
+              <span className="text-[10px] text-[#5F9E4A] font-semibold tracking-widest uppercase">
                 EST. 2026 • BENGALURU
               </span>
             </div>
           </div>
 
-          <div className="text-center sm:text-right space-y-0.5 text-[11px]">
+          <div className="text-center sm:text-right space-y-0.5 text-[11px] text-gray-500">
             <div>Operating Daily: 06:00 AM – 10:00 PM (IST)</div>
             <div>© 2026 The Champions Club. All rights reserved.</div>
           </div>

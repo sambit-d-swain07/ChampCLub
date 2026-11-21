@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Trophy, Check, ArrowRight, Zap, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Facilities | The Champions Club",
@@ -10,12 +11,12 @@ export const metadata: Metadata = {
 const courts = [
   {
     sport: "Tennis",
-    color: "#1A3D2B",
-    accent: "#74C69D",
+    accent: "#5F9E4A",
+    icon: Trophy,
     headline: "Championship Tennis",
     courts: "2 tournament-grade cushioned acrylic courts",
     details: [
-      "Full LED broadcast-grade floodlights",
+      "Full LED broadcast-grade 1000-lux floodlights",
       "Ball machine stations (bookable separately)",
       "Professional coaching on request",
       "Capacity: 4 players per court",
@@ -24,13 +25,13 @@ const courts = [
   },
   {
     sport: "Padel",
-    color: "#0F2A1F",
-    accent: "#74C69D",
-    headline: "Pro Padel Arenas",
+    accent: "#E8883A",
+    icon: Zap,
+    headline: "Panoramic Padel",
     courts: "2 panoramic glass & turf padel arenas",
     details: [
-      "Full-glass side and back walls",
-      "Video replay system at each arena",
+      "Full 12mm tempered safety glass walls",
+      "Texturized Mondo supercourt turf",
       "Social play Friday sessions",
       "Racket rentals from Pro Shop",
       "Capacity: 4 players per court",
@@ -38,15 +39,15 @@ const courts = [
   },
   {
     sport: "Badminton",
-    color: "#1A3D2B",
-    accent: "#74C69D",
+    accent: "#5F9E4A",
+    icon: ShieldCheck,
     headline: "Elite Badminton",
     courts: "2 shock-absorbing courts (teakwood + synthetic)",
     details: [
       "BWF-standard anti-glare illumination",
       "Yonex tournament shuttles in-stock",
       "Junior Academy sessions (age 8–17)",
-      "Dedicated shoe-change area",
+      "9-meter vertical ceiling clearance",
       "Capacity: 4 players per court",
     ],
   },
@@ -55,7 +56,7 @@ const courts = [
 const amenities = [
   {
     name: "Champions Bar & Café",
-    desc: "Post-match recovery fuel: craft juices, protein shakes, coffee, and a full sports bar menu. Members enjoy F&B discounts based on their plan tier.",
+    desc: "Post-match recovery fuel: craft juices, protein shakes, artisanal coffee, and a full sports bar menu. Members enjoy F&B discounts based on their plan tier.",
   },
   {
     name: "Pro Shop",
@@ -73,83 +74,79 @@ const amenities = [
 
 export default function FacilitiesPage() {
   return (
-    <div>
+    <div className="bg-[#F6F5E1] text-[#1B1B1B]">
       {/* Hero */}
-      <section
-        className="py-20 px-6 text-center"
-        style={{ background: "linear-gradient(135deg, #0F2A1F 0%, #1A3D2B 100%)" }}
-      >
-        <h1
-          className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight"
-          style={{ fontFamily: "system-ui, Inter, sans-serif" }}
-        >
+      <section className="py-20 px-6 text-center max-w-4xl mx-auto space-y-6">
+        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white border border-[#1B1B1B]/15 text-xs font-semibold text-[#5F9E4A] shadow-2xs">
+          WORLD-CLASS RACQUET SPORTS
+        </div>
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-[#1B1B1B] leading-tight">
           World-Class Courts.
           <br />
-          <span style={{ color: "#74C69D" }}>Zero Compromises.</span>
+          <span className="text-[#5F9E4A]">Zero Compromises.</span>
         </h1>
-        <p className="mt-5 text-[#74C69D] text-base max-w-xl mx-auto leading-relaxed">
-          Six premium courts across three disciplines, plus everything you need before and after
-          your session.
+        <p className="text-[#1B1B1B]/75 text-base max-w-xl mx-auto leading-relaxed">
+          Six tournament-grade courts across three disciplines, plus everything you need before and after
+          your match.
         </p>
-        <Link
-          href="/login?redirect=/member/book"
-          className="mt-8 inline-block px-8 py-3 rounded-full font-bold text-[#0F2A1F] text-sm transition-opacity hover:opacity-90"
-          style={{ background: "#74C69D" }}
-        >
-          Book a Court
-        </Link>
+        <div className="pt-2">
+          <Link
+            href="/login?redirect=/member/book"
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-full font-medium text-[#F6F5E1] text-sm bg-[#1B1B1B] hover:bg-black transition-all shadow-md"
+          >
+            <span>Book a Court</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </section>
 
       {/* Courts */}
-      <section className="py-16 px-6 max-w-6xl mx-auto">
-        <h2 className="text-2xl font-bold text-[#0F2A1F] mb-10">Our Courts</h2>
+      <section className="py-16 px-6 max-w-6xl mx-auto space-y-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#1B1B1B]">Our Championship Courts</h2>
         <div className="grid gap-6 md:grid-cols-3">
-          {courts.map((c) => (
-            <div
-              key={c.sport}
-              className="rounded-xl overflow-hidden border border-[#2D6A4F]/20"
-              style={{ background: "#fff" }}
-            >
-              <div className="h-3" style={{ background: c.color }} />
-              <div className="p-6">
-                <div
-                  className="text-xs font-semibold mb-1"
-                  style={{ color: "#2D6A4F" }}
-                >
-                  {c.sport}
+          {courts.map((c) => {
+            const Icon = c.icon;
+            return (
+              <div
+                key={c.sport}
+                className="rounded-[28px] overflow-hidden border border-[#1B1B1B]/15 bg-white p-7 shadow-sm hover:border-[#5F9E4A] transition-all space-y-4"
+              >
+                <div className="h-11 w-11 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#5F9E4A]">
+                  <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-lg font-bold text-[#0F2A1F] mb-1">{c.headline}</h3>
-                <p className="text-xs text-gray-500 mb-4">{c.courts}</p>
-                <ul className="space-y-1.5">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-[#E8883A] mb-1">
+                    {c.sport}
+                  </div>
+                  <h3 className="text-xl font-bold text-[#1B1B1B] mb-1">{c.headline}</h3>
+                  <p className="text-xs text-gray-500">{c.courts}</p>
+                </div>
+                <ul className="space-y-2 pt-2 border-t border-[#1B1B1B]/10">
                   {c.details.map((d) => (
-                    <li key={d} className="flex items-start gap-2 text-xs text-gray-700">
-                      <span
-                        className="mt-0.5 h-1.5 w-1.5 rounded-full flex-shrink-0"
-                        style={{ background: "#74C69D" }}
-                      />
-                      {d}
+                    <li key={d} className="flex items-start gap-2 text-xs text-[#1B1B1B]/80">
+                      <Check className="h-4 w-4 text-[#5F9E4A] shrink-0 mt-0.5" />
+                      <span>{d}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       {/* Amenities */}
-      <section className="py-14 px-6" style={{ background: "#F0F4EF" }}>
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#0F2A1F] mb-8">Club Amenities</h2>
+      <section className="py-16 px-6 bg-[#EDECCF]/35 border-t border-b border-[#1B1B1B]/10">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#1B1B1B]">Club Amenities</h2>
           <div className="grid gap-5 md:grid-cols-2">
             {amenities.map((a) => (
               <div
                 key={a.name}
-                className="rounded-xl p-6 border border-[#2D6A4F]/15"
-                style={{ background: "#fff" }}
+                className="rounded-[24px] p-6 border border-[#1B1B1B]/15 bg-white shadow-2xs"
               >
-                <h3 className="font-bold text-[#0F2A1F] text-sm mb-2">{a.name}</h3>
-                <p className="text-xs text-gray-600 leading-relaxed">{a.desc}</p>
+                <h3 className="font-bold text-[#1B1B1B] text-base mb-2">{a.name}</h3>
+                <p className="text-xs text-[#1B1B1B]/75 leading-relaxed">{a.desc}</p>
               </div>
             ))}
           </div>
@@ -157,25 +154,22 @@ export default function FacilitiesPage() {
       </section>
 
       {/* CTA */}
-      <section
-        className="py-16 px-6 text-center"
-        style={{ background: "#1A3D2B" }}
-      >
-        <h2 className="text-2xl font-bold text-white mb-3">Ready to play?</h2>
-        <p className="text-[#74C69D] text-sm mb-6">
+      <section className="py-20 px-6 text-center max-w-4xl mx-auto space-y-6">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1B1B1B]">Ready to play?</h2>
+        <p className="text-[#1B1B1B]/75 text-sm max-w-md mx-auto">
           Book championship courts or apply for club membership today.
         </p>
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
           <Link
             href="/login?redirect=/member/book"
-            className="inline-block px-8 py-3 rounded-full font-bold text-[#0F2A1F] text-sm"
-            style={{ background: "#74C69D" }}
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-full font-medium text-[#F6F5E1] text-sm bg-[#1B1B1B] hover:bg-black shadow-md transition-all"
           >
-            Book a Court
+            <span>Book a Court</span>
+            <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             href="/signup"
-            className="inline-block px-8 py-3 rounded-full font-bold text-white text-sm border border-white/30 hover:border-white"
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-full font-medium text-[#1B1B1B] text-sm border border-[#1B1B1B]/30 hover:border-[#1B1B1B] bg-white transition-all"
           >
             Sign up
           </Link>

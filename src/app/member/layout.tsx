@@ -41,59 +41,60 @@ export default async function MemberLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0B3B2C] text-[#F4F1EA]">
+    <div className="min-h-screen flex flex-col bg-[#F6F5E1] text-[#1B1B1B]">
       {/* Top Navbar */}
-      <header className="h-20 border-b border-white/10 bg-[#07271D] sticky top-0 z-30 px-6 sm:px-10 flex items-center justify-between">
+      <header className="h-18 border-b border-[#1B1B1B]/15 bg-[#F6F5E1]/90 backdrop-blur-md sticky top-0 z-30 px-6 sm:px-10 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 rounded-full bg-[#C8F13A] text-[#07271D] flex items-center justify-center font-bold shadow-md transition-transform group-hover:scale-105">
-              <Trophy className="h-5 w-5" />
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="h-9 w-9 rounded-full border border-[#1B1B1B]/20 flex items-center justify-center font-bold text-lg select-none bg-white shadow-2xs group-hover:scale-105 transition-transform">
+              <span className="text-[#E8883A]">c</span>
+              <span className="text-[#5F9E4A]">.</span>
             </div>
             <div>
-              <span className="font-display uppercase text-xl tracking-wider text-[#F4F1EA] block leading-none">
+              <span className="font-bold uppercase text-base tracking-wider text-[#1B1B1B] block leading-none">
                 THE CHAMPIONS CLUB
               </span>
-              <span className="text-[10px] tracking-widest text-[#C8F13A] uppercase font-semibold">
+              <span className="text-[9px] tracking-widest text-[#5F9E4A] uppercase font-semibold">
                 MEMBER PRIVILEGE
               </span>
             </div>
           </Link>
 
           {/* Nav links */}
-          <nav className="hidden md:flex items-center gap-1 text-xs font-semibold tracking-wider uppercase">
+          <nav className="hidden md:flex items-center gap-1.5 text-xs font-medium text-[#1B1B1B]">
             <Link
               href="/member"
-              className="px-3.5 py-2 rounded-full hover:bg-white/10 text-[#F4F1EA]/80 hover:text-[#C8F13A] transition-colors"
+              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Overview
             </Link>
             <Link
               href="/member/book"
-              className="px-3.5 py-2 rounded-full hover:bg-white/10 text-[#F4F1EA]/80 hover:text-[#C8F13A] transition-colors"
+              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Book Court
             </Link>
             <Link
               href="/member/bookings"
-              className="px-3.5 py-2 rounded-full hover:bg-white/10 text-[#F4F1EA]/80 hover:text-[#C8F13A] transition-colors"
+              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               My Bookings
             </Link>
             <Link
               href="/member/shop"
-              className="px-3.5 py-2 rounded-full hover:bg-white/10 text-[#F4F1EA]/80 hover:text-[#C8F13A] transition-colors"
+              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Pro Shop
             </Link>
             <Link
               href="/member/orders"
-              className="px-3.5 py-2 rounded-full hover:bg-white/10 text-[#F4F1EA]/80 hover:text-[#C8F13A] transition-colors"
+              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Orders
             </Link>
             <Link
               href="/member/plan"
-              className="px-3.5 py-2 rounded-full hover:bg-white/10 text-[#F4F1EA]/80 hover:text-[#C8F13A] transition-colors"
+              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Plan
             </Link>
@@ -102,8 +103,8 @@ export default async function MemberLayout({
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex flex-col text-right">
-            <span className="text-xs font-bold text-[#F4F1EA]">{user.name}</span>
-            <span className="text-[10px] font-mono text-[#C8F13A]">{member.membershipNo}</span>
+            <span className="text-xs font-bold text-[#1B1B1B]">{user.name}</span>
+            <span className="text-[10px] font-mono text-[#5F9E4A] font-semibold">{member.membershipNo}</span>
           </div>
           <SignOutButton />
         </div>

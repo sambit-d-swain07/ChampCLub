@@ -27,7 +27,7 @@ export default async function ChoosePlanPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#0B3B2C] text-[#F4F1EA] py-12 px-6">
+    <div className="min-h-screen bg-[#F6F5E1] text-[#1B1B1B] py-12 px-6">
       <ChoosePlanView plans={formattedPlans} userName={user.name} />
     </div>
   );

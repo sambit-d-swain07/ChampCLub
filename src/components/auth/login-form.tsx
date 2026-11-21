@@ -7,9 +7,8 @@ import { signIn } from "@/lib/auth-client";
 import { getPostLoginRedirectAction } from "@/app/actions/members";
 import { CourtIllustration } from "@/components/public/court-illustration";
 import {
-  Trophy,
-  ArrowLeft,
   ArrowRight,
+  ArrowLeft,
   Eye,
   EyeOff,
   Loader2,
@@ -76,52 +75,53 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F4F1EA]">
-      {/* LEFT HALF: Deep Green Brand Panel (Desktop) / Compact Header (Mobile) */}
-      <div className="lg:w-1/2 bg-[#0B3B2C] text-[#F4F1EA] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
-        {/* Subtle Ambient Background: Original Court Illustration */}
-        <div className="absolute inset-0 pointer-events-none opacity-15 scale-125 translate-x-12 translate-y-12">
-          <CourtIllustration />
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F6F5E1]">
+      {/* LEFT HALF: Fresh Green Brand Panel (Desktop) */}
+      <div className="lg:w-1/2 bg-[#5F9E4A] text-[#F6F5E1] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
+        {/* Ambient Top-Down Court Illustration */}
+        <div className="absolute inset-0 pointer-events-none opacity-20 scale-125 translate-x-12 translate-y-12">
+          <CourtIllustration allowExpandModal={false} />
         </div>
 
-        {/* Top: Logo & Name */}
+        {/* Top: Brand Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 rounded-full bg-[#C8F13A] text-[#07271D] flex items-center justify-center font-bold shadow-md transition-transform group-hover:scale-105">
-              <Trophy className="h-5 w-5" />
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="h-10 w-10 rounded-full border border-white/30 flex items-center justify-center font-bold text-xl select-none bg-white text-[#1B1B1B] shadow-sm transition-transform group-hover:scale-105">
+              <span className="text-[#E8883A]">c</span>
+              <span className="text-[#5F9E4A]">.</span>
             </div>
             <div>
-              <span className="font-display uppercase text-2xl tracking-wider text-[#F4F1EA] block leading-none">
+              <span className="font-bold uppercase text-xl tracking-wider text-white block leading-none">
                 THE CHAMPIONS CLUB
               </span>
-              <span className="text-[10px] tracking-widest text-[#C8F13A] uppercase font-semibold">
+              <span className="text-[10px] tracking-widest text-[#F6F5E1]/80 uppercase font-semibold">
                 BENGALURU • PREMIER RACQUET SPORTS
               </span>
             </div>
           </Link>
         </div>
 
-        {/* Middle: Condensed Headline & 3 Benefit Lines (Desktop only) */}
+        {/* Middle: Headline & Benefits */}
         <div className="relative z-10 my-auto py-12 hidden lg:block space-y-8">
-          <h1 className="text-6xl xl:text-7xl font-display uppercase tracking-tight text-[#F4F1EA] leading-[0.95]">
-            WELCOME <span className="font-serif italic lowercase text-[#C8F13A] font-normal">back to</span> THE CLUB
-          </h1>
+          <div className="text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.05]">
+            welcome <span className="text-[#E8883A]">back to</span> the club.
+          </div>
 
-          <div className="space-y-4 pt-4 border-t border-white/10 text-sm text-[#F4F1EA]/85">
+          <div className="space-y-4 pt-4 border-t border-white/20 text-sm text-white/90">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-[#C8F13A]">
+              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
                 <Calendar className="h-4 w-4" />
               </div>
               <span className="font-medium">Book courts in seconds</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-[#C8F13A]">
+              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
                 <Percent className="h-4 w-4" />
               </div>
               <span className="font-medium">Member discounts applied automatically</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-[#C8F13A]">
+              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
                 <QrCode className="h-4 w-4" />
               </div>
               <span className="font-medium">Your QR card, always with you</span>
@@ -130,19 +130,19 @@ export function LoginForm() {
         </div>
 
         {/* Bottom Tagline */}
-        <div className="relative z-10 hidden lg:block text-xs text-[#F4F1EA]/50 font-mono">
+        <div className="relative z-10 hidden lg:block text-xs text-white/60 font-mono">
           EST. 2026 • CHAMPIONSHIP STANDARDS
         </div>
       </div>
 
-      {/* RIGHT HALF: Off-white Form Container */}
+      {/* RIGHT HALF: Soft Cream Form Container */}
       <div className="lg:w-1/2 flex-1 flex flex-col justify-center items-center p-6 sm:p-12 lg:p-16">
         <div className="w-full max-w-md space-y-7">
           {/* Back to Home Link */}
           <div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#0B3B2C]/70 hover:text-[#0B3B2C] transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/70 hover:text-[#1B1B1B] transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Home</span>
@@ -151,10 +151,10 @@ export function LoginForm() {
 
           {/* Heading */}
           <div className="space-y-1.5">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#07271D]">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1B1B1B]">
               Sign in to your account
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[#1B1B1B]/70">
               Enter your credentials to access your club profile or management console.
             </p>
           </div>
@@ -172,7 +172,7 @@ export function LoginForm() {
             <div className="space-y-1.5">
               <label
                 htmlFor="email"
-                className="block text-xs font-bold uppercase tracking-wider text-gray-700"
+                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
               >
                 Email Address
               </label>
@@ -188,14 +188,14 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full h-12 px-4 rounded-xl bg-white border border-gray-300 text-sm text-[#07271D] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C8F13A] focus:border-[#0B3B2C] transition-all shadow-sm"
+                className="w-full h-12 px-4 rounded-xl bg-white border border-[#1B1B1B]/20 text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] focus:border-[#5F9E4A] transition-all shadow-2xs"
               />
             </div>
 
             <div className="space-y-1.5">
               <label
                 htmlFor="password"
-                className="block text-xs font-bold uppercase tracking-wider text-gray-700"
+                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
               >
                 Password
               </label>
@@ -210,7 +210,7 @@ export function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-12 pl-4 pr-11 rounded-xl bg-white border border-gray-300 text-sm text-[#07271D] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C8F13A] focus:border-[#0B3B2C] transition-all shadow-sm"
+                  className="w-full h-12 pl-4 pr-11 rounded-xl bg-white border border-[#1B1B1B]/20 text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] focus:border-[#5F9E4A] transition-all shadow-2xs"
                 />
                 <button
                   type="button"
@@ -226,7 +226,7 @@ export function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 mt-2 rounded-full font-bold text-sm tracking-wide bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
+              className="w-full h-12 mt-2 rounded-full font-bold text-sm tracking-wide bg-[#1B1B1B] hover:bg-black text-[#F6F5E1] transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -242,7 +242,7 @@ export function LoginForm() {
             </button>
 
             {/* Quick Demo Credentials */}
-            <div className="pt-3 border-t border-gray-200">
+            <div className="pt-3 border-t border-[#1B1B1B]/15">
               <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2 text-center">
                 Quick Demo Fill
               </span>
@@ -250,21 +250,21 @@ export function LoginForm() {
                 <button
                   type="button"
                   onClick={() => quickFill("owner@gmail.com", "Owner@123")}
-                  className="py-1.5 px-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#07271D] text-[11px] font-semibold border border-gray-300 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
                 >
-                  <Shield className="h-3 w-3 text-[#0B3B2C]" /> Owner
+                  <Shield className="h-3 w-3 text-[#5F9E4A]" /> Owner
                 </button>
                 <button
                   type="button"
                   onClick={() => quickFill("staff1@gmail.com", "Staff1@123")}
-                  className="py-1.5 px-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#07271D] text-[11px] font-semibold border border-gray-300 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
                 >
                   <KeyRound className="h-3 w-3 text-blue-600" /> Staff 1
                 </button>
                 <button
                   type="button"
                   onClick={() => quickFill("staff2@gmail.com", "Staff2@123")}
-                  className="py-1.5 px-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#07271D] text-[11px] font-semibold border border-gray-300 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
                 >
                   <KeyRound className="h-3 w-3 text-amber-600" /> Staff 2
                 </button>
@@ -272,9 +272,9 @@ export function LoginForm() {
             </div>
 
             {/* Link to Sign up */}
-            <div className="text-center pt-3 text-xs text-gray-600">
+            <div className="text-center pt-3 text-xs text-[#1B1B1B]/70">
               New here?{" "}
-              <Link href="/signup" className="text-[#0B3B2C] font-bold hover:underline">
+              <Link href="/signup" className="text-[#5F9E4A] font-bold hover:underline">
                 Sign up
               </Link>
             </div>

@@ -1,23 +1,9 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Playfair_Display, Inter } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 
-const bebasNeue = Bebas_Neue({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const playfairDisplay = Playfair_Display({
-  weight: ["400", "600", "700"],
-  style: ["normal", "italic"],
-  subsets: ["latin"],
-  variable: "--font-serif",
-  display: "swap",
-});
-
-const inter = Inter({
+const outfit = Outfit({
+  weight: ["400", "500", "700"],
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
@@ -41,9 +27,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebasNeue.variable} ${playfairDisplay.variable} ${inter.variable} h-full antialiased`}
+      className={`${outfit.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-brand-green text-brand-offwhite">
+      <body className="min-h-full flex flex-col font-sans bg-[#F6F5E1] text-[#1B1B1B]">
         {children}
       </body>
     </html>

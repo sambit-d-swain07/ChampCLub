@@ -4,16 +4,23 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-brand-green: #0B3B2C;
-  --color-brand-dark: #07271D;
-  --color-brand-lime: #C8F13A;
-  --color-brand-offwhite: #F4F1EA;
-  --color-brand-court: #6FB3E0;
-  --color-brand-surface: #0E4433;
-  --color-brand-surface-light: #155541;
+  --color-brand-cream: #F6F5E1;
+  --color-brand-dark: #1B1B1B;
+  --color-brand-orange: #E8883A;
+  --color-brand-green: #5F9E4A;
+  --color-brand-green-light: #8DBF6F;
+  --color-brand-green-dark: #3F7A37;
+  --color-brand-border: rgba(27, 27, 27, 0.3);
 
-  --font-display: var(--font-display);
-  --font-serif: var(--font-serif);
+  /* Compatibility theme aliases */
+  --color-brand-offwhite: #F6F5E1;
+  --color-brand-lime: #E8883A;
+  --color-brand-court: #8DBF6F;
+  --color-brand-surface: #EDECCF;
+  --color-brand-surface-light: #FFFFFF;
+
+  --font-display: var(--font-sans);
+  --font-serif: var(--font-sans);
   --font-sans: var(--font-sans);
 
   --radius-pill: 9999px;
@@ -21,7 +28,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-display);
+  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -61,46 +68,52 @@
 }
 
 :root {
-  --brand-green: #0B3B2C;
-  --brand-dark: #07271D;
-  --brand-lime: #C8F13A;
-  --brand-offwhite: #F4F1EA;
-  --brand-court: #6FB3E0;
-  --brand-surface: #0E4433;
-  --brand-surface-light: #155541;
+  --brand-cream: #F6F5E1;
+  --brand-dark: #1B1B1B;
+  --brand-orange: #E8883A;
+  --brand-green: #5F9E4A;
+  --brand-green-light: #8DBF6F;
+  --brand-green-dark: #3F7A37;
+  --brand-border: rgba(27, 27, 27, 0.3);
 
-  --background: #0B3B2C;
-  --foreground: #F4F1EA;
-  --card: #0E4433;
-  --card-foreground: #F4F1EA;
-  --popover: #0E4433;
-  --popover-foreground: #F4F1EA;
-  --primary: #C8F13A;
-  --primary-foreground: #07271D;
-  --secondary: #155541;
-  --secondary-foreground: #F4F1EA;
-  --muted: #07271D;
-  --muted-foreground: rgba(244, 241, 234, 0.65);
-  --accent: #C8F13A;
-  --accent-foreground: #07271D;
+  --brand-offwhite: #F6F5E1;
+  --brand-lime: #E8883A;
+  --brand-court: #8DBF6F;
+  --brand-surface: #EDECCF;
+  --brand-surface-light: #FFFFFF;
+
+  --background: #F6F5E1;
+  --foreground: #1B1B1B;
+  --card: #FFFFFF;
+  --card-foreground: #1B1B1B;
+  --popover: #FFFFFF;
+  --popover-foreground: #1B1B1B;
+  --primary: #1B1B1B;
+  --primary-foreground: #F6F5E1;
+  --secondary: #5F9E4A;
+  --secondary-foreground: #FFFFFF;
+  --muted: #EDECCF;
+  --muted-foreground: #5A5A50;
+  --accent: #E8883A;
+  --accent-foreground: #1B1B1B;
   --destructive: #EF4444;
-  --border: rgba(244, 241, 234, 0.12);
-  --input: rgba(244, 241, 234, 0.15);
-  --ring: #C8F13A;
-  --chart-1: #C8F13A;
-  --chart-2: #6FB3E0;
-  --chart-3: #F4F1EA;
-  --chart-4: #F59E0B;
-  --chart-5: #10B981;
+  --border: rgba(27, 27, 27, 0.2);
+  --input: rgba(27, 27, 27, 0.2);
+  --ring: #5F9E4A;
+  --chart-1: #5F9E4A;
+  --chart-2: #E8883A;
+  --chart-3: #8DBF6F;
+  --chart-4: #3F7A37;
+  --chart-5: #1B1B1B;
   --radius: 0.75rem;
-  --sidebar: #07271D;
-  --sidebar-foreground: #F4F1EA;
-  --sidebar-primary: #C8F13A;
-  --sidebar-primary-foreground: #07271D;
-  --sidebar-accent: #0E4433;
-  --sidebar-accent-foreground: #F4F1EA;
-  --sidebar-border: rgba(244, 241, 234, 0.1);
-  --sidebar-ring: #C8F13A;
+  --sidebar: #1B1B1B;
+  --sidebar-foreground: #F6F5E1;
+  --sidebar-primary: #E8883A;
+  --sidebar-primary-foreground: #1B1B1B;
+  --sidebar-accent: #EDECCF;
+  --sidebar-accent-foreground: #1B1B1B;
+  --sidebar-border: rgba(27, 27, 27, 0.1);
+  --sidebar-ring: #5F9E4A;
 }
 
 /* Scoped Light Theme for Staff & Owner Admin Portal */
