@@ -24,7 +24,7 @@ export default async function MemberPortalPage() {
   }
 
   console.time("[Route: /member] DB fetch member & relations");
-  const member = await prisma.member.findUnique({
+  let member = await prisma.member.findUnique({
     where: { userId: user.id },
     include: {
       user: true,
@@ -48,7 +48,44 @@ export default async function MemberPortalPage() {
   console.timeEnd("[Route: /member] DB fetch member & relations");
 
   if (!member) {
-    redirect("/login");
+    const role = (user as { role?: string }).role;
+    if (role === "OWNER") {
+      redirect("/admin/owner");
+    }
+    if (role === "STAFF") {
+      redirect("/admin/members");
+    }
+
+    // Auto-initialize member record if not yet created
+    const memberCount = await prisma.member.count();
+    const membershipNo = `CC-2026-${String(memberCount + 1).padStart(3, "0")}`;
+    const qrToken = `QR-CC-${String(memberCount + 1).padStart(3, "0")}-${Math.random()
+      .toString(36)
+      .substring(2, 8)
+      .toUpperCase()}`;
+
+    member = await prisma.member.create({
+      data: {
+        userId: user.id,
+        membershipNo,
+        qrToken,
+      },
+      include: {
+        user: true,
+        memberships: {
+          include: { plan: true },
+          take: 1,
+        },
+        bookings: {
+          include: { court: true },
+          take: 5,
+        },
+        shopOrders: {
+          include: { items: { include: { product: true } } },
+          take: 5,
+        },
+      },
+    });
   }
 
   console.time("[Route: /member] resolve entitlement");

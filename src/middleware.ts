@@ -6,11 +6,16 @@ export function middleware(request: NextRequest) {
 
   // Protect /admin and /member routes with zero-db cookie check
   if (pathname.startsWith("/admin") || pathname.startsWith("/member")) {
-    const sessionCookie =
-      request.cookies.get("better-auth.session_token")?.value ||
-      request.cookies.get("__Secure-better-auth.session_token")?.value;
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) =>
+        c.name.includes("session") ||
+        c.name.includes("better-auth") ||
+        c.name.includes("auth")
+    );
 
-    if (!sessionCookie) {
+    // Only redirect if completely unauthenticated with no auth/session cookies
+    if (!hasAuthCookie) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);

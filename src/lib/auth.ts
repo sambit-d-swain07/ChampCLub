@@ -3,10 +3,13 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@/lib/prisma";
 
 const baseURL =
-  process.env.NEXT_PUBLIC_APP_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "https://champ-creator.vercel.app"
-    : process.env.BETTER_AUTH_URL || "http://localhost:3000");
+  process.env.NODE_ENV === "production"
+    ? (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes("localhost")
+        ? process.env.NEXT_PUBLIC_APP_URL
+        : (process.env.VERCEL_PROJECT_PRODUCTION_URL
+            ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+            : "https://champ-creator.vercel.app"))
+    : (process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000");
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {

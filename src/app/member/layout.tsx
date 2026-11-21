@@ -17,7 +17,15 @@ export default async function MemberLayout({
     redirect("/login");
   }
 
-  // Ensure member record exists for this user
+  const role = (user as { role?: string }).role || "MEMBER";
+  if (role === "OWNER") {
+    redirect("/admin/owner");
+  }
+  if (role === "STAFF") {
+    redirect("/admin/members");
+  }
+
+  // Ensure member record exists for this member user
   let member = await prisma.member.findUnique({
     where: { userId: user.id },
   });
