@@ -11,6 +11,7 @@ import {
   ChefHat,
   UserCheck, 
   Landmark, 
+  Receipt,
   ShieldCheck, 
   LogOut, 
   Trophy 
@@ -35,13 +36,14 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
 
   const links = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["OWNER"] },
+    { label: "Executive Finance", href: "/admin/owner", icon: Landmark, roles: ["OWNER"] },
+    { label: "Expenses", href: "/admin/expenses", icon: Receipt, roles: ["OWNER"] },
     { label: "Courts & Bookings", href: "/admin/courts", icon: CalendarDays, roles: ["OWNER", "STAFF"] },
     { label: "Members", href: "/admin/members", icon: Users, roles: ["OWNER", "STAFF"] },
     { label: "Pro Shop", href: "/admin/shop", icon: ShoppingBag, roles: ["OWNER", "STAFF"] },
     { label: "Champions Bar", href: "/admin/bar", icon: Wine, roles: ["OWNER", "STAFF"] },
     { label: "Kitchen Board", href: "/kitchen", icon: ChefHat, roles: ["OWNER", "STAFF"] },
     { label: "Leads & CRM", href: "/admin/leads", icon: UserCheck, roles: ["OWNER", "STAFF"] },
-    { label: "Ledger & Finance", href: "/admin/finance", icon: Landmark, roles: ["OWNER"] },
     { label: "Audit Logs", href: "/admin/audit", icon: ShieldCheck, roles: ["OWNER"] },
   ];
 
