@@ -260,7 +260,7 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
                   </div>
                 ) : isUnavailable ? (
                   <div className="w-full py-2.5 rounded-full bg-[#1B1B1B]/10 text-[#1B1B1B]/40 text-xs font-bold text-center">
-                    {isJunior ? "Only for members under 18" : "Not available"}
+                    {isJunior ? "Junior is for under 18" : "Not available"}
                   </div>
                 ) : isUpgrade ? (
                   <div className="w-full py-2.5 rounded-full bg-[#1B1B1B] text-[#F6F5E1] text-xs font-bold text-center">

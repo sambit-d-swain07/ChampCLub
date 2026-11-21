@@ -147,16 +147,26 @@ model Verification {
   @@map("verification")
 }
 
+enum AgeDocType {
+  SCHOOL_ID
+  AADHAAR
+  BIRTH_CERTIFICATE
+  OTHER
+}
+
 // ----------------- Member & Memberships -----------------
 model Member {
-  id           String   @id @default(cuid())
-  userId       String?  @unique
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  membershipNo String   @unique
-  qrToken      String   @unique
-  dateOfBirth  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String      @id @default(cuid())
+  userId          String?     @unique
+  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  membershipNo    String      @unique
+  qrToken         String      @unique
+  dateOfBirth     DateTime?
+  ageVerifiedAt   DateTime?
+  ageVerifiedById String?
+  ageDocType      AgeDocType?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   memberships         Membership[]
   bookings            Booking[]
@@ -164,6 +174,21 @@ model Member {
   shopOrders          ShopOrder[]
   tabs                Tab[]
   addresses           MemberAddress[]
+  auditLogs           MemberAuditLog[]
+}
+
+model MemberAuditLog {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  field     String
+  oldValue  String?
+  newValue  String?
+  changedBy String // User ID or Staff Name
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+  @@index([createdAt])
 }
 
 model MemberAddress {

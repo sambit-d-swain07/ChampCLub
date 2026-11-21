@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getMemberDetail } from "@/lib/services/members";
 import { BanMemberDialog } from "@/components/admin/ban-member-dialog";
+import { VerifyAgeDialog } from "@/components/admin/verify-age-dialog";
+import { EditDobDialog } from "@/components/admin/edit-dob-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,24 +39,42 @@ export default async function AdminMemberProfilePage({
     notFound();
   }
 
-  const { member, entitlement, bannedByName } = data;
+  const { member, entitlement, bannedByName, ageVerifiedByName } = data;
   const isBanned = Boolean(member.user?.bannedAt);
+  const isJunior = entitlement.plan?.name.toUpperCase().includes("JUNIOR") || false;
+  const isAgeVerified = Boolean(member.ageVerifiedAt);
+
+  // Calculate age
+  let memberAge: number | null = null;
+  if (member.dateOfBirth) {
+    const diff = Date.now() - new Date(member.dateOfBirth).getTime();
+    memberAge = Math.abs(new Date(diff).getUTCFullYear() - 1970);
+  }
 
   return (
     <div className="space-y-6">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Link href="/admin/members" prefetch={false}>
           <Button variant="ghost" size="sm" className="text-xs">
             <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Members
           </Button>
         </Link>
-        <BanMemberDialog
-          memberId={member.id}
-          membershipNo={member.membershipNo}
-          memberName={member.user?.name || `Member ${member.membershipNo}`}
-          isBanned={isBanned}
-        />
+        <div className="flex items-center gap-2">
+          {isJunior && !isAgeVerified && !isBanned && (
+            <VerifyAgeDialog
+              memberId={member.id}
+              memberName={member.user?.name || `Member ${member.membershipNo}`}
+              membershipNo={member.membershipNo}
+            />
+          )}
+          <BanMemberDialog
+            memberId={member.id}
+            membershipNo={member.membershipNo}
+            memberName={member.user?.name || `Member ${member.membershipNo}`}
+            isBanned={isBanned}
+          />
+        </div>
       </div>
 
       {/* Banned Alert Banner */}
@@ -107,6 +127,49 @@ export default async function AdminMemberProfilePage({
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{member.user?.name || `Member ${member.membershipNo}`}</h1>
           <p className="text-xs text-muted-foreground">{member.user?.email || "No email linked"}</p>
+
+          {/* DOB & Age Verification Badge */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+            <span className="text-muted-foreground">
+              DOB:{" "}
+              <strong className="text-foreground">
+                {member.dateOfBirth
+                  ? new Date(member.dateOfBirth).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "Not set"}
+              </strong>
+              {memberAge !== null && ` (${memberAge} yrs)`}
+            </span>
+
+            <EditDobDialog
+              memberId={member.id}
+              memberName={member.user?.name || `Member ${member.membershipNo}`}
+              currentDob={member.dateOfBirth ? member.dateOfBirth.toISOString() : null}
+            />
+
+            <span
+              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                isAgeVerified
+                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                  : "bg-amber-100 text-amber-800 border border-amber-300"
+              }`}
+            >
+              {isAgeVerified
+                ? `Verified by ${ageVerifiedByName || "Staff"}${
+                    member.ageVerifiedAt
+                      ? ` on ${new Date(member.ageVerifiedAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}`
+                      : ""
+                  }${member.ageDocType ? ` (${member.ageDocType})` : ""}`
+                : "Not verified"}
+            </span>
+          </div>
         </div>
 
         {/* QR Token & Scan Preview */}

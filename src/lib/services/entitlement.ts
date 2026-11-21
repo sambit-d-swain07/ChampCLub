@@ -8,13 +8,17 @@ export interface EntitlementResult {
     id: string;
     name: string;
   } | null;
-  status: "ACTIVE" | "GRACE" | "EXPIRED" | "WALK_IN";
+  status: "ACTIVE" | "GRACE" | "EXPIRED" | "WALK_IN" | "PENDING_VERIFICATION";
   courtDiscountPct: number;
   shopDiscountPct: number;
   barDiscountPct: number;
   bookingsLeftToday: number;
   endsAt: Date | null;
   graceEndsAt: Date | null;
+  ageVerified?: boolean;
+  ageVerifiedAt?: Date | null;
+  ageDocType?: string | null;
+  juniorExpiredByAge?: boolean;
 }
 
 /**
@@ -125,13 +129,85 @@ export async function resolve(
 
   const latestMembership = member.memberships[0];
   const plan = latestMembership.plan;
-  const endsAt = new Date(latestMembership.endsAt);
-  // 7-day grace period computed on-the-fly
+  const isJunior = plan.name.toUpperCase().includes("JUNIOR");
+
+  // Junior plan age & verification calculations
+  let effectiveEndsAt = new Date(latestMembership.endsAt);
+  let juniorExpiredByAge = false;
+
+  if (isJunior && member.dateOfBirth) {
+    const dob = new Date(member.dateOfBirth);
+    // 18th birthday is: dob year + 18
+    const eighteenthBday = new Date(dob);
+    eighteenthBday.setFullYear(eighteenthBday.getFullYear() + 18);
+
+    if (eighteenthBday < effectiveEndsAt) {
+      effectiveEndsAt = eighteenthBday;
+    }
+
+    if (at >= eighteenthBday) {
+      juniorExpiredByAge = true;
+    }
+  }
+
+  // 7-day auto-cancellation for unverified Junior membership
+  const createdAtMs = new Date(latestMembership.createdAt).getTime();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  const isUnverifiedJunior = isJunior && !member.ageVerifiedAt;
+
+  if (isUnverifiedJunior && (at.getTime() - createdAtMs > sevenDaysMs) && !latestMembership.replacedAt) {
+    // Cancel the membership and issue REFUNDED ledger entry
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.membership.update({
+          where: { id: latestMembership.id },
+          data: { replacedAt: at },
+        });
+        const refundAmt = Number(latestMembership.pricePaid);
+        if (refundAmt > 0) {
+          await tx.ledgerEntry.create({
+            data: {
+              source: "MEMBERSHIP",
+              amount: refundAmt,
+              method: "ONLINE",
+              kind: "REFUNDED",
+              refType: "MEMBERSHIP",
+              refId: latestMembership.id,
+              createdAt: at,
+            },
+          });
+        }
+      });
+    } catch (e) {
+      console.error("[Entitlement] Auto-cancel unverified junior error:", e);
+    }
+
+    return {
+      memberId: member.id,
+      name: member.user?.name || `Member ${member.membershipNo}`,
+      membershipNo: member.membershipNo,
+      plan: null,
+      status: "EXPIRED",
+      courtDiscountPct: 0,
+      shopDiscountPct: 0,
+      barDiscountPct: 0,
+      bookingsLeftToday: 0,
+      endsAt: null,
+      graceEndsAt: null,
+      ageVerified: false,
+      juniorExpiredByAge: false,
+    };
+  }
+
+  const endsAt = effectiveEndsAt;
   const graceEndsAt = new Date(endsAt.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  let status: "ACTIVE" | "GRACE" | "EXPIRED" = "ACTIVE";
-  if (at.getTime() > graceEndsAt.getTime()) {
+  let status: "ACTIVE" | "GRACE" | "EXPIRED" | "PENDING_VERIFICATION" = "ACTIVE";
+
+  if (juniorExpiredByAge || at.getTime() > graceEndsAt.getTime()) {
     status = "EXPIRED";
+  } else if (isUnverifiedJunior) {
+    status = "PENDING_VERIFICATION";
   } else if (at.getTime() > endsAt.getTime()) {
     status = "GRACE";
   } else {
@@ -152,11 +228,14 @@ export async function resolve(
     },
   });
 
-  // Daily quota: GOLD = 4, others = 2
+  // Daily quota: GOLD = 4, others = 2, EXPIRED = 0, PENDING_VERIFICATION = 2 but 0 discounts
   const dailyQuota = status === "EXPIRED" ? 0 : plan.name === "GOLD" ? 4 : 2;
   const bookingsLeftToday = Math.max(0, dailyQuota - bookingsToday);
 
-  const isEligible = status === "ACTIVE" || status === "GRACE";
+  // For Junior: discounts apply only when verified AND age < 18
+  const isEligible =
+    (status === "ACTIVE" || status === "GRACE") &&
+    (!isJunior || (Boolean(member.ageVerifiedAt) && !juniorExpiredByAge));
 
   return {
     memberId: member.id,
@@ -173,5 +252,9 @@ export async function resolve(
     bookingsLeftToday,
     endsAt,
     graceEndsAt,
+    ageVerified: Boolean(member.ageVerifiedAt),
+    ageVerifiedAt: member.ageVerifiedAt,
+    ageDocType: member.ageDocType,
+    juniorExpiredByAge,
   };
 }

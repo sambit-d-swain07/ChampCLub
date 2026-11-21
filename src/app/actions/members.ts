@@ -15,11 +15,15 @@ export async function lookupMemberByIdAction(query: string): Promise<{
     name: string;
     membershipNo: string;
     planName: string;
-    status: "ACTIVE" | "GRACE" | "EXPIRED" | "WALK_IN";
+    status: "ACTIVE" | "GRACE" | "EXPIRED" | "WALK_IN" | "PENDING_VERIFICATION";
     courtDiscountPct: number;
     shopDiscountPct: number;
     barDiscountPct: number;
     bookingsLeftToday: number;
+    isJunior?: boolean;
+    ageVerified?: boolean;
+    ageVerifiedAt?: string | null;
+    ageVerifiedByName?: string | null;
   };
   banned?: boolean;
   error?: string;
@@ -52,6 +56,17 @@ export async function lookupMemberByIdAction(query: string): Promise<{
 
     const ent = await resolve(member.id);
 
+    let ageVerifiedByName: string | null = null;
+    if (member.ageVerifiedById) {
+      const staffUser = await prisma.user.findUnique({
+        where: { id: member.ageVerifiedById },
+        select: { name: true },
+      });
+      ageVerifiedByName = staffUser?.name || "Staff";
+    }
+
+    const isJunior = ent.plan?.name.toUpperCase().includes("JUNIOR") || false;
+
     return {
       success: true,
       member: {
@@ -64,6 +79,10 @@ export async function lookupMemberByIdAction(query: string): Promise<{
         shopDiscountPct: ent.shopDiscountPct,
         barDiscountPct: ent.barDiscountPct,
         bookingsLeftToday: ent.bookingsLeftToday,
+        isJunior,
+        ageVerified: Boolean(member.ageVerifiedAt),
+        ageVerifiedAt: member.ageVerifiedAt ? member.ageVerifiedAt.toISOString() : null,
+        ageVerifiedByName,
       },
     };
   } catch (error: unknown) {
@@ -88,14 +107,14 @@ export async function checkUserBanAction(email: string): Promise<{ banned: boole
 
 const banMemberSchema = z.object({
   memberId: z.string().min(1),
-  reason: z.enum(["Misconduct", "Non-payment", "Fraud", "Other"]),
+  reason: z.enum(["Misconduct", "Non-payment", "Fraud", "False age information", "Other"]),
   note: z.string().optional(),
   confirmId: z.string().min(1),
 });
 
 export async function banMemberAction(data: {
   memberId: string;
-  reason: "Misconduct" | "Non-payment" | "Fraud" | "Other";
+  reason: "Misconduct" | "Non-payment" | "Fraud" | "False age information" | "Other";
   note?: string;
   confirmId: string;
 }) {
@@ -269,6 +288,7 @@ const signUpSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(8, "Valid phone number required"),
   email: z.string().email("Valid email required"),
+  dateOfBirth: z.string().min(1, "Date of birth required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -278,6 +298,7 @@ export async function signUpMemberAction(formData: FormData) {
       name: formData.get("name") as string,
       phone: formData.get("phone") as string,
       email: formData.get("email") as string,
+      dateOfBirth: formData.get("dateOfBirth") as string,
       password: formData.get("password") as string,
     };
 
@@ -320,7 +341,7 @@ export async function signUpMemberAction(formData: FormData) {
       data: { role: "MEMBER" },
     });
 
-    // 3. Create Member entity with unique membershipNo & qrToken (NO membership plan yet)
+    // 3. Create Member entity with unique membershipNo & qrToken & dateOfBirth
     const memberCount = await prisma.member.count();
     const membershipNo = `CC-2026-${String(memberCount + 1).padStart(3, "0")}`;
     const qrToken = `QR-CC-${String(memberCount + 1).padStart(3, "0")}-${Math.random()
@@ -333,6 +354,7 @@ export async function signUpMemberAction(formData: FormData) {
         userId: authResult.user.id,
         membershipNo,
         qrToken,
+        dateOfBirth: new Date(parsed.dateOfBirth),
       },
     });
 
@@ -542,6 +564,110 @@ export async function choosePlanAction(formData: FormData) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to activate plan.",
+    };
+  }
+}
+
+export async function updateMemberDobAction(data: {
+  memberId: string;
+  dateOfBirth: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user || (user.role !== "OWNER" && user.role !== "STAFF")) {
+      return { success: false, error: "Only staff and owners can change date of birth." };
+    }
+
+    const member = await prisma.member.findUnique({
+      where: { id: data.memberId },
+      include: { user: true },
+    });
+
+    if (!member) {
+      return { success: false, error: "Member not found." };
+    }
+
+    const oldDobStr = member.dateOfBirth ? member.dateOfBirth.toISOString().split("T")[0] : "Not set";
+    const newDob = new Date(data.dateOfBirth);
+    const newDobStr = newDob.toISOString().split("T")[0];
+
+    await prisma.$transaction(async (tx) => {
+      await tx.member.update({
+        where: { id: member.id },
+        data: { dateOfBirth: newDob },
+      });
+
+      await tx.memberAuditLog.create({
+        data: {
+          memberId: member.id,
+          field: "dateOfBirth",
+          oldValue: oldDobStr,
+          newValue: newDobStr,
+          changedBy: `${user.name} (${user.role})`,
+        },
+      });
+    });
+
+    revalidatePath(`/admin/members/${member.id}`);
+    revalidatePath("/admin/members");
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update date of birth.",
+    };
+  }
+}
+
+export async function verifyMemberAgeAction(data: {
+  memberId: string;
+  ageDocType: "SCHOOL_ID" | "AADHAAR" | "BIRTH_CERTIFICATE" | "OTHER";
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user || (user.role !== "OWNER" && user.role !== "STAFF")) {
+      return { success: false, error: "Only staff and owners can verify member age." };
+    }
+
+    const member = await prisma.member.findUnique({
+      where: { id: data.memberId },
+    });
+
+    if (!member) {
+      return { success: false, error: "Member not found." };
+    }
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.member.update({
+        where: { id: member.id },
+        data: {
+          ageVerifiedAt: now,
+          ageVerifiedById: user.id,
+          ageDocType: data.ageDocType,
+        },
+      });
+
+      await tx.memberAuditLog.create({
+        data: {
+          memberId: member.id,
+          field: "ageVerified",
+          oldValue: "Unverified",
+          newValue: `Verified via ${data.ageDocType}`,
+          changedBy: `${user.name} (${user.role})`,
+        },
+      });
+    });
+
+    revalidatePath(`/admin/members/${member.id}`);
+    revalidatePath("/admin/members");
+    revalidatePath("/member/plan");
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to verify age.",
     };
   }
 }

@@ -62,6 +62,26 @@ export default async function MemberPlanPage() {
         </Link>
       </div>
 
+      {/* Junior Expired By Age Alert */}
+      {entitlement.juniorExpiredByAge && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-sm font-semibold flex items-center justify-between gap-4">
+          <span>Junior ended. Choose Silver or Gold</span>
+          <Link
+            href="/member/choose-plan"
+            className="px-3.5 py-1.5 rounded-lg bg-[#23513C] text-white text-xs font-semibold hover:bg-[#1a3d2d] shrink-0"
+          >
+            Choose plan
+          </Link>
+        </div>
+      )}
+
+      {/* Junior Pending Age Verification Message */}
+      {entitlement.status === "PENDING_VERIFICATION" && (
+        <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-sm font-medium">
+          Bring a school ID or birth certificate to the front desk once to activate Junior discounts.
+        </div>
+      )}
+
       {/* Scheduled change banner */}
       {scheduledChange && activeMembership && (
         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
@@ -98,6 +118,8 @@ export default async function MemberPlanPage() {
                   ? "ACTIVE STANDING"
                   : entitlement.status === "GRACE"
                   ? "GRACE PERIOD"
+                  : entitlement.status === "PENDING_VERIFICATION"
+                  ? "PENDING AGE VERIFICATION"
                   : "WALK-IN"}
               </span>
             </div>

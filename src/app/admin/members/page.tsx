@@ -58,6 +58,17 @@ export default async function AdminMembersPage({
             >
               Banned
             </Link>
+            <Link
+              href={`/admin/members?status=junior_pending${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              prefetch={false}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                statusParam === "junior_pending"
+                  ? "bg-amber-600 text-white border-amber-600"
+                  : "bg-white text-amber-700 border-amber-300 hover:bg-amber-50"
+              }`}
+            >
+              Junior pending verification
+            </Link>
           </div>
         </div>
         <div className="text-xs text-[#64748B] flex items-center gap-1 self-center">

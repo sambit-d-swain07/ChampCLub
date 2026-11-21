@@ -55,6 +55,18 @@ export async function searchMembers(
       conditions.push({
         user: { bannedAt: { not: null } },
       });
+    } else if (statusFilter === "junior_pending") {
+      conditions.push({
+        user: { bannedAt: null },
+        ageVerifiedAt: null,
+        memberships: {
+          some: {
+            replacedAt: null,
+            endsAt: { gte: new Date() },
+            plan: { name: { contains: "JUNIOR", mode: "insensitive" } },
+          },
+        },
+      });
     } else if (statusFilter === "expiring") {
       // Exclude banned members from expiring soon
       conditions.push({
@@ -178,12 +190,22 @@ export async function getMemberDetail(idOrQr: string) {
     bannedByName = staffUser?.name || "Staff";
   }
 
+  let ageVerifiedByName: string | null = null;
+  if (member.ageVerifiedById) {
+    const staffUser = await prisma.user.findUnique({
+      where: { id: member.ageVerifiedById },
+      select: { name: true },
+    });
+    ageVerifiedByName = staffUser?.name || "Staff";
+  }
+
   const entitlement = await resolve(member.id);
 
   return {
     member,
     entitlement,
     bannedByName,
+    ageVerifiedByName,
   };
 }
 

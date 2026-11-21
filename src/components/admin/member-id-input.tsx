@@ -9,11 +9,15 @@ export interface ResolvedMember {
   name: string;
   membershipNo: string;
   planName: string;
-  status: "ACTIVE" | "GRACE" | "EXPIRED" | "WALK_IN";
+  status: "ACTIVE" | "GRACE" | "EXPIRED" | "WALK_IN" | "PENDING_VERIFICATION";
   courtDiscountPct: number;
   shopDiscountPct: number;
   barDiscountPct: number;
   bookingsLeftToday: number;
+  isJunior?: boolean;
+  ageVerified?: boolean;
+  ageVerifiedAt?: string | null;
+  ageVerifiedByName?: string | null;
 }
 
 interface MemberIdInputProps {
@@ -181,14 +185,41 @@ export function MemberIdInput({
       {resolvedMember && (
         <div className="p-3 rounded-xl bg-[#F6F5E1]/70 border border-[#1B1B1B]/15 space-y-1.5 animate-in fade-in duration-150">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
               <span className="text-sm font-bold text-[#1B1B1B]">{resolvedMember.name}</span>
+              {resolvedMember.isJunior && (
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    resolvedMember.ageVerified
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  {resolvedMember.ageVerified
+                    ? `Verified by ${resolvedMember.ageVerifiedByName || "Staff"}${
+                        resolvedMember.ageVerifiedAt
+                          ? ` on ${new Date(resolvedMember.ageVerifiedAt).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}`
+                          : ""
+                      }`
+                    : "Not verified"}
+                </span>
+              )}
             </div>
             <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-white border border-[#1B1B1B]/15 text-[#1B1B1B]">
               {resolvedMember.membershipNo}
             </span>
           </div>
+
+          {resolvedMember.isJunior && !resolvedMember.ageVerified && (
+            <div className="text-[11px] font-semibold text-amber-800 bg-amber-50/80 px-2 py-1 rounded border border-amber-200">
+              No discount until age is verified
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span
@@ -197,13 +228,17 @@ export function MemberIdInput({
                   ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                   : resolvedMember.status === "GRACE"
                   ? "bg-amber-100 text-amber-800 border border-amber-300"
+                  : resolvedMember.status === "PENDING_VERIFICATION"
+                  ? "bg-amber-100 text-amber-800 border border-amber-300"
                   : "bg-gray-100 text-gray-700 border border-gray-300"
               }`}
             >
               {resolvedMember.status === "ACTIVE"
-                ? `Active â€¢ ${resolvedMember.planName}`
+                ? `Active · ${resolvedMember.planName}`
                 : resolvedMember.status === "GRACE"
-                ? `Grace â€¢ ${resolvedMember.planName}`
+                ? `Grace · ${resolvedMember.planName}`
+                : resolvedMember.status === "PENDING_VERIFICATION"
+                ? `Pending Verification · ${resolvedMember.planName}`
                 : resolvedMember.status === "EXPIRED"
                 ? "Expired"
                 : "No Plan"}

@@ -25,6 +25,7 @@ const signUpSchema = z
     name: z.string().min(2, "Full name must be at least 2 characters"),
     phone: z.string().min(10, "Valid 10-digit phone number required"),
     email: z.string().email("Enter a valid email address"),
+    dateOfBirth: z.string().min(1, "Date of birth is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
@@ -41,6 +42,7 @@ export function SignUpForm() {
     name: "",
     phone: "",
     email: "",
+    dateOfBirth: "",
     password: "",
     confirmPassword: "",
   });
@@ -87,6 +89,7 @@ export function SignUpForm() {
     payload.set("phone", formData.phone.trim());
     const cleanEmail = formData.email.trim().toLowerCase();
     payload.set("email", cleanEmail);
+    payload.set("dateOfBirth", formData.dateOfBirth);
     payload.set("password", formData.password);
 
     const res = await signUpMemberAction(payload);
@@ -265,6 +268,34 @@ export function SignUpForm() {
               />
               {errors.phone && (
                 <p className="text-xs text-red-600 font-medium pl-1">{errors.phone}</p>
+              )}
+            </div>
+
+            {/* Date of Birth */}
+            <div className="space-y-1">
+              <label
+                htmlFor="dateOfBirth"
+                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
+              >
+                Date of Birth
+              </label>
+              <input
+                id="dateOfBirth"
+                name="dateOfBirth"
+                type="date"
+                required
+                disabled={submitting}
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                max={new Date().toISOString().split("T")[0]}
+                className={`w-full h-11 px-4 rounded-xl bg-white border text-sm text-[#1B1B1B] focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
+                  errors.dateOfBirth
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
+                }`}
+              />
+              {errors.dateOfBirth && (
+                <p className="text-xs text-red-600 font-medium pl-1">{errors.dateOfBirth}</p>
               )}
             </div>
 

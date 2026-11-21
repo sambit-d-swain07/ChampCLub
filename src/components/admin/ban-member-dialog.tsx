@@ -28,7 +28,7 @@ export function BanMemberDialog({
   isBanned,
 }: BanMemberDialogProps) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState<"Misconduct" | "Non-payment" | "Fraud" | "Other">("Misconduct");
+  const [reason, setReason] = useState<"Misconduct" | "Non-payment" | "Fraud" | "False age information" | "Other">("Misconduct");
   const [note, setNote] = useState("");
   const [confirmInput, setConfirmInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -117,6 +117,7 @@ export function BanMemberDialog({
               <option value="Misconduct">Misconduct</option>
               <option value="Non-payment">Non-payment</option>
               <option value="Fraud">Fraud</option>
+              <option value="False age information">False age information</option>
               <option value="Other">Other</option>
             </select>
           </div>
