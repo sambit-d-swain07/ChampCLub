@@ -199,11 +199,6 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     })),
   ].sort((a, b) => b.quantity - a.quantity).slice(0, 6);
 
-  // Cards Calculation
-  const earned = Number(earnedGroup._sum.amount || 0);
-  const collected = Number(collectedGroup._sum.amount || 0);
-  const refunded = Number(refundedGroup._sum.amount || 0);
-  
   let totalExpenses = 0;
   const parsedExpenses = expensesList.map((exp) => {
     let vendor = exp.title;
@@ -230,6 +225,40 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     };
   });
 
+  // Calculate unpaid balances for open tabs
+  const openTabIds = openTabs.map((t) => t.id);
+  const tabPayments = openTabIds.length > 0
+    ? await prisma.ledgerEntry.findMany({
+        where: { source: "BAR", kind: "COLLECTED", refType: "TAB", refId: { in: openTabIds } },
+      })
+    : [];
+  const tabPaidMap = new Map<string, number>();
+  for (const p of tabPayments) {
+    tabPaidMap.set(p.refId, (tabPaidMap.get(p.refId) || 0) + Number(p.amount));
+  }
+
+  const detailedOpenTabs = openTabs.map((t) => {
+    const totalLines = Number(t.totalAmount);
+    const paid = tabPaidMap.get(t.id) || 0;
+    const balance = Math.max(0, totalLines - paid);
+    return {
+      id: t.id,
+      tableName: t.table?.name || "Open Table",
+      memberName: t.member?.user?.name || null,
+      openedAt: t.openedAt,
+      totalAmount: totalLines,
+      paid,
+      balance,
+    };
+  });
+
+  const uncollectedTabsTotal = detailedOpenTabs.reduce((sum, t) => sum + t.balance, 0);
+
+  // Cards Calculation
+  const collected = Number(collectedGroup._sum.amount || 0);
+  const refunded = Number(refundedGroup._sum.amount || 0);
+  // Total Earned includes collected revenue plus uncollected open tabs / served orders
+  const earned = Math.max(Number(earnedGroup._sum.amount || 0), collected + uncollectedTabsTotal);
   const outstanding = Math.max(0, earned - collected);
   const net = collected - totalExpenses - refunded;
 
@@ -258,8 +287,7 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     amount: Number(item._sum.amount || 0),
   }));
 
-  // Court utilisation percentage
-  // 16 available hours per day per court (06:00 to 22:00)
+  // Court utilisation percentage (16 available hours per day per court)
   const daysInRange = Math.max(
     1,
     Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
@@ -268,7 +296,7 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
 
   const bookingsByCourt: Record<string, number> = {};
   for (const b of courtBookings) {
-    bookingsByCourt[b.courtId] = (bookingsByCourt[b.courtId] || 0) + 1; // 1 session = 1 hr
+    bookingsByCourt[b.courtId] = (bookingsByCourt[b.courtId] || 0) + 1;
   }
 
   const courtUtilisation = courts.map((c) => {
@@ -281,33 +309,6 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
       bookedHours: booked,
       capacityHours: totalCapacityHours,
       percentage: pct,
-    };
-  });
-
-  // Calculate unpaid balances for open tabs
-  const openTabIds = openTabs.map((t) => t.id);
-  const tabPayments = openTabIds.length > 0
-    ? await prisma.ledgerEntry.findMany({
-        where: { source: "BAR", kind: "COLLECTED", refType: "TAB", refId: { in: openTabIds } },
-      })
-    : [];
-  const tabPaidMap = new Map<string, number>();
-  for (const p of tabPayments) {
-    tabPaidMap.set(p.refId, (tabPaidMap.get(p.refId) || 0) + Number(p.amount));
-  }
-
-  const detailedOpenTabs = openTabs.map((t) => {
-    const totalLines = Number(t.totalAmount);
-    const paid = tabPaidMap.get(t.id) || 0;
-    const balance = Math.max(0, totalLines - paid);
-    return {
-      id: t.id,
-      tableName: t.table?.name || "Open Table",
-      memberName: t.member?.user?.name || null,
-      openedAt: t.openedAt,
-      totalAmount: totalLines,
-      paid,
-      balance,
     };
   });
 

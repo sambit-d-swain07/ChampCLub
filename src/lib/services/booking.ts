@@ -62,8 +62,8 @@ export function generateDaySlots(dateStr: string): TimeSlot[] {
       const startSlotStr = `${hourPad}:${minPad}`;
 
       // End time 60 minutes later
-      let endH = hour + 1;
-      let endM = minute;
+      const endH = hour + 1;
+      const endM = minute;
       const endSlotStr = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
 
       const startsAt = new Date(`${dateStr}T${startSlotStr}:00+05:30`);

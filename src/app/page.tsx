@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Trophy, Zap, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
+import { PublicNavbar } from "@/components/public/public-navbar";
 
 export const metadata: Metadata = {
   title: "The Champions Club — Premium Racquet & Sports Club",
@@ -21,46 +22,8 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#0F2A1F" }}>
-      {/* Nav */}
-      <header
-        className="sticky top-0 z-30 border-b"
-        style={{ borderColor: "rgba(116,198,157,0.15)", background: "rgba(15,42,31,0.97)" }}
-      >
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: "#2D6A4F" }}>
-              <Trophy className="h-5 w-5" style={{ color: "#74C69D" }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm tracking-tight text-white">THE CHAMPIONS CLUB</div>
-              <div className="text-[10px] font-medium" style={{ color: "#74C69D" }}>Racquet &amp; Sports Club</div>
-            </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
-            {[["Facilities", "/facilities"], ["Plans", "/plans"], ["Contact", "/contact"]].map(([label, href]) => (
-              <Link key={href} href={href} className="transition-colors" style={{ color: "rgba(240,244,239,0.65)" }}>
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/trial"
-              className="px-4 py-2 rounded-lg text-sm font-semibold"
-              style={{ background: "#2D6A4F", color: "#74C69D", border: "1px solid rgba(116,198,157,0.25)" }}
-            >
-              Book a Trial
-            </Link>
-            <Link
-              href="/login"
-              className="px-4 py-2 rounded-lg text-sm font-medium"
-              style={{ color: "rgba(240,244,239,0.55)", border: "1px solid rgba(240,244,239,0.1)" }}
-            >
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Responsive Nav */}
+      <PublicNavbar />
 
       {/* Hero */}
       <section className="flex-1 flex flex-col justify-center px-6 pt-24 pb-20 max-w-5xl mx-auto w-full">
@@ -69,7 +32,7 @@ export default async function HomePage() {
             className="text-xs font-semibold px-3 py-1 rounded-full"
             style={{ background: "rgba(116,198,157,0.12)", color: "#74C69D", border: "1px solid rgba(116,198,157,0.2)" }}
           >
-            Bengaluru's Premier Racquet Club
+            Bengaluru&apos;s Premier Racquet Club
           </span>
         </div>
         <h1
