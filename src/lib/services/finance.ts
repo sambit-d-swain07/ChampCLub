@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { createHmac } from "crypto";
 
 export interface DateRangeFilter {
@@ -53,10 +53,11 @@ export function resolveFinanceRange(range?: string, from?: string, to?: string):
 }
 
 export async function getOwnerFinancials(filter: DateRangeFilter) {
-  const { start, end } = filter;
-  const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return withDbRetry(async () => {
+    const { start, end } = filter;
+    const now = new Date();
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   // Parallel database fetch
   const [
@@ -353,6 +354,7 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     },
     rawExpenses: parsedExpenses,
   };
+  });
 }
 
 /**
