@@ -2,12 +2,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { getDashboardMetrics } from "@/lib/services/dashboard";
-import { prisma } from "@/lib/prisma";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, CalendarCheck, IndianRupee, AlertTriangle, ArrowUpRight, UserCheck } from "lucide-react";
+import { Users, CalendarCheck, IndianRupee, AlertTriangle, ArrowUpRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -20,15 +19,7 @@ export default async function AdminDashboardPage() {
     redirect("/admin/members");
   }
 
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-  const [metrics, overdueLeads] = await Promise.all([
-    getDashboardMetrics(),
-    prisma.lead.findMany({
-      where: { status: "NEW", createdAt: { lt: twoHoursAgo } },
-      orderBy: { createdAt: "asc" },
-      take: 10,
-    }),
-  ]);
+  const metrics = await getDashboardMetrics();
 
   return (
     <div className="space-y-8">
@@ -239,34 +230,7 @@ export default async function AdminDashboardPage() {
         </Card>
       </div>
 
-      {/* Overdue Leads Widget */}
-      {overdueLeads.length > 0 && (
-        <Card className="shadow-sm border-red-200 bg-red-50/40">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-red-800 flex items-center gap-2">
-              <UserCheck className="h-4 w-4" />
-              Overdue Leads ({overdueLeads.length})
-              <span className="text-[10px] font-normal text-red-600 ml-1">NEW leads untouched for over 2 hours</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {overdueLeads.map((lead) => {
-              const hrs = Math.floor((Date.now() - lead.createdAt.getTime()) / 3600000);
-              return (
-                <div key={lead.id} className="flex items-center justify-between border-b border-red-100 pb-2 last:border-0">
-                  <div>
-                    <div className="text-xs font-semibold text-red-900">{lead.name}</div>
-                    <div className="text-[11px] text-red-600">{lead.email || lead.phone || lead.source} · {hrs}h ago</div>
-                  </div>
-                  <Link href={`/admin/leads/${lead.id}`}>
-                    <Badge variant="destructive" className="text-[10px] cursor-pointer hover:opacity-80">View Lead</Badge>
-                  </Link>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+
     </div>
   );
 }

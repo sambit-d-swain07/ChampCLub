@@ -52,14 +52,6 @@ enum BarOrderStatus {
   CANCELLED
 }
 
-enum LeadStatus {
-  NEW
-  CONTACTED
-  QUOTE_SENT
-  CONVERTED
-  LOST
-}
-
 enum LedgerSource {
   COURT
   SHOP
@@ -232,6 +224,7 @@ model Booking {
   priceSnapshot    Decimal       @db.Decimal(10, 2)
   discountSnapshot Decimal       @default(0) @db.Decimal(10, 2)
   holdExpiresAt    DateTime?
+  cancelReason     String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
@@ -374,22 +367,6 @@ model BarOrderItem {
   @@index([barItemId])
 }
 
-// ----------------- Leads / CRM -----------------
-model Lead {
-  id             String     @id @default(cuid())
-  name           String
-  email          String?
-  phone          String?
-  source         String
-  status         LeadStatus @default(NEW)
-  assignedTo     String?
-  followUpAt     DateTime?
-  trialBookingId String?
-  notes          String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-}
-
 // ----------------- Finance / Accounting -----------------
 model Expense {
   id         String   @id @default(cuid())
@@ -418,17 +395,3 @@ model LedgerEntry {
   @@index([refType, refId])
 }
 
-// ----------------- Governance & Audit -----------------
-model AuditLog {
-  id         String   @id @default(cuid())
-  actorId    String?
-  action     String
-  entityType String
-  entityId   String?
-  details    Json?
-  createdAt  DateTime @default(now())
-
-  @@index([actorId])
-  @@index([entityType, entityId])
-  @@index([createdAt])
-}

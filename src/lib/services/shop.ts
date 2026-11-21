@@ -186,7 +186,7 @@ export async function placeOrder(input: PlaceOrderInput) {
 }
 
 /**
- * Restocks a product by adding quantity and writing an AuditLog.
+ * Restocks a product by adding quantity.
  */
 export async function restockProduct(data: {
   productId: string;
@@ -203,20 +203,6 @@ export async function restockProduct(data: {
         where: { id: data.productId },
         data: {
           stockQty: { increment: data.addQty },
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          actorId: data.staffUserId,
-          action: "RESTOCK_PRODUCT",
-          entityType: "Product",
-          entityId: data.productId,
-          details: {
-            productName: product.name,
-            addedQuantity: data.addQty,
-            newStockQty: product.stockQty,
-          },
         },
       });
 
@@ -275,18 +261,6 @@ export async function updateOrderStatus(data: {
         data: { status: data.status },
         include: { items: { include: { product: true } }, member: { include: { user: true } } },
       });
-
-      if (data.staffUserId) {
-        await tx.auditLog.create({
-          data: {
-            actorId: data.staffUserId,
-            action: "UPDATE_SHOP_ORDER_STATUS",
-            entityType: "ShopOrder",
-            entityId: data.orderId,
-            details: { previousStatus: order.status, newStatus: data.status },
-          },
-        });
-      }
 
       return updated;
     });

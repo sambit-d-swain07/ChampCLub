@@ -568,21 +568,6 @@ export async function cancelBookingByMember(data: {
         });
       }
 
-      // Audit log
-      await tx.auditLog.create({
-        data: {
-          actorId: data.memberUserId,
-          action: "MEMBER_SELF_CANCEL",
-          entityType: "Booking",
-          entityId: booking.id,
-          details: {
-            courtId: booking.courtId,
-            startsAt: booking.startsAt,
-            hoursBeforeStart: hoursUntilStart,
-          },
-        },
-      });
-
       return cancelled;
     });
 
@@ -597,7 +582,7 @@ export async function cancelBookingByMember(data: {
 
 /**
  * Staff Cancellation:
- * Allowed at any time, requires mandatory cancellation reason, writes AuditLog.
+ * Allowed at any time, requires mandatory cancellation reason, stored on booking record.
  */
 export async function cancelBookingByStaff(data: {
   bookingId: string;
@@ -648,21 +633,10 @@ export async function cancelBookingByStaff(data: {
         });
       }
 
-      // Record mandatory Audit Log
-      await tx.auditLog.create({
-        data: {
-          actorId: data.staffUserId,
-          action: "STAFF_CANCEL_BOOKING",
-          entityType: "Booking",
-          entityId: booking.id,
-          details: {
-            reason: data.reason.trim(),
-            cancelledByStaffId: data.staffUserId,
-            courtId: booking.courtId,
-            memberId: booking.memberId,
-            startsAt: booking.startsAt,
-          },
-        },
+      // Store cancellation reason on the booking record
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: { cancelReason: data.reason.trim() },
       });
 
       return cancelled;

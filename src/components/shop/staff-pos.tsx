@@ -899,7 +899,7 @@ export function StaffPos({
                   <strong>
                     {restockItem.stockQty + (parseInt(restockQty, 10) || 0)} units
                   </strong>
-                  . An immutable AuditLog entry will be recorded.
+                  . Stock quantity will be updated immediately.
                 </p>
               </div>
 

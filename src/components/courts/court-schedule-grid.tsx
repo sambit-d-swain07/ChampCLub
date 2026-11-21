@@ -613,7 +613,7 @@ export function CourtScheduleGrid({
                   <ShieldAlert className="h-3.5 w-3.5" /> Staff Cancellation Override
                 </Label>
                 <p className="text-[11px] text-muted-foreground">
-                  Staff may cancel at any time. A mandatory reason is recorded in the club Audit Log.
+                  Staff may cancel at any time. The cancellation reason is saved on the booking record.
                 </p>
                 <Input
                   id="reason"

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { resolveFinanceRange } from "@/lib/services/finance";
+import type { LedgerSource, LedgerKind, PaymentMethod, Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser();
@@ -15,16 +16,30 @@ export async function GET(req: NextRequest) {
   const range = searchParams.get("range") || "month";
   const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
+  const source = searchParams.get("source") || undefined;
+  const kind = searchParams.get("kind") || undefined;
+  const method = searchParams.get("method") || undefined;
 
   const filter = resolveFinanceRange(range, from, to);
 
-  const entries = await prisma.ledgerEntry.findMany({
-    where: {
-      createdAt: {
-        gte: filter.start,
-        lte: filter.end,
-      },
+  const where: Prisma.LedgerEntryWhereInput = {
+    createdAt: {
+      gte: filter.start,
+      lte: filter.end,
     },
+    ...(source && ["COURT", "SHOP", "BAR", "MEMBERSHIP"].includes(source)
+      ? { source: source as LedgerSource }
+      : {}),
+    ...(kind && ["EARNED", "COLLECTED", "REFUNDED"].includes(kind)
+      ? { kind: kind as LedgerKind }
+      : {}),
+    ...(method && ["CASH", "CARD", "UPI", "ONLINE"].includes(method)
+      ? { method: method as PaymentMethod }
+      : {}),
+  };
+
+  const entries = await prisma.ledgerEntry.findMany({
+    where,
     orderBy: { createdAt: "desc" },
   });
 

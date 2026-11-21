@@ -83,13 +83,13 @@ export default function ContactPage() {
           </div>
         </div>
 
-        {/* Message Form */}
+        {/* Club Details */}
         <div className="bg-white rounded-[28px] p-8 border border-[#1B1B1B]/15 shadow-sm space-y-4">
           <h3 className="text-xl font-bold tracking-tight text-[#1B1B1B]">
-            Send Us an Inquiry
+            Concierge & Operating Schedule
           </h3>
           <p className="text-xs text-gray-500">
-            Have questions about membership, coaching academies, or corporate hire? Fill out the form and our concierge team will reach out.
+            For court reservations, equipment fitting, or dining inquiries, reach our dedicated front desk team.
           </p>
           <ContactForm />
         </div>

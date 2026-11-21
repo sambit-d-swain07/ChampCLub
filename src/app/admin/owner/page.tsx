@@ -18,11 +18,8 @@ import {
   Scale,
   ArrowRight,
   ExternalLink,
-  Users,
   Wine,
   AlertTriangle,
-  CalendarClock,
-  UserCheck,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +43,17 @@ export default async function OwnerDashboardPage({
 
   const { cards, charts, lists } = data;
 
+  // Build transaction filter URL helper
+  function txUrl(extra: Record<string, string> = {}) {
+    const p = new URLSearchParams({
+      range: filter.rangeType,
+      ...(from ? { from } : {}),
+      ...(to ? { to } : {}),
+      ...extra,
+    });
+    return `/admin/transactions?${p.toString()}`;
+  }
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -56,7 +64,7 @@ export default async function OwnerDashboardPage({
             <Badge className="bg-emerald-600 text-white text-[10px]">OWNER PRIVILEGE</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Real-time ledger audit, revenue realization, operational expenditure, and club capacity utilisation.
+            Real-time ledger tracking, revenue realization, operational expenditure, and club capacity utilisation.
           </p>
         </div>
 
@@ -74,90 +82,112 @@ export default async function OwnerDashboardPage({
       {/* KPI Cards: 6 Key Metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {/* 1. Earned */}
-        <Card className="shadow-xs border-l-4 border-l-blue-600">
-          <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
-            <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Earned Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-xl font-black text-foreground">
-              ₹{cards.earned.toLocaleString("en-IN")}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Accrued from all served orders & bookings</p>
-          </CardContent>
-        </Card>
+        <Link href={txUrl({ kind: "EARNED" })} className="group">
+          <Card className="shadow-xs border-l-4 border-l-blue-600 cursor-pointer hover:shadow-md hover:border-l-blue-700 transition-all">
+            <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
+              <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Earned Revenue</CardTitle>
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="text-xl font-black text-foreground">
+                ₹{cards.earned.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                Accrued from all served orders & bookings <ArrowRight className="h-2.5 w-2.5 opacity-50 group-hover:opacity-100" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* 2. Collected */}
-        <Card className="shadow-xs border-l-4 border-l-emerald-600">
-          <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
-            <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Collected Cash</CardTitle>
-            <CreditCard className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-xl font-black text-foreground">
-              ₹{cards.collected.toLocaleString("en-IN")}
-            </div>
-            <p className="text-[10px] text-emerald-700 mt-0.5 font-medium">Cash, UPI, Card in bank</p>
-          </CardContent>
-        </Card>
+        <Link href={txUrl({ kind: "COLLECTED" })} className="group">
+          <Card className="shadow-xs border-l-4 border-l-emerald-600 cursor-pointer hover:shadow-md hover:border-l-emerald-700 transition-all">
+            <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
+              <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Collected Cash</CardTitle>
+              <CreditCard className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="text-xl font-black text-foreground">
+                ₹{cards.collected.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[10px] text-emerald-700 mt-0.5 font-medium flex items-center gap-0.5">
+                Cash, UPI, Card in bank <ArrowRight className="h-2.5 w-2.5 opacity-50 group-hover:opacity-100" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* 3. Outstanding */}
-        <Card className={`shadow-xs border-l-4 ${cards.outstanding > 0 ? "border-l-amber-500 bg-amber-50/20" : "border-l-zinc-300"}`}>
-          <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
-            <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Outstanding</CardTitle>
-            <AlertCircle className={`h-4 w-4 ${cards.outstanding > 0 ? "text-amber-500" : "text-muted-foreground"}`} />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className={`text-xl font-black ${cards.outstanding > 0 ? "text-amber-700" : "text-foreground"}`}>
-              ₹{cards.outstanding.toLocaleString("en-IN")}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {cards.outstanding > 0 ? "Unpaid bar tabs & active tabs" : "All recognized revenue collected"}
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/bar" className="group">
+          <Card className={`shadow-xs border-l-4 ${cards.outstanding > 0 ? "border-l-amber-500 bg-amber-50/20" : "border-l-zinc-300"} cursor-pointer hover:shadow-md transition-all`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
+              <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Outstanding</CardTitle>
+              <AlertCircle className={`h-4 w-4 ${cards.outstanding > 0 ? "text-amber-500" : "text-muted-foreground"}`} />
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className={`text-xl font-black ${cards.outstanding > 0 ? "text-amber-700" : "text-foreground"}`}>
+                ₹{cards.outstanding.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                {cards.outstanding > 0 ? "Unpaid bar tabs & active tabs" : "All recognized revenue collected"} <ArrowRight className="h-2.5 w-2.5 opacity-50 group-hover:opacity-100" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* 4. Refunded */}
-        <Card className="shadow-xs border-l-4 border-l-rose-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
-            <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Refunded</CardTitle>
-            <RotateCcw className="h-4 w-4 text-rose-500" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-xl font-black text-foreground">
-              ₹{cards.refunded.toLocaleString("en-IN")}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Shop returns & cancellations</p>
-          </CardContent>
-        </Card>
+        <Link href={txUrl({ kind: "REFUNDED" })} className="group">
+          <Card className="shadow-xs border-l-4 border-l-rose-500 cursor-pointer hover:shadow-md hover:border-l-rose-600 transition-all">
+            <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
+              <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Refunded</CardTitle>
+              <RotateCcw className="h-4 w-4 text-rose-500" />
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="text-xl font-black text-foreground">
+                ₹{cards.refunded.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                Shop returns & cancellations <ArrowRight className="h-2.5 w-2.5 opacity-50 group-hover:opacity-100" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* 5. Expenses */}
-        <Card className="shadow-xs border-l-4 border-l-purple-600">
-          <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
-            <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Club Expenses</CardTitle>
-            <Receipt className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-xl font-black text-foreground">
-              ₹{cards.expenses.toLocaleString("en-IN")}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Procurement, payroll, repairs</p>
-          </CardContent>
-        </Card>
+        <Link href={`/admin/expenses?range=${filter.rangeType}${from ? `&from=${from}` : ""}${to ? `&to=${to}` : ""}`} className="group">
+          <Card className="shadow-xs border-l-4 border-l-purple-600 cursor-pointer hover:shadow-md hover:border-l-purple-700 transition-all">
+            <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
+              <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Club Expenses</CardTitle>
+              <Receipt className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="text-xl font-black text-foreground">
+                ₹{cards.expenses.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                Procurement, payroll, repairs <ArrowRight className="h-2.5 w-2.5 opacity-50 group-hover:opacity-100" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* 6. Net Profit */}
-        <Card className={`shadow-xs border-l-4 ${cards.net >= 0 ? "border-l-teal-600 bg-teal-50/15" : "border-l-red-600 bg-red-50/15"}`}>
-          <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
-            <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Net Operating Cash</CardTitle>
-            <Scale className={`h-4 w-4 ${cards.net >= 0 ? "text-teal-600" : "text-red-600"}`} />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className={`text-xl font-black ${cards.net >= 0 ? "text-teal-800" : "text-red-700"}`}>
-              ₹{cards.net.toLocaleString("en-IN")}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Collected minus expenses</p>
-          </CardContent>
-        </Card>
+        <Link href={txUrl()} className="group">
+          <Card className={`shadow-xs border-l-4 ${cards.net >= 0 ? "border-l-teal-600 bg-teal-50/15" : "border-l-red-600 bg-red-50/15"} cursor-pointer hover:shadow-md transition-all`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-1.5 pt-4 px-4">
+              <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Net Operating Cash</CardTitle>
+              <Scale className={`h-4 w-4 ${cards.net >= 0 ? "text-teal-600" : "text-red-600"}`} />
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className={`text-xl font-black ${cards.net >= 0 ? "text-teal-800" : "text-red-700"}`}>
+                ₹{cards.net.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                Collected minus expenses <ArrowRight className="h-2.5 w-2.5 opacity-50 group-hover:opacity-100" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Charts Section */}
@@ -166,6 +196,9 @@ export default async function OwnerDashboardPage({
         paymentMethodBreakdown={charts.paymentMethodBreakdown}
         topProducts={charts.topProducts}
         courtUtilisation={charts.courtUtilisation}
+        rangeType={filter.rangeType}
+        from={from}
+        to={to}
       />
 
       {/* 5 Lists Section */}
@@ -194,18 +227,25 @@ export default async function OwnerDashboardPage({
             ) : (
               <div className="divide-y text-xs">
                 {lists.openTabs.map((t) => (
-                  <div key={t.id} className="p-3.5 flex items-center justify-between hover:bg-muted/40">
+                  <Link
+                    key={t.id}
+                    href="/admin/bar"
+                    className="p-3.5 flex items-center justify-between hover:bg-muted/40 cursor-pointer group"
+                  >
                     <div>
                       <div className="font-semibold text-foreground">{t.tableName}</div>
                       <div className="text-[11px] text-muted-foreground">
                         {t.memberName ? `Member: ${t.memberName}` : "Guest Tab"}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-amber-700">₹{t.balance.toLocaleString("en-IN")}</div>
-                      <div className="text-[10px] text-muted-foreground">unpaid balance</div>
+                    <div className="text-right flex items-center gap-2">
+                      <div>
+                        <div className="font-bold text-amber-700">₹{t.balance.toLocaleString("en-IN")}</div>
+                        <div className="text-[10px] text-muted-foreground">unpaid balance</div>
+                      </div>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -276,104 +316,25 @@ export default async function OwnerDashboardPage({
             ) : (
               <div className="divide-y text-xs">
                 {lists.lowStock.map((item) => (
-                  <div key={item.id} className="p-3.5 flex items-center justify-between hover:bg-muted/40">
+                  <Link
+                    key={item.id}
+                    href="/admin/shop"
+                    className="p-3.5 flex items-center justify-between hover:bg-muted/40 cursor-pointer group"
+                  >
                     <div>
                       <div className="font-semibold text-foreground">{item.name}</div>
                       <Badge variant="outline" className="text-[10px] py-0 px-1 mt-0.5">
                         {item.type}
                       </Badge>
                     </div>
-                    <Badge variant="destructive" className="text-[10px] font-bold">
-                      {item.stockQty} remaining
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* List 4: Expiring Memberships */}
-        <Card className="shadow-xs">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                <CalendarClock className="h-4 w-4 text-amber-500" />
-                Expiring in 7 Days ({lists.expiringMemberships.length})
-              </CardTitle>
-              <Link href="/admin/members" className="text-[11px] text-primary hover:underline flex items-center gap-0.5">
-                Members Roster <ExternalLink className="h-3 w-3" />
-              </Link>
-            </div>
-            <CardDescription className="text-xs">
-              Passholders requiring renewal follow-up before access lapse.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {lists.expiringMemberships.length === 0 ? (
-              <div className="py-8 text-center text-xs text-muted-foreground">
-                No memberships expiring in the next 7 days.
-              </div>
-            ) : (
-              <div className="divide-y text-xs">
-                {lists.expiringMemberships.map((m) => {
-                  const daysLeft = Math.ceil((new Date(m.endsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                  return (
-                    <div key={m.id} className="p-3.5 flex items-center justify-between hover:bg-muted/40">
-                      <div>
-                        <div className="font-semibold text-foreground">{m.memberName}</div>
-                        <Badge variant="outline" className="text-[10px] py-0 px-1 mt-0.5">
-                          {m.planName}
-                        </Badge>
-                      </div>
-                      <Badge variant="secondary" className="text-[10px] text-amber-800 bg-amber-100">
-                        {daysLeft} days left
-                      </Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* List 5: Overdue Leads */}
-        <Card className="shadow-xs">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                <UserCheck className="h-4 w-4 text-red-600" />
-                Overdue Leads ({lists.overdueLeads.length})
-              </CardTitle>
-              <Link href="/admin/leads" className="text-[11px] text-primary hover:underline flex items-center gap-0.5">
-                Sales Pipeline <ExternalLink className="h-3 w-3" />
-              </Link>
-            </div>
-            <CardDescription className="text-xs">
-              Prospective players waiting over 2 hours without contact.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {lists.overdueLeads.length === 0 ? (
-              <div className="py-8 text-center text-xs text-muted-foreground">
-                No overdue prospective trial leads.
-              </div>
-            ) : (
-              <div className="divide-y text-xs">
-                {lists.overdueLeads.map((l) => {
-                  const hrs = Math.floor((Date.now() - new Date(l.createdAt).getTime()) / 3600000);
-                  return (
-                    <div key={l.id} className="p-3.5 flex items-center justify-between hover:bg-muted/40">
-                      <div>
-                        <div className="font-semibold text-foreground">{l.name}</div>
-                        <div className="text-[10px] text-muted-foreground">{l.source}</div>
-                      </div>
+                    <div className="flex items-center gap-2">
                       <Badge variant="destructive" className="text-[10px] font-bold">
-                        {hrs}h overdue
+                        {item.stockQty} remaining
                       </Badge>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  );
-                })}
+                  </Link>
+                ))}
               </div>
             )}
           </CardContent>
@@ -382,15 +343,20 @@ export default async function OwnerDashboardPage({
         {/* Quick Link Card: Financial Governance */}
         <Card className="shadow-xs bg-muted/30 border flex flex-col justify-between">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Ledger & Audit Integrity</CardTitle>
+            <CardTitle className="text-sm font-semibold">Ledger & Transactions</CardTitle>
             <CardDescription className="text-xs">
               Every payment, court session, and cafeteria tab creates non-destructive double-entry ledger rows.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-xs text-muted-foreground">
-              To download a complete audit trail in CSV format, use the <strong>Export CSV</strong> button at the top of the page.
+              Browse the full transaction ledger or download a CSV export for the selected period.
             </div>
+            <Link href={txUrl()} className="w-full block">
+              <Button variant="outline" size="sm" className="w-full text-xs">
+                View All Transactions <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </Link>
             <Link href="/admin/expenses" className="w-full block">
               <Button variant="default" size="sm" className="w-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
                 Record New Expense Voucher <ArrowRight className="h-3.5 w-3.5 ml-1" />

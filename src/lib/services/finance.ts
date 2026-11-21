@@ -56,7 +56,6 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
   return withDbRetry(async () => {
     const { start, end } = filter;
     const now = new Date();
-    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   // Parallel database fetch
@@ -73,7 +72,6 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     lowStockProducts,
     lowStockBar,
     expiringMemberships,
-    overdueLeads,
     topShopItems,
     topBarItems,
   ] = await Promise.all([
@@ -146,12 +144,6 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
       include: { member: { include: { user: true } }, plan: true },
       take: 8,
       orderBy: { endsAt: "asc" },
-    }),
-    // 13. Overdue leads (NEW > 2 hours)
-    prisma.lead.findMany({
-      where: { status: "NEW", createdAt: { lt: twoHoursAgo } },
-      take: 8,
-      orderBy: { createdAt: "asc" },
     }),
     // 14. Top shop items
     prisma.shopOrderItem.groupBy({
@@ -343,12 +335,6 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
         memberName: m.member.user?.name || `Member ${m.member.membershipNo}`,
         planName: m.plan.name,
         endsAt: m.endsAt,
-      })),
-      overdueLeads: overdueLeads.map((l) => ({
-        id: l.id,
-        name: l.name,
-        source: l.source,
-        createdAt: l.createdAt,
       })),
       expensesPayable,
     },

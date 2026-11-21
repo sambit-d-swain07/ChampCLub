@@ -196,22 +196,6 @@ export async function openTab(input: {
     },
   });
 
-  if (input.staffUserId) {
-    await prisma.auditLog.create({
-      data: {
-        actorId: input.staffUserId,
-        action: "OPEN_BAR_TAB",
-        entityType: "Tab",
-        entityId: tab.id,
-        details: {
-          table: tab.table?.name || null,
-          memberId: tab.memberId,
-          guestName: tab.guestName,
-        },
-      },
-    });
-  }
-
   return { success: true, tab };
 }
 
@@ -320,23 +304,6 @@ export async function addOrderToTab(input: {
           },
         });
 
-        if (input.staffUserId) {
-          await tx.auditLog.create({
-            data: {
-              actorId: input.staffUserId,
-              action: "ADD_BAR_ORDER",
-              entityType: "BarOrder",
-              entityId: order.id,
-              details: {
-                tabId: input.tabId,
-                personLabel: input.personLabel,
-                totalAmount: orderTotal,
-                itemCount: input.items.length,
-              },
-            },
-          });
-        }
-
         return order;
       },
       { timeout: 15000, maxWait: 10000 }
@@ -403,18 +370,6 @@ export async function updateBarOrderStatus(
         await tx.tab.update({
           where: { id: order.tabId },
           data: { totalAmount: { decrement: order.totalAmount } },
-        });
-      }
-
-      if (staffUserId) {
-        await tx.auditLog.create({
-          data: {
-            actorId: staffUserId,
-            action: "UPDATE_BAR_ORDER_STATUS",
-            entityType: "BarOrder",
-            entityId: orderId,
-            details: { previousStatus: order.status, newStatus },
-          },
         });
       }
 
@@ -566,25 +521,6 @@ export async function payTab(input: {
           },
         });
         isClosed = true;
-      }
-
-      if (input.staffUserId) {
-        await tx.auditLog.create({
-          data: {
-            actorId: input.staffUserId,
-            action: isClosed ? "SETTLE_AND_CLOSE_TAB" : "PARTIAL_TAB_PAYMENT",
-            entityType: "Tab",
-            entityId: input.tabId,
-            details: {
-              payments: input.payments as unknown as any,
-              totalPaying,
-              previouslyCollected,
-              newTotalPaid,
-              remainingBalance,
-              isClosed,
-            },
-          },
-        });
       }
 
       return {

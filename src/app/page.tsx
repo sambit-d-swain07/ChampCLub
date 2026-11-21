@@ -437,10 +437,10 @@ export default async function HomePage() {
           {/* Contact & Inquiries Card */}
           <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4">
             <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
-              CLUB CONCIERGE & INQUIRIES
+              CLUB CONCIERGE & HOURS
             </h3>
             <p className="text-xs text-gray-600">
-              Interested in corporate tournament bookings, junior academy coaching, or private events? Send us a quick note.
+              Direct contacts and operational schedules for court bookings, pro shop inquiries, and member services.
             </p>
 
             <ContactForm />

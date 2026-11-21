@@ -10,10 +10,9 @@ import {
   ShoppingBag,
   Wine,
   ChefHat,
-  UserCheck,
   Landmark,
   Receipt,
-  ShieldCheck,
+  BookOpen,
   LogOut,
   Trophy,
   Menu,
@@ -72,9 +71,8 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     {
       title: "Management",
       links: [
-        { label: "Leads & CRM", href: "/admin/leads", icon: UserCheck, roles: ["OWNER", "STAFF"] },
+        { label: "Transactions", href: "/admin/transactions", icon: BookOpen, roles: ["OWNER"] },
         { label: "Expenses", href: "/admin/expenses", icon: Receipt, roles: ["OWNER"] },
-        { label: "Audit Logs", href: "/admin/audit", icon: ShieldCheck, roles: ["OWNER"] },
       ],
     },
   ];
