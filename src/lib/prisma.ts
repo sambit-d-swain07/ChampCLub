@@ -7,7 +7,10 @@ const globalForPrisma = globalThis as unknown as {
   pool?: Pool;
 };
 
-const connectionString = process.env.DATABASE_URL || "";
+let connectionString = process.env.DATABASE_URL || "";
+if (connectionString.includes(":6543") && !connectionString.includes("pgbouncer=true")) {
+  connectionString += (connectionString.includes("?") ? "&" : "?") + "pgbouncer=true";
+}
 
 // Serverless connection pooler configuration
 export const pool =
@@ -18,6 +21,11 @@ export const pool =
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
   });
+
+// Handle idle connection drops gracefully so they don't cause 500 errors
+pool.on("error", (err) => {
+  console.warn("[Prisma Pool] Handled idle client error:", err.message);
+});
 
 const adapter = new PrismaPg(pool);
 
