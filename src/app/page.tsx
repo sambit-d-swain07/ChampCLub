@@ -37,13 +37,27 @@ export default async function HomePage() {
     orderBy: { price: "desc" },
   });
 
-  // 2. Fetch 6 Featured Products for Shop Preview
+  // 2. Fetch Featured Products from Database
   const products = await prisma.product.findMany({
     take: 6,
     orderBy: { name: "asc" },
   });
 
-  // 3. Build 7-day availability strip
+  // 3. Fetch Real Courts from Database
+  const dbCourts = await prisma.court.findMany({
+    orderBy: [{ sport: "asc" }, { name: "asc" }],
+  });
+
+  // Group courts dynamically by sport from database records
+  const courtsBySport: Record<string, typeof dbCourts> = {};
+  for (const c of dbCourts) {
+    if (!courtsBySport[c.sport]) {
+      courtsBySport[c.sport] = [];
+    }
+    courtsBySport[c.sport].push(c);
+  }
+
+  // 4. Build 7-day availability strip directly from DB bookings and courts
   const today = new Date();
   const weekDays = [];
 
@@ -94,18 +108,30 @@ export default async function HomePage() {
         dateStr,
         dayLabel: dayName,
         formattedDate,
-        freeSlotsCount: 12,
+        freeSlotsCount: 0,
         featuredSlots: [],
       });
     }
   }
 
+  const sportIcons: Record<string, typeof Trophy> = {
+    TENNIS: Trophy,
+    PADEL: Zap,
+    BADMINTON: ShieldCheck,
+  };
+
+  const sportColorAccents: Record<string, string> = {
+    TENNIS: "#5F9E4A",
+    PADEL: "#E8883A",
+    BADMINTON: "#5F9E4A",
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F6F5E1] text-[#1B1B1B]">
-      {/* 1. HERO SECTION & NAV (Design System Redesign) */}
+      {/* 1. HERO SECTION & NAV */}
       <HeroSection />
 
-      {/* 2. THIS WEEK'S AVAILABILITY STRIP */}
+      {/* 2. THIS WEEK'S AVAILABILITY STRIP (ALL DB DRIVEN) */}
       <section id="availability" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -124,92 +150,81 @@ export default async function HomePage() {
         <WeekAvailabilityStrip days={weekDays} />
       </section>
 
-      {/* 3. FACILITIES & COURTS */}
+      {/* 3. FACILITIES & COURTS (ALL DB DRIVEN) */}
       <section id="facilities" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-12">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <span className="text-xs font-bold uppercase tracking-widest text-[#5F9E4A] block">
-            WORLD-CLASS SPECIFICATIONS
+            DATABASE-MANAGED VENUES
           </span>
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold uppercase tracking-tight text-[#1B1B1B]">
             THE <span className="text-[#5F9E4A]">championship</span> COURTS
           </h2>
           <p className="text-xs sm:text-sm text-[#1B1B1B]/75">
-            Engineered to tournament standards with non-glare LED illumination, high-shock absorption surfaces, and acoustic comfort.
+            Engineered to tournament standards. Live court inventory synced directly with the club database.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          {/* Tennis */}
-          <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4 hover:border-[#5F9E4A] transition-all">
-            <div className="h-12 w-12 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#5F9E4A]">
-              <Trophy className="h-6 w-6" />
-            </div>
-            <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
-              CHAMPIONSHIP TENNIS
-            </h3>
-            <p className="text-xs text-[#1B1B1B]/75 leading-relaxed">
-              2 tournament-grade acrylic cushion hardcourts with 1000-lux anti-glare floodlights. Optimized true bounce for singles and doubles play.
-            </p>
-            <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2 text-xs text-[#1B1B1B]/80">
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> ITF Class 3 Medium-Paced Acrylic
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> 8-head tournament LED illumination
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> Ball machine & coaching rentals
-              </div>
-            </div>
-          </div>
+          {Object.entries(courtsBySport).map(([sport, courts]) => {
+            const Icon = sportIcons[sport] || Trophy;
+            const accentColor = sportColorAccents[sport] || "#5F9E4A";
 
-          {/* Padel */}
-          <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4 hover:border-[#5F9E4A] transition-all">
-            <div className="h-12 w-12 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#E8883A]">
-              <Zap className="h-6 w-6" />
-            </div>
-            <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
-              PANORAMIC PADEL
-            </h3>
-            <p className="text-xs text-[#1B1B1B]/75 leading-relaxed">
-              2 European panoramic glass arenas with texturized monofilament turf. 4-player high-intensity social and competitive format.
-            </p>
-            <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2 text-xs text-[#1B1B1B]/80">
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> 12mm tempered safety glass walls
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> Texturized Mondo supercourt turf
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> Friday evening social mixers
-              </div>
-            </div>
-          </div>
+            return (
+              <div
+                key={sport}
+                className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-5 hover:border-[#5F9E4A] transition-all flex flex-col justify-between"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="h-12 w-12 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#5F9E4A]">
+                      <Icon className="h-6 w-6" style={{ color: accentColor }} />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#F6F5E1] text-[#1B1B1B] border border-[#1B1B1B]/15">
+                      {courts.length} {courts.length === 1 ? "Court" : "Courts"}
+                    </span>
+                  </div>
 
-          {/* Badminton */}
-          <div className="rounded-[28px] p-8 bg-white border border-[#1B1B1B]/20 shadow-sm space-y-4 hover:border-[#5F9E4A] transition-all">
-            <div className="h-12 w-12 rounded-2xl bg-[#EDECCF] flex items-center justify-center text-[#5F9E4A]">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
-              ELITE BADMINTON
-            </h3>
-            <p className="text-xs text-[#1B1B1B]/75 leading-relaxed">
-              2 cushioned teakwood courts finished with BWF-certified anti-skid synthetic mats. Exceptional joint shock absorption and vertical clearance.
-            </p>
-            <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2 text-xs text-[#1B1B1B]/80">
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> Teakwood sprung subfloor base
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#E8883A] block">
+                      Sport Category
+                    </span>
+                    <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
+                      {sport}
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5 pt-3 border-t border-[#1B1B1B]/10">
+                    <div className="text-xs font-bold text-[#1B1B1B]/70 uppercase tracking-wider">
+                      Active Courts:
+                    </div>
+                    {courts.map((c) => (
+                      <div
+                        key={c.id}
+                        className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-[#F6F5E1] border border-[#1B1B1B]/10"
+                      >
+                        <div className="font-semibold text-[#1B1B1B] truncate mr-2">
+                          {c.name}
+                        </div>
+                        <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                          Cap: {c.capacity}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#1B1B1B]/10">
+                  <Link
+                    href={`/member/book`}
+                    className="w-full h-11 rounded-full border border-[#1B1B1B]/25 hover:border-[#1B1B1B] text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#F6F5E1] transition-all"
+                  >
+                    <span>Reserve {sport}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> 9-meter ceiling clearance
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-[#5F9E4A]" /> Draft-free climate ventilation
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </section>
 
@@ -234,10 +249,10 @@ export default async function HomePage() {
               return (
                 <div
                   key={plan.id}
-                  className={`relative rounded-[28px] p-8 flex flex-col justify-between border ${
+                  className={`relative rounded-[28px] p-8 flex flex-col justify-between border bg-white ${
                     isGold
-                      ? "bg-white border-[#5F9E4A] ring-2 ring-[#5F9E4A]/30 shadow-md"
-                      : "bg-white border-[#1B1B1B]/20"
+                      ? "border-[#5F9E4A] ring-2 ring-[#5F9E4A]/30 shadow-md"
+                      : "border-[#1B1B1B]/20"
                   }`}
                 >
                   {isGold && (

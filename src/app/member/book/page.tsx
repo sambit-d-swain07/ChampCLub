@@ -51,10 +51,10 @@ export default async function MemberBookPage({
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-4xl sm:text-5xl font-display uppercase tracking-wider text-[#F4F1EA]">
-          BOOK A <span className="font-serif italic lowercase text-[#C8F13A] font-normal">court</span>
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1B1B1B]">
+          Book a <span className="text-[#5F9E4A]">court</span>
         </h1>
-        <p className="text-xs text-[#F4F1EA]/70">
+        <p className="text-xs text-[#1B1B1B]/70">
           Pick your sport, choose an open slot, and lock in your session.
         </p>
       </div>
