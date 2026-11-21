@@ -4,7 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { HeroSection } from "@/components/public/hero-section";
 import { WeekAvailabilityStrip } from "@/components/public/week-availability-strip";
 import { ContactForm } from "@/components/public/contact-form";
-import { getCourtAvailability, formatKolkataDate } from "@/lib/services/booking";
+import {
+  getCourtAvailability,
+  formatKolkataDate,
+  getKolkataDayRange,
+  generateDaySlots,
+} from "@/lib/services/booking";
 import {
   Trophy,
   ArrowRight,
@@ -32,21 +37,34 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // 1. Fetch DB Plans
-  const plans = await prisma.plan.findMany({
-    orderBy: { price: "desc" },
-  });
+  const today = new Date();
+  const startDateStr = formatKolkataDate(today);
+  const endDate = new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const endDateStr = formatKolkataDate(endDate);
 
-  // 2. Fetch Featured Products from Database
-  const products = await prisma.product.findMany({
-    take: 6,
-    orderBy: { name: "asc" },
-  });
+  const { startUtc } = getKolkataDayRange(startDateStr);
+  const { endUtc } = getKolkataDayRange(endDateStr);
 
-  // 3. Fetch Real Courts from Database
-  const dbCourts = await prisma.court.findMany({
-    orderBy: [{ sport: "asc" }, { name: "asc" }],
-  });
+  // 1. Fetch all homepage data concurrently in ONE parallel round-trip
+  const [plans, products, dbCourts, weekBookings] = await Promise.all([
+    prisma.plan.findMany({
+      orderBy: { price: "desc" },
+    }),
+    prisma.product.findMany({
+      take: 6,
+      orderBy: { name: "asc" },
+    }),
+    prisma.court.findMany({
+      orderBy: [{ sport: "asc" }, { name: "asc" }],
+    }),
+    prisma.booking.findMany({
+      where: {
+        startsAt: { gte: startUtc, lte: endUtc },
+        status: { in: ["HELD", "CONFIRMED"] },
+      },
+      select: { courtId: true, startsAt: true, endsAt: true },
+    }),
+  ]);
 
   // Group courts dynamically by sport from database records
   const courtsBySport: Record<string, typeof dbCourts> = {};
@@ -57,8 +75,7 @@ export default async function HomePage() {
     courtsBySport[c.sport].push(c);
   }
 
-  // 4. Build 7-day availability strip directly from DB bookings and courts
-  const today = new Date();
+  // 2. Build 7-day availability strip in-memory (0ms DB delay)
   const weekDays = [];
 
   for (let i = 0; i < 7; i++) {
@@ -75,43 +92,42 @@ export default async function HomePage() {
       day: "numeric",
     });
 
-    try {
-      const avail = await getCourtAvailability(dateStr);
-      let freeSlotsCount = 0;
-      const featuredSlots: Array<{ courtName: string; sport: string; time: string }> = [];
+    const daySlots = generateDaySlots(dateStr);
+    let freeSlotsCount = 0;
+    const featuredSlots: Array<{ courtName: string; sport: string; time: string }> = [];
 
-      for (const row of avail.rows) {
-        for (const cs of row.courts) {
-          if (cs.status === "FREE") {
-            freeSlotsCount++;
-            if (featuredSlots.length < 6) {
-              const court = avail.courts.find((c) => c.id === cs.courtId);
-              featuredSlots.push({
-                courtName: court?.name || "Court",
-                sport: court?.sport || "SPORT",
-                time: row.startTimeStr,
-              });
-            }
+    for (const slot of daySlots) {
+      const slotStartMs = slot.startsAt.getTime();
+      const slotEndMs = slot.endsAt.getTime();
+
+      for (const court of dbCourts) {
+        const isOccupied = weekBookings.some(
+          (b) =>
+            b.courtId === court.id &&
+            new Date(b.startsAt).getTime() < slotEndMs &&
+            new Date(b.endsAt).getTime() > slotStartMs
+        );
+
+        if (!isOccupied) {
+          freeSlotsCount++;
+          if (featuredSlots.length < 6) {
+            featuredSlots.push({
+              courtName: court.name,
+              sport: court.sport,
+              time: slot.startTimeStr,
+            });
           }
         }
       }
-
-      weekDays.push({
-        dateStr,
-        dayLabel: dayName,
-        formattedDate,
-        freeSlotsCount,
-        featuredSlots,
-      });
-    } catch {
-      weekDays.push({
-        dateStr,
-        dayLabel: dayName,
-        formattedDate,
-        freeSlotsCount: 0,
-        featuredSlots: [],
-      });
     }
+
+    weekDays.push({
+      dateStr,
+      dayLabel: dayName,
+      formattedDate,
+      freeSlotsCount,
+      featuredSlots,
+    });
   }
 
   const sportIcons: Record<string, typeof Trophy> = {

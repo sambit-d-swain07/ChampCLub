@@ -20,14 +20,15 @@ export default async function AdminDashboardPage() {
     redirect("/admin/members");
   }
 
-  const metrics = await getDashboardMetrics();
-
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-  const overdueLeads = await prisma.lead.findMany({
-    where: { status: "NEW", createdAt: { lt: twoHoursAgo } },
-    orderBy: { createdAt: "asc" },
-    take: 10,
-  });
+  const [metrics, overdueLeads] = await Promise.all([
+    getDashboardMetrics(),
+    prisma.lead.findMany({
+      where: { status: "NEW", createdAt: { lt: twoHoursAgo } },
+      orderBy: { createdAt: "asc" },
+      take: 10,
+    }),
+  ]);
 
   return (
     <div className="space-y-8">

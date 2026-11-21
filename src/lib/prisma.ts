@@ -14,9 +14,10 @@ export const pool =
   globalForPrisma.pool ||
   new Pool({
     connectionString,
-    max: process.env.NODE_ENV === "production" ? 3 : 5,
+    max: process.env.NODE_ENV === "production" ? 10 : 5,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
+    ssl: { rejectUnauthorized: false },
   });
 
 const adapter = new PrismaPg(pool);
