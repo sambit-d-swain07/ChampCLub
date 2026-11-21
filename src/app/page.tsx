@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { HeroSection } from "@/components/public/hero-section";
 import { WeekAvailabilityStrip } from "@/components/public/week-availability-strip";
 import { ContactForm } from "@/components/public/contact-form";
@@ -45,26 +45,38 @@ export default async function HomePage() {
   const { startUtc } = getKolkataDayRange(startDateStr);
   const { endUtc } = getKolkataDayRange(endDateStr);
 
-  // 1. Fetch all homepage data concurrently in ONE parallel round-trip
-  const [plans, products, dbCourts, weekBookings] = await Promise.all([
-    prisma.plan.findMany({
-      orderBy: { price: "desc" },
-    }),
-    prisma.product.findMany({
-      take: 6,
-      orderBy: { name: "asc" },
-    }),
-    prisma.court.findMany({
-      orderBy: [{ sport: "asc" }, { name: "asc" }],
-    }),
-    prisma.booking.findMany({
-      where: {
-        startsAt: { gte: startUtc, lte: endUtc },
-        status: { in: ["HELD", "CONFIRMED"] },
-      },
-      select: { courtId: true, startsAt: true, endsAt: true },
-    }),
-  ]);
+  // 1. Fetch all homepage data concurrently in ONE parallel round-trip with retry
+  let plans: Awaited<ReturnType<typeof prisma.plan.findMany>> = [];
+  let products: Awaited<ReturnType<typeof prisma.product.findMany>> = [];
+  let dbCourts: Awaited<ReturnType<typeof prisma.court.findMany>> = [];
+  let weekBookings: Array<{ courtId: string; startsAt: Date; endsAt: Date }> = [];
+
+  try {
+    const data = await withDbRetry(async () => {
+      return await Promise.all([
+        prisma.plan.findMany({
+          orderBy: { price: "desc" },
+        }),
+        prisma.product.findMany({
+          take: 6,
+          orderBy: { name: "asc" },
+        }),
+        prisma.court.findMany({
+          orderBy: [{ sport: "asc" }, { name: "asc" }],
+        }),
+        prisma.booking.findMany({
+          where: {
+            startsAt: { gte: startUtc, lte: endUtc },
+            status: { in: ["HELD", "CONFIRMED"] },
+          },
+          select: { courtId: true, startsAt: true, endsAt: true },
+        }),
+      ]);
+    });
+    [plans, products, dbCourts, weekBookings] = data;
+  } catch (err) {
+    console.error("[HomePage] Error fetching initial data from DB:", err);
+  }
 
   // Group courts dynamically by sport from database records
   const courtsBySport: Record<string, typeof dbCourts> = {};
