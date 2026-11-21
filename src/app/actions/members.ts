@@ -284,11 +284,42 @@ export async function renewMemberAction(formData: FormData) {
 }
 
 
+function calculateAge(dobStr: string): number | null {
+  if (!dobStr) return null;
+  const parts = dobStr.split("-");
+  if (parts.length !== 3) return null;
+  const birth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 const signUpSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, "Full name must be at least 2 characters"),
   phone: z.string().min(8, "Valid phone number required"),
   email: z.string().email("Valid email required"),
-  dateOfBirth: z.string().min(1, "Date of birth required"),
+  dateOfBirth: z
+    .string()
+    .min(1, "Date of birth is required")
+    .refine((val) => {
+      const parts = val.split("-");
+      if (parts.length !== 3) return false;
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      return !isNaN(d.getTime()) && d <= new Date();
+    }, { message: "Date of birth cannot be in the future" })
+    .refine((val) => {
+      const age = calculateAge(val);
+      return age !== null && age >= 5;
+    }, { message: "Must be at least 5 years old to join" })
+    .refine((val) => {
+      const age = calculateAge(val);
+      return age !== null && age <= 100;
+    }, { message: "Age cannot exceed 100 years" }),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -302,7 +333,12 @@ export async function signUpMemberAction(formData: FormData) {
       password: formData.get("password") as string,
     };
 
-    const parsed = signUpSchema.parse(raw);
+    const validation = signUpSchema.safeParse(raw);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "Invalid input provided";
+      return { success: false, error: firstError };
+    }
+    const parsed = validation.data;
 
     const existing = await prisma.user.findUnique({
       where: { email: parsed.email },
@@ -335,13 +371,7 @@ export async function signUpMemberAction(formData: FormData) {
       return { success: false, error: "Unable to create member credentials." };
     }
 
-    // 2. Strict Role Enforcement: ALWAYS MEMBER on server
-    await prisma.user.update({
-      where: { id: authResult.user.id },
-      data: { role: "MEMBER" },
-    });
-
-    // 3. Create Member entity with unique membershipNo & qrToken & dateOfBirth
+    // 2. Strict Role Enforcement & Member creation in a single transaction
     const memberCount = await prisma.member.count();
     const membershipNo = `CC-2026-${String(memberCount + 1).padStart(3, "0")}`;
     const qrToken = `QR-CC-${String(memberCount + 1).padStart(3, "0")}-${Math.random()
@@ -349,20 +379,37 @@ export async function signUpMemberAction(formData: FormData) {
       .substring(2, 8)
       .toUpperCase()}`;
 
-    await prisma.member.create({
-      data: {
-        userId: authResult.user.id,
-        membershipNo,
-        qrToken,
-        dateOfBirth: new Date(parsed.dateOfBirth),
-      },
-    });
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: authResult.user.id },
+          data: { role: "MEMBER" },
+        });
+
+        await tx.member.create({
+          data: {
+            userId: authResult.user.id,
+            membershipNo,
+            qrToken,
+            dateOfBirth: new Date(parsed.dateOfBirth),
+          },
+        });
+      });
+    } catch (txErr) {
+      // Rollback auth user creation if Member creation failed
+      await prisma.user.delete({ where: { id: authResult.user.id } }).catch(() => {});
+      throw txErr;
+    }
 
     revalidatePath("/admin/members");
     revalidatePath("/admin");
 
     return { success: true, email: parsed.email, password: parsed.password };
   } catch (error: unknown) {
+    if (error && typeof error === "object" && "issues" in error) {
+      const zErr = error as z.ZodError;
+      return { success: false, error: zErr.issues[0]?.message || "Validation failed" };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to complete sign-up.",

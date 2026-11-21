@@ -19,13 +19,45 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+// Helper to calculate age from YYYY-MM-DD
+function getAgeFromDob(dobString: string): number | null {
+  if (!dobString) return null;
+  const parts = dobString.split("-");
+  if (parts.length !== 3) return null;
+  const birth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 // Client-side Zod Schema
 const signUpSchema = z
   .object({
     name: z.string().min(2, "Full name must be at least 2 characters"),
     phone: z.string().min(10, "Valid 10-digit phone number required"),
     email: z.string().email("Enter a valid email address"),
-    dateOfBirth: z.string().min(1, "Date of birth is required"),
+    dateOfBirth: z
+      .string()
+      .min(1, "Date of birth is required")
+      .refine((val) => {
+        const parts = val.split("-");
+        if (parts.length !== 3) return false;
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        return !isNaN(d.getTime()) && d <= new Date();
+      }, { message: "Date of birth cannot be in the future" })
+      .refine((val) => {
+        const age = getAgeFromDob(val);
+        return age !== null && age >= 5;
+      }, { message: "Must be at least 5 years old to join" })
+      .refine((val) => {
+        const age = getAgeFromDob(val);
+        return age !== null && age <= 100;
+      }, { message: "Age cannot exceed 100 years" }),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
@@ -271,34 +303,6 @@ export function SignUpForm() {
               )}
             </div>
 
-            {/* Date of Birth */}
-            <div className="space-y-1">
-              <label
-                htmlFor="dateOfBirth"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
-              >
-                Date of Birth
-              </label>
-              <input
-                id="dateOfBirth"
-                name="dateOfBirth"
-                type="date"
-                required
-                disabled={submitting}
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                max={new Date().toISOString().split("T")[0]}
-                className={`w-full h-11 px-4 rounded-xl bg-white border text-sm text-[#1B1B1B] focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
-                  errors.dateOfBirth
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
-                }`}
-              />
-              {errors.dateOfBirth && (
-                <p className="text-xs text-red-600 font-medium pl-1">{errors.dateOfBirth}</p>
-              )}
-            </div>
-
             {/* Email Address */}
             <div className="space-y-1">
               <label
@@ -327,6 +331,39 @@ export function SignUpForm() {
               />
               {errors.email && (
                 <p className="text-xs text-red-600 font-medium pl-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Date of Birth */}
+            <div className="space-y-1">
+              <label
+                htmlFor="dateOfBirth"
+                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
+              >
+                Date of Birth
+              </label>
+              <input
+                id="dateOfBirth"
+                name="dateOfBirth"
+                type="date"
+                required
+                disabled={submitting}
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                min={(() => {
+                  const d = new Date();
+                  d.setFullYear(d.getFullYear() - 100);
+                  return d.toISOString().split("T")[0];
+                })()}
+                max={new Date().toISOString().split("T")[0]}
+                className={`w-full h-11 px-4 rounded-xl bg-white border text-sm text-[#1B1B1B] focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
+                  errors.dateOfBirth
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
+                }`}
+              />
+              {errors.dateOfBirth && (
+                <p className="text-xs text-red-600 font-medium pl-1">{errors.dateOfBirth}</p>
               )}
             </div>
 

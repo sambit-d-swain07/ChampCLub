@@ -164,26 +164,34 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
         </p>
       </div>
 
-      {/* DOB strip (for Junior eligibility) */}
-      <div className="max-w-md mx-auto bg-white border border-[#1B1B1B]/15 rounded-2xl p-5 shadow-sm space-y-2">
-        <div className="flex items-center justify-between">
-          <label htmlFor="dob" className="text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80">
-            Date of Birth (required for Junior plan)
-          </label>
-          {currentAge !== null && (
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isJuniorEligible ? "bg-[#E8883A] text-[#1B1B1B]" : "bg-[#EDECCF] text-[#1B1B1B]"}`}>
-              Age: {currentAge} yrs {isJuniorEligible ? "· Junior Eligible" : "· Adult"}
-            </span>
-          )}
+      {/* DOB prompt for members without DOB on file */}
+      {!memberDob && (
+        <div className="max-w-md mx-auto bg-white border border-[#1B1B1B]/15 rounded-2xl p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <label htmlFor="dob" className="text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80">
+              Date of Birth (required to choose Junior)
+            </label>
+            {currentAge !== null && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isJuniorEligible ? "bg-[#E8883A] text-[#1B1B1B]" : "bg-[#EDECCF] text-[#1B1B1B]"}`}>
+                Age: {currentAge} yrs {isJuniorEligible ? "· Junior Eligible" : "· Adult"}
+              </span>
+            )}
+          </div>
+          <input
+            id="dob"
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            min={(() => {
+              const d = new Date();
+              d.setFullYear(d.getFullYear() - 100);
+              return d.toISOString().split("T")[0];
+            })()}
+            max={new Date().toISOString().split("T")[0]}
+            className="w-full h-11 px-4 rounded-xl bg-[#F6F5E1] border border-[#1B1B1B]/20 text-[#1B1B1B] text-sm focus:border-[#5F9E4A] focus:outline-none"
+          />
         </div>
-        <input
-          id="dob"
-          type="date"
-          value={dob}
-          onChange={(e) => setDob(e.target.value)}
-          className="w-full h-11 px-4 rounded-xl bg-[#F6F5E1] border border-[#1B1B1B]/20 text-[#1B1B1B] text-sm focus:border-[#5F9E4A] focus:outline-none"
-        />
-      </div>
+      )}
 
       {error && (
         <div className="max-w-md mx-auto p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
