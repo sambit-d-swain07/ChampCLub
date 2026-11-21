@@ -58,7 +58,7 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     const now = new Date();
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  // Parallel database fetch
+  // Parallel database fetch - all independent queries executed concurrently
   const [
     earnedGroup,
     collectedGroup,
@@ -74,6 +74,9 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     expiringMemberships,
     topShopItems,
     topBarItems,
+    allProducts,
+    allBarItems,
+    tabPayments,
   ] = await Promise.all([
     // 1. Earned sum in range
     prisma.ledgerEntry.aggregate({
@@ -93,6 +96,7 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     // 4. Expenses in range
     prisma.expense.findMany({
       where: { date: { gte: start, lte: end } },
+      select: { id: true, title: true, category: true, amount: true, notes: true, date: true },
       orderBy: { date: "desc" },
     }),
     // 5. Entries for timeline chart in range
@@ -120,9 +124,12 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     // 9. Open tabs
     prisma.tab.findMany({
       where: { status: "OPEN" },
-      include: {
-        table: true,
-        member: { include: { user: true } },
+      select: {
+        id: true,
+        totalAmount: true,
+        openedAt: true,
+        table: { select: { name: true } },
+        member: { select: { user: { select: { name: true } } } },
       },
       orderBy: { openedAt: "desc" },
     }),
@@ -141,43 +148,47 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     // 12. Expiring memberships
     prisma.membership.findMany({
       where: { endsAt: { gte: now, lte: sevenDaysFromNow } },
-      include: { member: { include: { user: true } }, plan: true },
+      select: {
+        id: true,
+        endsAt: true,
+        plan: { select: { name: true } },
+        member: { select: { membershipNo: true, user: { select: { name: true } } } },
+      },
       take: 8,
       orderBy: { endsAt: "asc" },
     }),
-    // 14. Top shop items
+    // 13. Top shop items
     prisma.shopOrderItem.groupBy({
       by: ["productId"],
       _sum: { quantity: true, priceSnapshot: true },
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
     }),
-    // 15. Top bar items
+    // 14. Top bar items
     prisma.barOrderItem.groupBy({
       by: ["barItemId"],
       _sum: { quantity: true, priceSnapshot: true },
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
     }),
-  ]);
-
-  // Aggregate Top Products metadata
-  const shopProductIds = topShopItems.map((item) => item.productId);
-  const barItemIds = topBarItems.map((item) => item.barItemId);
-
-  const [shopProductsMap, barItemsMap] = await Promise.all([
+    // 15. Product name mapping (parallel)
     prisma.product.findMany({
-      where: { id: { in: shopProductIds } },
       select: { id: true, name: true },
     }),
+    // 16. Bar item name mapping (parallel)
     prisma.barItem.findMany({
-      where: { id: { in: barItemIds } },
       select: { id: true, name: true },
+    }),
+    // 17. Tab payments for open tabs (parallel)
+    prisma.ledgerEntry.findMany({
+      where: { source: "BAR", kind: "COLLECTED", refType: "TAB" },
+      select: { refId: true, amount: true },
     }),
   ]);
 
-  const shopNameMap = new Map(shopProductsMap.map((p) => [p.id, p.name]));
-  const barNameMap = new Map(barItemsMap.map((b) => [b.id, b.name]));
+  // Aggregate Top Products metadata from pre-fetched parallel maps
+  const shopNameMap = new Map(allProducts.map((p) => [p.id, p.name]));
+  const barNameMap = new Map(allBarItems.map((b) => [b.id, b.name]));
 
   const topProducts = [
     ...topShopItems.map((item) => ({
@@ -218,13 +229,7 @@ export async function getOwnerFinancials(filter: DateRangeFilter) {
     };
   });
 
-  // Calculate unpaid balances for open tabs
-  const openTabIds = openTabs.map((t) => t.id);
-  const tabPayments = openTabIds.length > 0
-    ? await prisma.ledgerEntry.findMany({
-        where: { source: "BAR", kind: "COLLECTED", refType: "TAB", refId: { in: openTabIds } },
-      })
-    : [];
+  // Calculate unpaid balances for open tabs using in-memory map
   const tabPaidMap = new Map<string, number>();
   for (const p of tabPayments) {
     tabPaidMap.set(p.refId, (tabPaidMap.get(p.refId) || 0) + Number(p.amount));

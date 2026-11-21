@@ -52,7 +52,7 @@ export default async function AdminShopPage() {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 50,
+    take: 20,
   });
 
   const recentOrders = ordersData.map((o) => ({

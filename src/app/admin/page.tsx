@@ -1,16 +1,29 @@
+import nextDynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { getDashboardMetrics } from "@/lib/services/dashboard";
-import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, CalendarCheck, IndianRupee, AlertTriangle, ArrowUpRight } from "lucide-react";
 
+// Lazy-load Recharts bundle to keep initial page payload tiny
+const RevenueChart = nextDynamic(
+  () => import("@/components/dashboard/revenue-chart").then((mod) => mod.RevenueChart),
+  {
+    loading: () => (
+      <div className="h-[280px] w-full flex items-center justify-center text-xs text-muted-foreground animate-pulse bg-muted/20 rounded-lg">
+        Loading revenue distribution chart...
+      </div>
+    ),
+  }
+);
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
+  console.time("[Route: /admin] Total session + metrics");
   const user = await getCurrentUser();
   const role = (user as { role?: string })?.role || "MEMBER";
 
@@ -19,7 +32,10 @@ export default async function AdminDashboardPage() {
     redirect("/admin/members");
   }
 
+  console.time("[Route: /admin] getDashboardMetrics");
   const metrics = await getDashboardMetrics();
+  console.timeEnd("[Route: /admin] getDashboardMetrics");
+  console.timeEnd("[Route: /admin] Total session + metrics");
 
   return (
     <div className="space-y-8">

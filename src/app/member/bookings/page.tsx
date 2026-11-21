@@ -18,6 +18,7 @@ export default async function MemberBookingsPage() {
       bookings: {
         include: { court: true },
         orderBy: { startsAt: "desc" },
+        take: 20,
       },
     },
   });

@@ -12,7 +12,7 @@ import type { LedgerSource, LedgerKind, PaymentMethod, Prisma } from "@prisma/cl
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 const SOURCE_LABELS: Record<string, string> = {
   COURT: "Courts",

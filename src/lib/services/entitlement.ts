@@ -24,7 +24,8 @@ export interface EntitlementResult {
  */
 export async function resolve(
   memberId: string | null,
-  at: Date = new Date()
+  at: Date = new Date(),
+  preloadedMember?: any
 ): Promise<EntitlementResult> {
   if (!memberId) {
     return {
@@ -42,17 +43,20 @@ export async function resolve(
     };
   }
 
-  const member = await prisma.member.findUnique({
-    where: { id: memberId },
-    include: {
-      user: true,
-      memberships: {
-        include: { plan: true },
-        orderBy: { endsAt: "desc" },
-        take: 1,
-      },
-    },
-  });
+  const member =
+    preloadedMember !== undefined
+      ? preloadedMember
+      : await prisma.member.findUnique({
+          where: { id: memberId },
+          include: {
+            user: true,
+            memberships: {
+              include: { plan: true },
+              orderBy: { endsAt: "desc" },
+              take: 1,
+            },
+          },
+        });
 
   if (!member || member.memberships.length === 0) {
     let bookingsToday = 0;

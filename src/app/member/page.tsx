@@ -16,15 +16,18 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function MemberPortalPage() {
+  console.time("[Route: /member] Total page load");
   const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
+  console.time("[Route: /member] DB fetch member & relations");
   const member = await prisma.member.findUnique({
     where: { userId: user.id },
     include: {
+      user: true,
       memberships: {
         include: { plan: true },
         orderBy: { endsAt: "desc" },
@@ -42,12 +45,16 @@ export default async function MemberPortalPage() {
       },
     },
   });
+  console.timeEnd("[Route: /member] DB fetch member & relations");
 
   if (!member) {
     redirect("/login");
   }
 
-  const entitlement = await resolve(member.id, new Date());
+  console.time("[Route: /member] resolve entitlement");
+  const entitlement = await resolve(member.id, new Date(), member);
+  console.timeEnd("[Route: /member] resolve entitlement");
+  console.timeEnd("[Route: /member] Total page load");
   const isWalkIn = entitlement.status === "WALK_IN" || entitlement.status === "EXPIRED";
 
   // Compute days left

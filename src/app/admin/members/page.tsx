@@ -11,6 +11,7 @@ export default async function AdminMembersPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
+  console.time("[Route: /admin/members] searchMembers + getPlans");
   const { q, page: pageParam } = await searchParams;
   const currentPage = Math.max(1, parseInt(pageParam || "1", 10) || 1);
 
@@ -18,6 +19,7 @@ export default async function AdminMembersPage({
     searchMembers(q, currentPage, 20),
     getPlans(),
   ]);
+  console.timeEnd("[Route: /admin/members] searchMembers + getPlans");
 
   return (
     <div className="space-y-6">

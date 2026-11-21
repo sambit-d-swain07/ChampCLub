@@ -183,6 +183,7 @@ model Membership {
 
   @@index([memberId])
   @@index([planId])
+  @@index([memberId, endsAt])
 }
 
 // ----------------- Courts & Bookings -----------------
@@ -233,6 +234,8 @@ model Booking {
   @@index([courtId])
   @@index([memberId])
   @@index([startsAt, endsAt])
+  @@index([courtId, startsAt])
+  @@index([memberId, startsAt])
 }
 
 model BookingParticipant {
@@ -246,6 +249,7 @@ model BookingParticipant {
 
   @@index([bookingId])
   @@index([memberId])
+  @@index([createdAt])
 }
 
 // ----------------- Shop / Inventory -----------------
@@ -276,6 +280,7 @@ model ShopOrder {
   items ShopOrderItem[]
 
   @@index([memberId])
+  @@index([createdAt])
 }
 
 model ShopOrderItem {
@@ -335,6 +340,7 @@ model Tab {
 
   @@index([memberId])
   @@index([tableId])
+  @@index([status])
 }
 
 model BarOrder {
@@ -393,5 +399,6 @@ model LedgerEntry {
   @@index([source])
   @@index([createdAt])
   @@index([refType, refId])
+  @@index([createdAt, source, kind])
 }
 

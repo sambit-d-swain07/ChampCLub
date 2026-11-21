@@ -1,9 +1,9 @@
+import nextDynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { resolveFinanceRange, getOwnerFinancials } from "@/lib/services/finance";
 import { FinanceFilterBar } from "@/components/admin/finance-filter-bar";
-import { FinanceCharts } from "@/components/admin/finance-charts";
 import { ExpenseStatusToggle } from "@/components/admin/expense-status-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,18 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+// Lazy-load Recharts bundle to keep page bundle lightweight
+const FinanceCharts = nextDynamic(
+  () => import("@/components/admin/finance-charts").then((mod) => mod.FinanceCharts),
+  {
+    loading: () => (
+      <div className="h-[300px] w-full flex items-center justify-center text-xs text-muted-foreground animate-pulse bg-muted/20 rounded-lg">
+        Loading financial analytics charts...
+      </div>
+    ),
+  }
+);
+
 export const dynamic = "force-dynamic";
 
 export default async function OwnerDashboardPage({
@@ -29,6 +41,7 @@ export default async function OwnerDashboardPage({
 }: {
   searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
+  console.time("[Route: /admin/owner] Total session + financials");
   const user = await getCurrentUser();
   const role = (user as { role?: string })?.role || "MEMBER";
 
@@ -39,7 +52,11 @@ export default async function OwnerDashboardPage({
 
   const { range, from, to } = await searchParams;
   const filter = resolveFinanceRange(range, from, to);
+
+  console.time("[Route: /admin/owner] getOwnerFinancials");
   const data = await getOwnerFinancials(filter);
+  console.timeEnd("[Route: /admin/owner] getOwnerFinancials");
+  console.timeEnd("[Route: /admin/owner] Total session + financials");
 
   const { cards, charts, lists } = data;
 

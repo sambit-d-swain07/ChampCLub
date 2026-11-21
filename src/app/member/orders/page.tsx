@@ -21,7 +21,7 @@ export default async function MemberOrdersPage() {
     redirect("/login");
   }
 
-  // Pure Database Query: Orders placed by this member
+  // Pure Database Query: Orders placed by this member (paginated 20 rows)
   const orders = await prisma.shopOrder.findMany({
     where: { memberId: member.id },
     include: {
@@ -30,6 +30,7 @@ export default async function MemberOrdersPage() {
       },
     },
     orderBy: { createdAt: "desc" },
+    take: 20,
   });
 
   return (
