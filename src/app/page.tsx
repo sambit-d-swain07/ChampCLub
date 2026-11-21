@@ -22,12 +22,12 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <Link href="/login">
               <Button variant="outline" size="sm" className="text-xs h-8">
-                Member & Staff Sign In
+                Sign In
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/signup">
               <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
-                Enter Club Suite <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                Apply for Membership <ArrowRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             </Link>
           </div>
@@ -135,8 +135,8 @@ export default function HomePage() {
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Fast-Track QR Turnstile Pass</div>
               </CardContent>
               <CardFooter>
-                <Link href="/login" className="w-full">
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs">Sign In as Gold Member</Button>
+                <Link href="/signup" className="w-full">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs">Apply for Gold Pass</Button>
                 </Link>
               </CardFooter>
             </Card>
@@ -158,8 +158,8 @@ export default function HomePage() {
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Standard QR Pass</div>
               </CardContent>
               <CardFooter>
-                <Link href="/login" className="w-full">
-                  <Button variant="outline" className="w-full text-xs">Sign In as Silver Member</Button>
+                <Link href="/signup" className="w-full">
+                  <Button variant="outline" className="w-full text-xs">Apply for Silver Pass</Button>
                 </Link>
               </CardFooter>
             </Card>
@@ -180,8 +180,8 @@ export default function HomePage() {
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Junior Coaching Squad Access</div>
               </CardContent>
               <CardFooter>
-                <Link href="/login" className="w-full">
-                  <Button variant="outline" className="w-full text-xs">Sign In as Junior Member</Button>
+                <Link href="/signup" className="w-full">
+                  <Button variant="outline" className="w-full text-xs">Apply for Junior Pass</Button>
                 </Link>
               </CardFooter>
             </Card>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -159,8 +160,14 @@ export default function LoginPage() {
           </div>
         </CardContent>
 
-        <CardFooter className="justify-center border-t py-3 bg-muted/20 text-muted-foreground text-[11px]">
-          Demo Environment • Hackathon Release
+        <CardFooter className="flex flex-col gap-2 justify-center border-t py-3 bg-muted/20 text-muted-foreground text-[11px]">
+          <div>
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-emerald-700 font-semibold hover:underline">
+              Apply for Membership
+            </Link>
+          </div>
+          <div>Demo Environment • Hackathon Release</div>
         </CardFooter>
       </Card>
     </div>
