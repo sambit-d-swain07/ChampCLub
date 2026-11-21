@@ -36,8 +36,8 @@ export interface ShopProduct {
 export interface MemberPastOrder {
   id: string;
   createdAt: string;
-  fulfilment: "PICKUP" | "DELIVERY";
-  status: "PENDING" | "COMPLETED" | "CANCELLED";
+  fulfilment: "PICKUP" | "DELIVERY" | "COURT";
+  status: string;
   totalAmount: number;
   items: Array<{
     name: string;
@@ -66,7 +66,7 @@ export function MemberShop({
   const [cart, setCart] = useState<Array<{ product: ShopProduct; quantity: number }>>([]);
   const [fulfilment, setFulfilment] = useState<"PICKUP" | "DELIVERY">("PICKUP");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "CARD" | "UPI">("ONLINE");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("CASH");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -414,7 +414,7 @@ export function MemberShop({
                     Payment Method
                   </label>
                   <div className="grid grid-cols-3 gap-1.5">
-                    {(["ONLINE", "UPI", "CARD"] as const).map((method) => (
+                    {(["CASH", "UPI", "CARD"] as const).map((method) => (
                       <Button
                         key={method}
                         type="button"

@@ -30,10 +30,17 @@ enum ShopChannel {
 
 enum ShopFulfilment {
   PICKUP
+  COURT
   DELIVERY
 }
 
 enum ShopOrderStatus {
+  PLACED
+  READY
+  PACKED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COLLECTED
   PENDING
   COMPLETED
   CANCELLED
@@ -144,6 +151,7 @@ model Member {
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   membershipNo String   @unique
   qrToken      String   @unique
+  dateOfBirth  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -152,6 +160,26 @@ model Member {
   bookingParticipants BookingParticipant[]
   shopOrders          ShopOrder[]
   tabs                Tab[]
+  addresses           MemberAddress[]
+}
+
+model MemberAddress {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  fullName  String
+  phone     String
+  line1     String
+  line2     String?
+  landmark  String?
+  city      String
+  state     String
+  pincode   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
 }
 
 model Plan {
@@ -165,25 +193,31 @@ model Plan {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  memberships  Membership[]
-  pricingRules PricingRule[]
+  memberships     Membership[]
+  nextMemberships Membership[] @relation("NextPlan")
+  pricingRules    PricingRule[]
 }
 
 model Membership {
-  id        String   @id @default(cuid())
-  memberId  String
-  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  planId    String
-  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Restrict)
-  startsAt  DateTime
-  endsAt    DateTime
-  pricePaid Decimal  @db.Decimal(10, 2)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  memberId   String
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  planId     String
+  plan       Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  startsAt   DateTime
+  endsAt     DateTime
+  pricePaid  Decimal   @db.Decimal(10, 2)
+  replacedAt DateTime?
+  nextPlanId String?
+  nextPlan   Plan?     @relation("NextPlan", fields: [nextPlanId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([memberId])
   @@index([planId])
   @@index([memberId, endsAt])
+  @@index([memberId, replacedAt])
+  @@index([nextPlanId])
 }
 
 // ----------------- Courts & Bookings -----------------
@@ -267,15 +301,20 @@ model Product {
 }
 
 model ShopOrder {
-  id          String          @id @default(cuid())
-  memberId    String?
-  member      Member?         @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  channel     ShopChannel     @default(COUNTER)
-  fulfilment  ShopFulfilment  @default(PICKUP)
-  status      ShopOrderStatus @default(COMPLETED)
-  totalAmount Decimal         @db.Decimal(10, 2)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  memberId        String?
+  member          Member?         @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  channel         ShopChannel     @default(COUNTER)
+  fulfilment      ShopFulfilment  @default(PICKUP)
+  status          ShopOrderStatus @default(COMPLETED)
+  totalAmount     Decimal         @db.Decimal(10, 2)
+  deliveryAddress String?
+  deliveryPhone   String?
+  courtLabel      String?
+  deliveryFee     Decimal         @default(0) @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod   @default(CASH)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   items ShopOrderItem[]
 

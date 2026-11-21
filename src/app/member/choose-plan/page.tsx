@@ -12,6 +12,22 @@ export default async function ChoosePlanPage() {
     redirect("/login");
   }
 
+  const member = await prisma.member.findUnique({
+    where: { userId: user.id },
+    include: {
+      memberships: {
+        where: { replacedAt: null },
+        include: { plan: true },
+        orderBy: { startsAt: "desc" },
+        take: 1,
+      },
+    },
+  });
+
+  if (!member) {
+    redirect("/login");
+  }
+
   const plans = await prisma.plan.findMany({
     orderBy: { price: "desc" },
   });
@@ -26,9 +42,29 @@ export default async function ChoosePlanPage() {
     barDiscountPct: Number(p.barDiscountPct),
   }));
 
+  const now = new Date();
+  const activeMembership = member.memberships.find(
+    (m) => !m.replacedAt && new Date(m.endsAt) >= now
+  );
+
+  const currentMembership = activeMembership
+    ? {
+        id: activeMembership.id,
+        planId: activeMembership.planId,
+        planName: activeMembership.plan.name,
+        pricePaid: Number(activeMembership.pricePaid),
+        endsAt: activeMembership.endsAt.toISOString(),
+      }
+    : null;
+
   return (
     <div className="min-h-screen bg-[#F6F5E1] text-[#1B1B1B] py-12 px-6">
-      <ChoosePlanView plans={formattedPlans} userName={user.name} />
+      <ChoosePlanView
+        plans={formattedPlans}
+        userName={user.name}
+        currentMembership={currentMembership}
+        memberDob={member.dateOfBirth ? member.dateOfBirth.toISOString() : null}
+      />
     </div>
   );
 }

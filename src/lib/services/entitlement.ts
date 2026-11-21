@@ -51,8 +51,9 @@ export async function resolve(
           include: {
             user: true,
             memberships: {
+              where: { replacedAt: null },
               include: { plan: true },
-              orderBy: { endsAt: "desc" },
+              orderBy: { startsAt: "desc" },
               take: 1,
             },
           },

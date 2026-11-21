@@ -61,7 +61,7 @@ export async function placeOnlineOrderAction(data: {
   items: Array<{ productId: string; quantity: number }>;
   fulfilment: "PICKUP" | "DELIVERY";
   deliveryAddress?: string | null;
-  paymentMethod?: "CASH" | "CARD" | "UPI" | "ONLINE";
+  paymentMethod?: "CASH" | "CARD" | "UPI";
 }) {
   try {
     const user = await getCurrentUser();
@@ -79,7 +79,7 @@ export async function placeOnlineOrderAction(data: {
       memberId: member?.id || null,
       fulfilment: data.fulfilment,
       deliveryAddress: data.deliveryAddress,
-      paymentMethod: data.paymentMethod || "ONLINE",
+      paymentMethod: data.paymentMethod || "CASH",
     });
 
     const result = await placeOrder(parsed);

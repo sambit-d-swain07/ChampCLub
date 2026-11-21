@@ -64,6 +64,8 @@ export default async function MemberBookPage({
         courts={availability.courts}
         slots={formattedSlots}
         discountPct={entitlement.courtDiscountPct}
+        bookingsLeftToday={entitlement.bookingsLeftToday}
+        planName={entitlement.plan?.name}
       />
     </div>
   );

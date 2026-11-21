@@ -58,9 +58,9 @@ export default async function AdminShopPage() {
   const recentOrders = ordersData.map((o) => ({
     id: o.id,
     createdAt: o.createdAt.toISOString(),
-    channel: o.channel,
-    fulfilment: o.fulfilment,
-    status: o.status,
+    channel: o.channel as "COUNTER" | "ONLINE",
+    fulfilment: o.fulfilment as "PICKUP" | "DELIVERY" | "COURT",
+    status: o.status as string,
     totalAmount: Number(o.totalAmount),
     customerName: o.member?.user?.name || `Member ${o.member?.membershipNo || "Walk-in"}`,
     items: o.items.map((it) => ({

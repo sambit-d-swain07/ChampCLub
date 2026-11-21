@@ -61,8 +61,8 @@ export default async function MemberShopPage() {
   const pastOrders = pastOrdersData.map((o) => ({
     id: o.id,
     createdAt: o.createdAt.toISOString(),
-    fulfilment: o.fulfilment,
-    status: o.status,
+    fulfilment: o.fulfilment as "PICKUP" | "DELIVERY" | "COURT",
+    status: o.status as string,
     totalAmount: Number(o.totalAmount),
     items: o.items.map((it) => ({
       name: it.product.name,

@@ -82,36 +82,42 @@ export default async function MemberLayout({
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-1.5 text-xs font-medium text-[#1B1B1B]">
             <Link
+              prefetch={false}
               href="/member"
               className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Overview
             </Link>
             <Link
+              prefetch={false}
               href="/member/book"
               className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Book Court
             </Link>
             <Link
+              prefetch={false}
               href="/member/bookings"
               className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               My Bookings
             </Link>
             <Link
+              prefetch={false}
               href="/member/shop"
               className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Pro Shop
             </Link>
             <Link
+              prefetch={false}
               href="/member/orders"
               className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >
               Orders
             </Link>
             <Link
+              prefetch={false}
               href="/member/plan"
               className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
             >

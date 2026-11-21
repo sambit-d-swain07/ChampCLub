@@ -1,14 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { bookMemberCourtAction } from "@/app/actions/bookings";
-import { Calendar, Clock, Trophy, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  ChevronRight,
+  X,
+  Zap,
+} from "lucide-react";
+import { format, addDays, parseISO, isToday } from "date-fns";
 
+/* ------------------------------------------------------------------ */
+/*  Types                                                                */
+/* ------------------------------------------------------------------ */
 interface CourtCol {
   id: string;
   name: string;
   sport: string;
+  surface?: string;
   capacity: number;
   basePrice: number;
 }
@@ -26,132 +40,541 @@ interface SlotRow {
   }>;
 }
 
+interface Props {
+  initialDate: string;
+  courts: CourtCol[];
+  slots: SlotRow[];
+  discountPct: number;
+  bookingsLeftToday: number;
+  planName?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                              */
+/* ------------------------------------------------------------------ */
+const SPORTS = ["All", "Badminton", "Padel", "Tennis"] as const;
+type SportFilter = (typeof SPORTS)[number];
+
+const SPORT_EMOJI: Record<string, string> = {
+  All: "🎾",
+  Badminton: "🏸",
+  Padel: "🏓",
+  Tennis: "🎾",
+};
+
+function fmtDateLabel(isoDate: string) {
+  const d = parseISO(isoDate);
+  return {
+    dayName: format(d, "EEE"),
+    dayNum: format(d, "d"),
+    monthShort: format(d, "MMM"),
+    full: format(d, "dd MMM yyyy"),
+    isToday: isToday(d),
+  };
+}
+
+function slotPeriod(timeStr: string): "Morning" | "Afternoon" | "Evening" {
+  const [hStr] = timeStr.split(":");
+  const h = parseInt(hStr, 10);
+  if (h < 12) return "Morning";
+  if (h < 17) return "Afternoon";
+  return "Evening";
+}
+
+function isPastTime(startsAt: string, selectedDate: string): boolean {
+  const now = new Date();
+  const todayStr = format(now, "yyyy-MM-dd");
+  if (selectedDate !== todayStr) return false;
+  return new Date(startsAt) < now;
+}
+
+function memberPrice(basePrice: number, pct: number) {
+  return Math.round(basePrice * (1 - pct / 100));
+}
+
+function fmtRs(n: number) {
+  return "Rs " + n.toLocaleString("en-IN");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                            */
+/* ------------------------------------------------------------------ */
 export function MemberCourtBooking({
   initialDate,
   courts,
   slots,
   discountPct,
-}: {
-  initialDate: string;
-  courts: CourtCol[];
-  slots: SlotRow[];
-  discountPct: number;
-}) {
+  bookingsLeftToday,
+  planName,
+}: Props) {
   const router = useRouter();
+
+  /* ---- Step state ---- */
   const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [selectedSlot, setSelectedSlot] = useState<{
-    court: CourtCol;
-    startsAt: string;
-    endsAt: string;
-    timeLabel: string;
-  } | null>(null);
+  const [sportFilter, setSportFilter] = useState<SportFilter>("All");
+  const [selectedTime, setSelectedTime] = useState<string | null>(null); // slotKey
+  const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "UPI" | "CARD">("CASH");
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const handleDateChange = (newDate: string) => {
-    setSelectedDate(newDate);
-    setSelectedSlot(null);
-    router.push(`/member/book?date=${newDate}`);
-  };
+  /* ---- Derived: filtered courts ---- */
+  const filteredCourts = useMemo(
+    () =>
+      sportFilter === "All"
+        ? courts
+        : courts.filter(
+            (c) => c.sport.toLowerCase() === sportFilter.toLowerCase()
+          ),
+    [courts, sportFilter]
+  );
 
-  const handleConfirmBooking = () => {
-    if (!selectedSlot) return;
+  /* ---- Derived: free-count per slot (filtered by sport) ---- */
+  const slotFreeCount = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const row of slots) {
+      if (isPastTime(row.startsAt, selectedDate)) continue;
+      map[row.slotKey] = row.courtSlots.filter(
+        (cs) =>
+          cs.status === "FREE" &&
+          filteredCourts.some((c) => c.id === cs.courtId)
+      ).length;
+    }
+    return map;
+  }, [slots, filteredCourts, selectedDate]);
+
+  /* ---- Derived: selected slot row ---- */
+  const selectedSlotRow = useMemo(
+    () => slots.find((s) => s.slotKey === selectedTime) ?? null,
+    [slots, selectedTime]
+  );
+
+  /* ---- Derived: free courts for selected time ---- */
+  const freeCourtsForTime = useMemo(() => {
+    if (!selectedSlotRow) return [];
+    return filteredCourts.filter((c) => {
+      const cs = selectedSlotRow.courtSlots.find((s) => s.courtId === c.id);
+      return cs?.status === "FREE";
+    });
+  }, [selectedSlotRow, filteredCourts]);
+
+  /* ---- Derived: selected court ---- */
+  const selectedCourt = useMemo(
+    () => courts.find((c) => c.id === selectedCourtId) ?? null,
+    [courts, selectedCourtId]
+  );
+
+  /* ---- Grouped periods ---- */
+  const periods = useMemo(() => {
+    const groups: Record<"Morning" | "Afternoon" | "Evening", SlotRow[]> = {
+      Morning: [],
+      Afternoon: [],
+      Evening: [],
+    };
+    for (const row of slots) {
+      if (isPastTime(row.startsAt, selectedDate)) continue;
+      groups[slotPeriod(row.startTimeStr)].push(row);
+    }
+    return groups;
+  }, [slots, selectedDate]);
+
+  /* ---- Date strip (14 days) ---- */
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dateStrip = Array.from({ length: 14 }, (_, i) =>
+    format(addDays(today, i), "yyyy-MM-dd")
+  );
+
+  /* ---- Handlers ---- */
+  function handleDateChange(d: string) {
+    setSelectedDate(d);
+    setSelectedTime(null);
+    setSelectedCourtId(null);
+    setShowConfirm(false);
+    setError(null);
+    router.push(`/member/book?date=${d}`);
+  }
+
+  function handleTimeSelect(slotKey: string) {
+    if (slotFreeCount[slotKey] === 0) return;
+    setSelectedTime(slotKey === selectedTime ? null : slotKey);
+    setSelectedCourtId(null);
+    setShowConfirm(false);
+    setError(null);
+  }
+
+  function handleCourtSelect(courtId: string) {
+    setSelectedCourtId(courtId);
+    setShowConfirm(true);
+    setError(null);
+  }
+
+  function handleConfirmBooking() {
+    if (!selectedSlotRow || !selectedCourtId) return;
     setError(null);
     setSuccess(null);
 
     startTransition(async () => {
       const formData = new FormData();
-      formData.set("courtId", selectedSlot.court.id);
-      formData.set("startsAt", selectedSlot.startsAt);
-      formData.set("endsAt", selectedSlot.endsAt);
-      formData.set("paymentMethod", "ONLINE");
+      formData.set("courtId", selectedCourtId);
+      formData.set("startsAt", selectedSlotRow.startsAt);
+      formData.set("endsAt", selectedSlotRow.endsAt);
+      formData.set("paymentMethod", paymentMethod);
 
       const res = await bookMemberCourtAction(formData);
 
       if (!res.success) {
-        setError(res.error || "Failed to book this slot.");
+        const msg = res.error || "Failed to book this slot.";
+        if (msg.toLowerCase().includes("already booked") || msg.toLowerCase().includes("overlap")) {
+          setError("That court was just booked. Please choose another court or time.");
+        } else if (msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("limit")) {
+          setError("You've reached your daily booking limit. No more bookings allowed today.");
+        } else {
+          setError(msg);
+        }
+        setShowConfirm(false);
+        router.refresh();
         return;
       }
 
-      setSuccess(`Court booked successfully! ${selectedSlot.court.name} at ${selectedSlot.timeLabel}`);
-      setSelectedSlot(null);
+      setSuccess(
+        `Booked! ${selectedCourt?.name} at ${selectedSlotRow.startTimeStr}–${selectedSlotRow.endTimeStr} on ${fmtDateLabel(selectedDate).full}`
+      );
+      setSelectedTime(null);
+      setSelectedCourtId(null);
+      setShowConfirm(false);
       router.refresh();
     });
-  };
+  }
+
+  /* ================================================================ */
+  /*  Render                                                             */
+  /* ================================================================ */
+  if (success) {
+    return (
+      <div className="max-w-lg mx-auto text-center space-y-6 py-16">
+        <div className="flex justify-center">
+          <CheckCircle className="h-16 w-16 text-[#5F9E4A]" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-[#1B1B1B]">Court Reserved!</h2>
+        <p className="text-sm text-[#1B1B1B]/70">{success}</p>
+        <div className="flex gap-3 justify-center flex-wrap">
+          <Link
+            prefetch={false}
+            href="/member/bookings"
+            className="px-6 py-3 rounded-full bg-[#5F9E4A] text-white font-bold text-sm"
+          >
+            View my bookings
+          </Link>
+          <button
+            onClick={() => setSuccess(null)}
+            className="px-6 py-3 rounded-full border border-[#1B1B1B]/20 text-[#1B1B1B] font-bold text-sm cursor-pointer"
+          >
+            Book another
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Date Picker Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#0E4433] border border-white/10 shadow-lg">
-        <div className="flex items-center gap-3">
-          <Calendar className="h-5 w-5 text-[#C8F13A]" />
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-[#F4F1EA]">
-              Select Playing Date
-            </div>
-            <div className="text-[11px] text-[#F4F1EA]/60">
-              Session availability updates in real time
-            </div>
-          </div>
-        </div>
-
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => handleDateChange(e.target.value)}
-          className="h-10 px-4 rounded-full bg-[#07271D] border border-white/15 text-xs font-bold text-[#F4F1EA] focus:outline-none focus:border-[#C8F13A]"
-        />
+    <div className="space-y-6 pb-24 md:pb-0">
+      {/* Daily limit banner */}
+      <div className="flex items-center gap-2 text-xs font-semibold text-[#1B1B1B]/70 bg-white border border-[#1B1B1B]/10 px-4 py-2.5 rounded-2xl w-fit">
+        <Zap className="h-3.5 w-3.5 text-[#5F9E4A]" />
+        {bookingsLeftToday > 0
+          ? `You can book ${bookingsLeftToday} more session${bookingsLeftToday > 1 ? "s" : ""} today`
+          : "You've used all your booking slots for today"}
+        {planName && <span className="text-[#E8883A] ml-1">· {planName}</span>}
       </div>
 
-      {error && (
-        <div className="p-4 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+      {bookingsLeftToday === 0 && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
+          You have reached your daily booking limit. Come back tomorrow or upgrade your plan for more slots.
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {success && (
-        <div className="p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
-          <CheckCircle className="h-4 w-4 shrink-0" />
-          <span>{success}</span>
+      {/* ---- STEP 1: Sport filter ---- */}
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-[#1B1B1B]/50">
+          Step 1 — Choose sport
+        </h2>
+        <div className="flex gap-2 flex-wrap">
+          {SPORTS.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setSportFilter(s);
+                setSelectedTime(null);
+                setSelectedCourtId(null);
+              }}
+              className={`min-h-[44px] px-4 py-2 rounded-2xl border text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+                sportFilter === s
+                  ? "bg-[#5F9E4A] border-[#5F9E4A] text-white shadow"
+                  : "bg-white border-[#1B1B1B]/15 text-[#1B1B1B] hover:border-[#5F9E4A]"
+              }`}
+            >
+              <span>{SPORT_EMOJI[s]}</span>
+              {s}
+            </button>
+          ))}
         </div>
+      </section>
+
+      {/* ---- STEP 2: Date strip ---- */}
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-[#1B1B1B]/50">
+          Step 2 — Pick a date
+        </h2>
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {dateStrip.map((d) => {
+            const lbl = fmtDateLabel(d);
+            const isSelected = d === selectedDate;
+            return (
+              <button
+                key={d}
+                onClick={() => handleDateChange(d)}
+                className={`min-w-[56px] min-h-[72px] flex flex-col items-center justify-center rounded-2xl border text-xs font-semibold transition-all cursor-pointer shrink-0 ${
+                  isSelected
+                    ? "bg-[#5F9E4A] border-[#5F9E4A] text-white shadow"
+                    : lbl.isToday
+                    ? "bg-white border-[#5F9E4A] text-[#5F9E4A]"
+                    : "bg-white border-[#1B1B1B]/15 text-[#1B1B1B] hover:border-[#5F9E4A]"
+                }`}
+              >
+                <span className="text-[10px] font-bold uppercase">{lbl.dayName}</span>
+                <span className="text-xl font-extrabold leading-tight">{lbl.dayNum}</span>
+                <span className="text-[10px]">{lbl.monthShort}</span>
+                {lbl.isToday && !isSelected && (
+                  <span className="mt-0.5 text-[8px] font-black uppercase tracking-widest text-[#5F9E4A]">
+                    Today
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {/* More dates: native date picker */}
+          <label className="min-w-[56px] min-h-[72px] flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1B1B1B]/20 text-xs text-[#1B1B1B]/50 cursor-pointer hover:border-[#5F9E4A] shrink-0 relative">
+            <Calendar className="h-5 w-5 mb-1" />
+            <span className="text-[9px]">More</span>
+            <input
+              type="date"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              min={format(today, "yyyy-MM-dd")}
+              onChange={(e) => e.target.value && handleDateChange(e.target.value)}
+            />
+          </label>
+        </div>
+        <p className="text-[11px] text-[#1B1B1B]/50 font-medium">
+          {fmtDateLabel(selectedDate).full}
+        </p>
+      </section>
+
+      {/* ---- STEP 3: Time chips ---- */}
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-[#1B1B1B]/50">
+          Step 3 — Select a time
+        </h2>
+        {(["Morning", "Afternoon", "Evening"] as const).map((period) => {
+          const rows = periods[period];
+          if (!rows.length) return null;
+          return (
+            <div key={period} className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#1B1B1B]/40">
+                {period}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {rows.map((row) => {
+                  const freeCount = slotFreeCount[row.slotKey] ?? 0;
+                  const isFull = freeCount === 0;
+                  const isSelected = row.slotKey === selectedTime;
+
+                  return (
+                    <button
+                      key={row.slotKey}
+                      disabled={isFull || bookingsLeftToday === 0}
+                      onClick={() => handleTimeSelect(row.slotKey)}
+                      className={`min-h-[44px] px-4 py-2 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-[#5F9E4A] border-[#5F9E4A] text-white shadow"
+                          : isFull
+                          ? "bg-[#F6F5E1] border-[#1B1B1B]/10 text-[#1B1B1B]/30 line-through cursor-not-allowed"
+                          : "bg-white border-[#1B1B1B]/20 text-[#1B1B1B] hover:border-[#5F9E4A]"
+                      } disabled:opacity-60`}
+                    >
+                      {row.startTimeStr}
+                      {!isFull && (
+                        <span
+                          className={`ml-1.5 ${isSelected ? "text-white/80" : "text-[#5F9E4A]"} font-normal`}
+                        >
+                          · {freeCount} free
+                        </span>
+                      )}
+                      {isFull && <span className="ml-1.5 text-[#1B1B1B]/30 font-normal">· Full</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+        {Object.values(periods).every((r) => r.length === 0) && (
+          <p className="text-sm text-[#1B1B1B]/50 py-2">
+            No available slots on this date. Try another day.
+          </p>
+        )}
+      </section>
+
+      {/* ---- STEP 4: Court cards (shown after time is selected) ---- */}
+      {selectedTime && (
+        <section className="space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#1B1B1B]/50">
+            Step 4 — Choose a court
+          </h2>
+          {freeCourtsForTime.length === 0 ? (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+              All courts are fully booked at this time. Please pick a different time.
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {freeCourtsForTime.map((court) => {
+                const memberP = memberPrice(court.basePrice, discountPct);
+                const isChosen = court.id === selectedCourtId;
+                return (
+                  <button
+                    key={court.id}
+                    onClick={() => handleCourtSelect(court.id)}
+                    className={`text-left p-5 rounded-2xl border transition-all cursor-pointer ${
+                      isChosen
+                        ? "bg-[#5F9E4A]/10 border-[#5F9E4A] ring-2 ring-[#5F9E4A]/30"
+                        : "bg-white border-[#1B1B1B]/15 hover:border-[#5F9E4A]"
+                    }`}
+                  >
+                    <div className="text-base font-extrabold text-[#1B1B1B]">{court.name}</div>
+                    <div className="text-xs text-[#1B1B1B]/50 mt-0.5">
+                      {court.sport} {court.surface ? `· ${court.surface}` : ""}
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      {discountPct > 0 ? (
+                        <>
+                          <span className="text-lg font-extrabold text-[#5F9E4A]">
+                            {fmtRs(memberP)}
+                          </span>
+                          <span className="text-xs text-[#1B1B1B]/40 line-through">
+                            {fmtRs(court.basePrice)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-lg font-extrabold text-[#1B1B1B]">
+                          {fmtRs(court.basePrice)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 w-full py-2 rounded-xl bg-[#5F9E4A] text-white text-xs font-bold text-center">
+                      {isChosen ? "Selected ✓" : "Book this court"}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
-      {/* Booking Modal / Drawer if a slot is selected */}
-      {selectedSlot && (
-        <div className="p-6 rounded-3xl bg-gradient-to-r from-[#0E4433] to-[#155541] border border-[#C8F13A]/50 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#C8F13A] text-[#07271D] text-[10px] font-black uppercase tracking-wider">
-              Selected Session
+      {/* ---- Confirm Dialog ---- */}
+      {showConfirm && selectedSlotRow && selectedCourt && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+          <div className="w-full max-w-md bg-[#F6F5E1] rounded-3xl p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-extrabold text-[#1B1B1B]">Confirm booking</h3>
+              <button
+                onClick={() => { setShowConfirm(false); setSelectedCourtId(null); }}
+                className="h-8 w-8 rounded-full border border-[#1B1B1B]/20 flex items-center justify-center cursor-pointer hover:bg-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <h3 className="text-2xl font-display uppercase tracking-wider text-[#F4F1EA]">
-              {selectedSlot.court.name} • {selectedSlot.timeLabel}
-            </h3>
-            <div className="flex items-center gap-4 text-xs text-[#F4F1EA]/80 pt-1">
-              <span>Standard: ₹{selectedSlot.court.basePrice}</span>
-              {discountPct > 0 ? (
-                <span className="text-[#C8F13A] font-bold">
-                  Member Price: ₹{Math.round(selectedSlot.court.basePrice * (1 - discountPct / 100))} ({discountPct}% OFF)
-                </span>
-              ) : (
-                <span>Walk-in Rate (0% discount)</span>
-              )}
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={() => setSelectedSlot(null)}
-              className="flex-1 sm:flex-none px-5 py-2.5 rounded-full text-xs font-bold text-[#F4F1EA]/70 hover:text-white border border-white/20 hover:border-white/40 cursor-pointer"
-            >
-              Cancel
-            </button>
+            <div className="bg-white rounded-2xl p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[#1B1B1B]/60">Court</span>
+                <span className="font-bold">{selectedCourt.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#1B1B1B]/60">Date</span>
+                <span className="font-bold">{fmtDateLabel(selectedDate).full}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#1B1B1B]/60">Time</span>
+                <span className="font-bold">
+                  {selectedSlotRow.startTimeStr} – {selectedSlotRow.endTimeStr} (60 min)
+                </span>
+              </div>
+              <div className="border-t border-[#1B1B1B]/10 pt-2 mt-2 space-y-1">
+                <div className="flex justify-between text-[#1B1B1B]/60">
+                  <span>Base price</span>
+                  <span>{fmtRs(selectedCourt.basePrice)}</span>
+                </div>
+                {discountPct > 0 && (
+                  <div className="flex justify-between text-[#5F9E4A] font-semibold">
+                    <span>{planName || "Member"} {discountPct}% off</span>
+                    <span>−{fmtRs(Math.round(selectedCourt.basePrice * discountPct / 100))}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-extrabold text-[#1B1B1B] text-base pt-1 border-t border-[#1B1B1B]/10">
+                  <span>Total</span>
+                  <span>{fmtRs(memberPrice(selectedCourt.basePrice, discountPct))}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Daily limit */}
+            <p className="text-xs text-[#1B1B1B]/60 text-center">
+              You have booked <span className="font-bold text-[#1B1B1B]">
+                {(planName?.toUpperCase() === "GOLD" ? 4 : 2) - bookingsLeftToday}
+              </span> of{" "}
+              <span className="font-bold text-[#1B1B1B]">
+                {planName?.toUpperCase() === "GOLD" ? 4 : 2}
+              </span> sessions today
+            </p>
+
+            {/* Payment method */}
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#1B1B1B]/50">
+                Payment at club
+              </p>
+              <div className="flex gap-2">
+                {(["CASH", "UPI", "CARD"] as const).map((pm) => (
+                  <button
+                    key={pm}
+                    onClick={() => setPaymentMethod(pm)}
+                    className={`flex-1 min-h-[40px] rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      paymentMethod === pm
+                        ? "bg-[#1B1B1B] text-[#F6F5E1] border-[#1B1B1B]"
+                        : "bg-white border-[#1B1B1B]/20 text-[#1B1B1B] hover:border-[#1B1B1B]"
+                    }`}
+                  >
+                    {pm}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={handleConfirmBooking}
               disabled={isPending}
-              className="flex-1 sm:flex-none px-7 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full min-h-[52px] rounded-2xl bg-[#5F9E4A] text-white font-extrabold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
               {isPending ? (
                 <>
@@ -159,75 +582,36 @@ export function MemberCourtBooking({
                   Confirming...
                 </>
               ) : (
-                "Confirm & Reserve Slot"
+                <>
+                  Confirm booking <ChevronRight className="h-4 w-4" />
+                </>
               )}
             </button>
           </div>
         </div>
       )}
 
-      {/* Availability Grid */}
-      <div className="rounded-3xl bg-[#0E4433] border border-white/10 p-6 overflow-x-auto shadow-xl">
-        <table className="w-full border-collapse min-w-[700px]">
-          <thead>
-            <tr className="border-b border-white/10">
-              <th className="py-3 px-4 text-left text-xs font-bold uppercase tracking-wider text-[#F4F1EA]/60 w-28">
-                Time
-              </th>
-              {courts.map((c) => (
-                <th key={c.id} className="py-3 px-4 text-center text-xs font-bold uppercase tracking-wider text-[#F4F1EA]">
-                  <div>{c.name}</div>
-                  <div className="text-[10px] text-[#C8F13A] font-normal lowercase">{c.sport}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5 text-xs">
-            {slots.map((row) => (
-              <tr key={row.slotKey} className="hover:bg-white/[0.02]">
-                <td className="py-2.5 px-4 font-mono text-[#F4F1EA]/70 font-bold whitespace-nowrap">
-                  {row.startTimeStr} - {row.endTimeStr}
-                </td>
-                {courts.map((court) => {
-                  const cell = row.courtSlots.find((s) => s.courtId === court.id);
-                  const isFree = cell?.status === "FREE";
-                  const isSelected =
-                    selectedSlot?.court.id === court.id &&
-                    selectedSlot?.startsAt === row.startsAt;
-
-                  return (
-                    <td key={court.id} className="py-2 px-2 text-center">
-                      {isFree ? (
-                        <button
-                          onClick={() =>
-                            setSelectedSlot({
-                              court,
-                              startsAt: row.startsAt,
-                              endsAt: row.endsAt,
-                              timeLabel: `${row.startTimeStr} - ${row.endTimeStr}`,
-                            })
-                          }
-                          className={`w-full py-2 px-3 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-[#C8F13A] text-[#07271D] ring-2 ring-white shadow-md scale-95"
-                              : "bg-[#07271D] hover:bg-[#C8F13A] text-[#C8F13A] hover:text-[#07271D] border border-[#C8F13A]/30"
-                          }`}
-                        >
-                          {isSelected ? "Selected" : "Book Slot"}
-                        </button>
-                      ) : (
-                        <span className="inline-block w-full py-2 px-3 rounded-xl bg-white/5 text-[#F4F1EA]/30 font-medium text-[11px] uppercase tracking-wider">
-                          Reserved
-                        </span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* ---- Mobile sticky bottom bar ---- */}
+      {selectedTime && !showConfirm && (
+        <div className="fixed bottom-0 left-0 right-0 md:hidden bg-[#F6F5E1] border-t border-[#1B1B1B]/15 px-4 py-3 flex items-center justify-between gap-3 z-40">
+          <div className="text-sm">
+            <span className="font-bold text-[#1B1B1B]">
+              {selectedSlotRow?.startTimeStr} – {selectedSlotRow?.endTimeStr}
+            </span>
+            <span className="ml-2 text-xs text-[#1B1B1B]/60">· {fmtDateLabel(selectedDate).full}</span>
+          </div>
+          {selectedCourtId ? (
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="px-5 py-2.5 rounded-full bg-[#5F9E4A] text-white font-bold text-sm cursor-pointer"
+            >
+              Continue
+            </button>
+          ) : (
+            <span className="text-xs text-[#1B1B1B]/50">Pick a court above</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

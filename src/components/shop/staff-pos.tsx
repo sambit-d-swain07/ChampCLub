@@ -63,8 +63,8 @@ export interface OrderRecord {
   id: string;
   createdAt: string;
   channel: "COUNTER" | "ONLINE";
-  fulfilment: "PICKUP" | "DELIVERY";
-  status: "PENDING" | "COMPLETED" | "CANCELLED";
+  fulfilment: "PICKUP" | "DELIVERY" | "COURT";
+  status: string;
   totalAmount: number;
   customerName: string;
   items: Array<{

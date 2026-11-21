@@ -141,8 +141,9 @@ export async function placeOrder(input: PlaceOrderInput) {
 
         // 5. Write SHOP Ledger Entries
         const paymentMethod = input.paymentMethod || (isCounter ? "CASH" : "ONLINE");
+        const isCashOnline = !isCounter && paymentMethod === "CASH";
 
-        // EARNED
+        // EARNED — always written immediately
         await tx.ledgerEntry.create({
           data: {
             source: "SHOP",
@@ -155,18 +156,21 @@ export async function placeOrder(input: PlaceOrderInput) {
           },
         });
 
-        // COLLECTED (counter sale or online payment)
-        await tx.ledgerEntry.create({
-          data: {
-            source: "SHOP",
-            amount: totalOrderAmount,
-            method: paymentMethod,
-            kind: "COLLECTED",
-            refType: "SHOP_ORDER",
-            refId: order.id,
-            createdAt: new Date(),
-          },
-        });
+        // COLLECTED — written now for counter sales and non-CASH online payments.
+        // For CASH online orders, COLLECTED is written separately when staff marks order as handed over.
+        if (!isCashOnline) {
+          await tx.ledgerEntry.create({
+            data: {
+              source: "SHOP",
+              amount: totalOrderAmount,
+              method: paymentMethod,
+              kind: "COLLECTED",
+              refType: "SHOP_ORDER",
+              refId: order.id,
+              createdAt: new Date(),
+            },
+          });
+        }
 
         return order;
       },

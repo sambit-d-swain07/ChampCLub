@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { choosePlanAction } from "@/app/actions/members";
-import { Check, ArrowRight, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Check, ArrowRight, Loader2, Sparkles, AlertCircle, Info } from "lucide-react";
+import { format } from "date-fns";
 
 interface PlanItem {
   id: string;
@@ -16,42 +17,77 @@ interface PlanItem {
   barDiscountPct: number;
 }
 
-export function ChoosePlanView({
-  plans,
-  userName,
-}: {
+interface CurrentMembership {
+  id: string;
+  planId: string;
+  planName: string;
+  pricePaid: number;
+  endsAt: string;
+}
+
+interface Props {
   plans: PlanItem[];
   userName: string;
-}) {
+  currentMembership?: CurrentMembership | null;
+  memberDob?: string | null; // ISO string or null
+}
+
+function fmtRs(n: number) {
+  return "Rs " + n.toLocaleString("en-IN");
+}
+
+function fmtDate(d: string | Date) {
+  return format(new Date(d), "dd MMM yyyy");
+}
+
+function calcAge(dobStr: string): number | null {
+  if (!dobStr) return null;
+  const birth = new Date(dobStr);
+  if (isNaN(birth.getTime())) return null;
+  const diff = Date.now() - birth.getTime();
+  return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+}
+
+export function ChoosePlanView({ plans, userName, currentMembership, memberDob }: Props) {
   const router = useRouter();
-  const [dob, setDob] = useState<string>("");
-  const [selectedPlanId, setSelectedPlanId] = useState<string>(
-    plans.find((p) => p.name.toUpperCase().includes("GOLD"))?.id || plans[0]?.id || ""
-  );
+  const [dob, setDob] = useState<string>(memberDob ? new Date(memberDob).toISOString().split("T")[0] : "");
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ scheduled?: boolean; startsOn?: string; planName?: string; upgraded?: boolean; amountDue?: number; credit?: number } | null>(null);
 
-  // Calculate age based on Date of Birth
-  const calculateAge = (dobString: string): number | null => {
-    if (!dobString) return null;
-    const birth = new Date(dobString);
-    if (isNaN(birth.getTime())) return null;
-    const diff = Date.now() - birth.getTime();
-    const ageDt = new Date(diff);
-    return Math.abs(ageDt.getUTCFullYear() - 1970);
-  };
-
-  const currentAge = calculateAge(dob);
+  const currentAge = dob ? calcAge(dob) : memberDob ? calcAge(memberDob) : null;
   const isJuniorEligible = currentAge !== null && currentAge < 18;
 
-  // Filter plans: show Junior only if under 18 or DOB not entered yet
-  const visiblePlans = plans.filter((p) => {
-    const isJunior = p.name.toUpperCase().includes("JUNIOR");
-    if (!isJunior) return true;
-    return isJuniorEligible || currentAge === null;
-  });
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
+  const currentPlan = currentMembership ? plans.find((p) => p.id === currentMembership.planId) : null;
 
-  const handleCheckout = () => {
+  function getPlanState(plan: PlanItem): "current" | "upgrade" | "downgrade" | "unavailable" {
+    const isJunior = plan.name.toUpperCase().includes("JUNIOR");
+    if (isJunior && currentAge !== null && currentAge >= 18) return "unavailable";
+    if (!currentMembership) return "upgrade"; // fresh activation
+    if (currentMembership.planId === plan.id) return "current";
+    if (plan.price > (currentPlan?.price ?? 0)) return "upgrade";
+    return "downgrade";
+  }
+
+  function getUpgradeDetails(plan: PlanItem) {
+    if (!currentMembership) return { credit: 0, amountDue: plan.price };
+    const credit = Number(currentMembership.pricePaid);
+    const amountDue = Math.max(0, plan.price - credit);
+    return { credit, amountDue };
+  }
+
+  function handleSelectPlan(planId: string) {
+    const st = getPlanState(plans.find((p) => p.id === planId)!);
+    if (st === "current" || st === "unavailable") return;
+    setSelectedPlanId(planId);
+    setShowConfirm(true);
+    setError(null);
+  }
+
+  function handleConfirm() {
     if (!selectedPlanId) return;
     setError(null);
 
@@ -63,13 +99,54 @@ export function ChoosePlanView({
       const res = await choosePlanAction(payload);
       if (!res.success) {
         setError(res.error || "Failed to process membership selection.");
+        setShowConfirm(false);
         return;
       }
 
-      router.push("/member");
-      router.refresh();
+      setShowConfirm(false);
+      if (res.scheduled) {
+        setResult({ scheduled: true, startsOn: res.startsOn, planName: res.planName });
+      } else if (res.upgraded) {
+        setResult({ upgraded: true, amountDue: res.amountDue, credit: res.credit });
+      } else {
+        router.push("/member/plan");
+        router.refresh();
+      }
     });
-  };
+  }
+
+  if (result?.scheduled) {
+    return (
+      <div className="max-w-md mx-auto text-center space-y-6 py-16">
+        <div className="text-5xl">📅</div>
+        <h2 className="text-2xl font-extrabold text-[#1B1B1B]">Plan change scheduled</h2>
+        <p className="text-sm text-[#1B1B1B]/70">
+          Your current plan continues until it expires. You will switch to <strong>{result.planName}</strong> on{" "}
+          <strong>{result.startsOn ? fmtDate(result.startsOn) : "expiry"}</strong>. No payment now.
+        </p>
+        <Link prefetch={false} href="/member/plan" className="inline-block px-6 py-3 rounded-full bg-[#1B1B1B] text-[#F6F5E1] font-bold text-sm">
+          View my plan →
+        </Link>
+      </div>
+    );
+  }
+
+  if (result?.upgraded) {
+    return (
+      <div className="max-w-md mx-auto text-center space-y-6 py-16">
+        <div className="text-5xl">🎉</div>
+        <h2 className="text-2xl font-extrabold text-[#1B1B1B]">Plan upgraded!</h2>
+        <p className="text-sm text-[#1B1B1B]/70">
+          {result.amountDue === 0
+            ? `Upgraded for free — your credit (${fmtRs(result.credit ?? 0)}) covered the full amount.`
+            : `You paid ${fmtRs(result.amountDue ?? 0)} (after ${fmtRs(result.credit ?? 0)} credit). Your new plan is active immediately.`}
+        </p>
+        <Link prefetch={false} href="/member/plan" className="inline-block px-6 py-3 rounded-full bg-[#5F9E4A] text-white font-bold text-sm">
+          View my plan →
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 text-[#1B1B1B]">
@@ -79,22 +156,24 @@ export function ChoosePlanView({
           <Sparkles className="h-3.5 w-3.5" /> WELCOME TO THE CHAMPIONS CLUB
         </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#1B1B1B]">
-          Select your membership tier, {userName}
+          {currentMembership ? "Change your plan," : "Select your membership tier,"} {userName}
         </h1>
         <p className="text-xs sm:text-sm text-[#1B1B1B]/70 max-w-xl mx-auto">
-          Choose a privilege tier below for automated discounts across courts, Pro Shop, and cafe. You can also skip and stay on walk-in rates.
+          {currentMembership
+            ? "Upgrade now or schedule a downgrade for when your current plan expires."
+            : "Choose a privilege tier below for automated discounts across courts, Pro Shop, and cafe."}
         </p>
       </div>
 
-      {/* Date of Birth Verification Strip */}
+      {/* DOB strip (for Junior eligibility) */}
       <div className="max-w-md mx-auto bg-white border border-[#1B1B1B]/15 rounded-2xl p-5 shadow-sm space-y-2">
         <div className="flex items-center justify-between">
           <label htmlFor="dob" className="text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80">
-            Date of Birth
+            Date of Birth (required for Junior plan)
           </label>
           {currentAge !== null && (
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isJuniorEligible ? "bg-[#E8883A] text-[#1B1B1B]" : "bg-[#EDECCF] text-[#1B1B1B]"}`}>
-              Age: {currentAge} yrs {isJuniorEligible ? "• Junior Eligible" : "• Adult"}
+              Age: {currentAge} yrs {isJuniorEligible ? "· Junior Eligible" : "· Adult"}
             </span>
           )}
         </div>
@@ -105,13 +184,6 @@ export function ChoosePlanView({
           onChange={(e) => setDob(e.target.value)}
           className="w-full h-11 px-4 rounded-xl bg-[#F6F5E1] border border-[#1B1B1B]/20 text-[#1B1B1B] text-sm focus:border-[#5F9E4A] focus:outline-none"
         />
-        <p className="text-[11px] text-gray-500">
-          {currentAge === null
-            ? "Enter date of birth to unlock the Junior Membership plan (under 18 only)."
-            : isJuniorEligible
-            ? "✓ Junior plan unlocked below for athletes under 18."
-            : "Adult status verified. Junior plan is reserved for youth athletes under 18."}
-        </p>
       </div>
 
       {error && (
@@ -123,49 +195,46 @@ export function ChoosePlanView({
 
       {/* Plans Grid */}
       <div className="grid md:grid-cols-3 gap-6">
-        {visiblePlans.map((plan) => {
-          const isSelected = selectedPlanId === plan.id;
+        {plans.map((plan) => {
+          const state = getPlanState(plan);
+          const isJunior = plan.name.toUpperCase().includes("JUNIOR");
           const isGold = plan.name.toUpperCase().includes("GOLD");
+          const isCurrent = state === "current";
+          const isUnavailable = state === "unavailable";
+          const isUpgrade = state === "upgrade";
+          const isDowngrade = state === "downgrade";
+          const { credit, amountDue } = isUpgrade && currentMembership ? getUpgradeDetails(plan) : { credit: 0, amountDue: plan.price };
 
           return (
             <div
               key={plan.id}
-              onClick={() => setSelectedPlanId(plan.id)}
-              className={`relative rounded-[28px] p-7 transition-all cursor-pointer flex flex-col justify-between border ${
-                isSelected
-                  ? "bg-white border-[#5F9E4A] ring-2 ring-[#5F9E4A]/30 shadow-md scale-[1.02]"
-                  : "bg-white border-[#1B1B1B]/15 hover:border-[#1B1B1B]/40"
+              onClick={() => !isCurrent && !isUnavailable && handleSelectPlan(plan.id)}
+              className={`relative rounded-[28px] p-7 flex flex-col justify-between border transition-all ${
+                isCurrent
+                  ? "bg-[#F6F5E1] border-[#5F9E4A] opacity-80 cursor-not-allowed"
+                  : isUnavailable
+                  ? "bg-white border-[#1B1B1B]/10 opacity-50 cursor-not-allowed"
+                  : "bg-white border-[#1B1B1B]/15 hover:border-[#5F9E4A] hover:shadow-md cursor-pointer"
               }`}
             >
-              {isGold && (
+              {isGold && !isCurrent && (
                 <div className="absolute -top-3 right-6 bg-[#E8883A] text-[#1B1B1B] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full shadow-2xs">
                   MOST POPULAR
                 </div>
               )}
+              {isCurrent && (
+                <div className="absolute -top-3 left-6 bg-[#5F9E4A] text-white text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full shadow-2xs">
+                  CURRENT PLAN
+                </div>
+              )}
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">
-                    {plan.name}
-                  </h3>
-                  <div
-                    className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${
-                      isSelected
-                        ? "bg-[#5F9E4A] border-[#5F9E4A] text-white"
-                        : "border-[#1B1B1B]/30"
-                    }`}
-                  >
-                    {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
-                  </div>
-                </div>
-
+                <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">{plan.name}</h3>
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold text-[#1B1B1B]">
-                    ₹{plan.price.toLocaleString("en-IN")}
+                    {fmtRs(plan.price)}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    / {plan.durationDays} days
-                  </span>
+                  <span className="text-xs text-gray-500">/ {plan.durationDays} days</span>
                 </div>
 
                 <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2.5 text-xs text-[#1B1B1B]/80">
@@ -179,62 +248,143 @@ export function ChoosePlanView({
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-[#5F9E4A]" />
-                    <span><strong>{plan.barDiscountPct}% OFF</strong> Champions Bar & Cafe</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#5F9E4A]" />
-                    <span>Daily quota: <strong>{isGold ? "4 slots/day" : "2 slots/day"}</strong></span>
+                    <span><strong>{plan.barDiscountPct}% OFF</strong> Champions Bar &amp; Cafe</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 pt-4">
-                <div
-                  className={`w-full py-2.5 rounded-full text-center text-xs font-bold tracking-wider uppercase transition-colors ${
-                    isSelected
-                      ? "bg-[#1B1B1B] text-[#F6F5E1]"
-                      : "bg-[#F6F5E1] text-[#1B1B1B] hover:bg-[#EDECCF]"
-                  }`}
-                >
-                  {isSelected ? "Selected Tier" : "Select Plan"}
-                </div>
+              {/* CTA label */}
+              <div className="mt-6 pt-4">
+                {isCurrent ? (
+                  <div className="w-full py-2.5 rounded-full bg-[#5F9E4A]/15 text-[#5F9E4A] text-xs font-bold text-center">
+                    ✓ You are on this plan
+                  </div>
+                ) : isUnavailable ? (
+                  <div className="w-full py-2.5 rounded-full bg-[#1B1B1B]/10 text-[#1B1B1B]/40 text-xs font-bold text-center">
+                    {isJunior ? "Only for members under 18" : "Not available"}
+                  </div>
+                ) : isUpgrade ? (
+                  <div className="w-full py-2.5 rounded-full bg-[#1B1B1B] text-[#F6F5E1] text-xs font-bold text-center">
+                    {currentMembership
+                      ? `Upgrade — Pay ${fmtRs(amountDue)}${credit > 0 ? ` (after ${fmtRs(credit)} credit)` : ""}`
+                      : "Select this plan →"}
+                  </div>
+                ) : (
+                  <div className="w-full py-2.5 rounded-full bg-[#F6F5E1] text-[#1B1B1B] border border-[#1B1B1B]/20 text-xs font-bold text-center">
+                    Downgrade — starts {currentMembership ? fmtDate(currentMembership.endsAt) : "on expiry"}
+                  </div>
+                )}
               </div>
+
+              {/* Upgrade breakdown pill */}
+              {isUpgrade && currentMembership && credit > 0 && (
+                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-[#1B1B1B]/50">
+                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                  <span>
+                    {fmtRs(plan.price)} − {fmtRs(credit)} credit = {fmtRs(amountDue)} due now
+                  </span>
+                </div>
+              )}
+              {isDowngrade && currentMembership && (
+                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-[#1B1B1B]/50">
+                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                  <span>Nothing to pay now. Scheduled for {fmtDate(currentMembership.endsAt)}.</span>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Action Strip: Demo Checkout & Skip */}
-      <div className="pt-6 border-t border-[#1B1B1B]/15 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <Link
-          href="/member"
-          className="text-xs font-semibold text-[#1B1B1B]/70 hover:text-[#1B1B1B] transition-colors py-2 px-4"
-        >
-          Skip for now (continue as walk-in member) →
+      {/* Skip / action */}
+      <div className="pt-6 border-t border-[#1B1B1B]/15 flex items-center justify-start">
+        <Link prefetch={false} href="/member" className="text-xs font-semibold text-[#1B1B1B]/70 hover:text-[#1B1B1B] transition-colors py-2 px-4">
+          ← Back to dashboard
         </Link>
-
-        <button
-          onClick={handleCheckout}
-          disabled={isPending || !selectedPlanId}
-          className="w-full sm:w-auto px-8 h-12 rounded-full font-bold text-sm tracking-wide bg-[#1B1B1B] hover:bg-black text-[#F6F5E1] transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing Demo Checkout...
-            </>
-          ) : (
-            <>
-              <span>Demo Checkout (Online Method)</span>
-              <ArrowRight className="h-4 w-4" />
-            </>
-          )}
-        </button>
       </div>
 
-      <p className="text-[11px] text-center text-gray-500">
-        Demo checkout simulator: no real payment gateway will be charged. Payment is recorded in the club ledger as ONLINE method.
-      </p>
+      {/* Confirm Dialog */}
+      {showConfirm && selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+          <div className="w-full max-w-md bg-[#F6F5E1] rounded-3xl p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom-4 duration-200">
+            <h3 className="text-lg font-extrabold text-[#1B1B1B]">Confirm plan change</h3>
+
+            {(() => {
+              const st = getPlanState(selectedPlan);
+              const { credit, amountDue } = st === "upgrade" && currentMembership
+                ? getUpgradeDetails(selectedPlan)
+                : { credit: 0, amountDue: selectedPlan.price };
+              return (
+                <div className="bg-white rounded-2xl p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-[#1B1B1B]/60">New plan</span>
+                    <span className="font-bold">{selectedPlan.name}</span>
+                  </div>
+                  {st === "upgrade" && currentMembership ? (
+                    <>
+                      <div className="flex justify-between text-[#1B1B1B]/60">
+                        <span>New plan price</span>
+                        <span>{fmtRs(selectedPlan.price)}</span>
+                      </div>
+                      <div className="flex justify-between text-[#5F9E4A] font-semibold">
+                        <span>Credit from current plan</span>
+                        <span>− {fmtRs(credit)}</span>
+                      </div>
+                      <div className="flex justify-between font-extrabold text-[#1B1B1B] text-base pt-1 border-t border-[#1B1B1B]/10">
+                        <span>Amount due now</span>
+                        <span>{fmtRs(amountDue)}</span>
+                      </div>
+                    </>
+                  ) : st === "downgrade" && currentMembership ? (
+                    <>
+                      <div className="flex justify-between text-[#1B1B1B]/60">
+                        <span>Amount due now</span>
+                        <span className="font-bold text-[#5F9E4A]">Rs 0</span>
+                      </div>
+                      <div className="flex justify-between text-[#1B1B1B]/60">
+                        <span>Starts on</span>
+                        <span className="font-bold">{fmtDate(currentMembership.endsAt)}</span>
+                      </div>
+                      <p className="text-xs text-[#1B1B1B]/50 pt-1">
+                        You keep your current {currentMembership.planName} benefits until {fmtDate(currentMembership.endsAt)}.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="flex justify-between font-extrabold text-[#1B1B1B] text-base">
+                      <span>Amount due</span>
+                      <span>{fmtRs(selectedPlan.price)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 min-h-[48px] rounded-2xl border border-[#1B1B1B]/20 text-[#1B1B1B] font-bold text-sm cursor-pointer hover:bg-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirm}
+                disabled={isPending}
+                className="flex-1 min-h-[48px] rounded-2xl bg-[#1B1B1B] text-[#F6F5E1] font-bold text-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+                  </>
+                ) : (
+                  <>
+                    Confirm <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
