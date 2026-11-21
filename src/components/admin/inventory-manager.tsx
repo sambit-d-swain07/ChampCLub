@@ -380,7 +380,7 @@ export function InventoryManager({
               setAddReorderLevel("5");
               setAddOpen(true);
             }}
-            className="h-8 text-xs font-semibold bg-[#23513C] text-white hover:bg-[#1b402f]"
+            className="h-8 text-xs font-semibold bg-[#1F4A33] text-white hover:bg-[#1b402f]"
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
             Add {activeTab === "PRODUCT" ? "Product" : "Bar Item"}
@@ -396,7 +396,7 @@ export function InventoryManager({
             onClick={() => switchTab("PRODUCT")}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
               activeTab === "PRODUCT"
-                ? "bg-[#23513C] text-white"
+                ? "bg-[#1F4A33] text-white"
                 : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]"
             }`}
           >
@@ -407,7 +407,7 @@ export function InventoryManager({
             onClick={() => switchTab("BAR")}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
               activeTab === "BAR"
-                ? "bg-[#23513C] text-white"
+                ? "bg-[#1F4A33] text-white"
                 : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]"
             }`}
           >
@@ -454,7 +454,7 @@ export function InventoryManager({
                 size="sm"
                 onClick={handleBulkRestock}
                 disabled={bulkRestockLoading}
-                className="h-8 text-xs font-semibold bg-[#23513C] text-white hover:bg-[#1b402f]"
+                className="h-8 text-xs font-semibold bg-[#1F4A33] text-white hover:bg-[#1b402f]"
               >
                 {bulkRestockLoading ? "Restocking..." : "Restock Selected to Safe Level"}
               </Button>
@@ -498,7 +498,7 @@ export function InventoryManager({
                             setRestockQty(String(Math.max(10, item.reorderLevel * 2)));
                             setRestockCost(String(item.costPrice || ""));
                           }}
-                          className="h-7 text-xs border-[#E2E8F0] text-[#23513C] hover:bg-[#F8FAFC]"
+                          className="h-7 text-xs border-[#E2E8F0] text-[#1F4A33] hover:bg-[#F8FAFC]"
                         >
                           Restock
                         </Button>
@@ -771,7 +771,7 @@ export function InventoryManager({
                   <button
                     type="button"
                     onClick={() => setIsNewCategory(!isNewCategory)}
-                    className="text-[11px] text-[#23513C] hover:underline"
+                    className="text-[11px] text-[#1F4A33] hover:underline"
                   >
                     {isNewCategory ? "Select Existing" : "+ New Category"}
                   </button>
@@ -864,7 +864,7 @@ export function InventoryManager({
                 <Button
                   type="submit"
                   disabled={addLoading}
-                  className="flex-1 text-xs bg-[#23513C] text-white hover:bg-[#1b402f]"
+                  className="flex-1 text-xs bg-[#1F4A33] text-white hover:bg-[#1b402f]"
                 >
                   {addLoading ? "Creating..." : "Save to Inventory"}
                 </Button>
@@ -965,7 +965,7 @@ export function InventoryManager({
                 <Button
                   type="submit"
                   disabled={restockLoading}
-                  className="flex-1 text-xs bg-[#23513C] text-white hover:bg-[#1b402f]"
+                  className="flex-1 text-xs bg-[#1F4A33] text-white hover:bg-[#1b402f]"
                 >
                   {restockLoading ? "Restocking..." : "Confirm Restock"}
                 </Button>
@@ -1052,7 +1052,7 @@ export function InventoryManager({
                 <Button
                   type="submit"
                   disabled={adjustLoading}
-                  className="flex-1 text-xs bg-[#23513C] text-white hover:bg-[#1b402f]"
+                  className="flex-1 text-xs bg-[#1F4A33] text-white hover:bg-[#1b402f]"
                 >
                   {adjustLoading ? "Saving..." : "Apply Adjustment"}
                 </Button>
@@ -1154,7 +1154,7 @@ export function InventoryManager({
                 <Button
                   type="submit"
                   disabled={editLoading}
-                  className="flex-1 text-xs bg-[#23513C] text-white hover:bg-[#1b402f]"
+                  className="flex-1 text-xs bg-[#1F4A33] text-white hover:bg-[#1b402f]"
                 >
                   {editLoading ? "Saving..." : "Save Changes"}
                 </Button>
@@ -1255,7 +1255,7 @@ export function InventoryManager({
 
                 {historyLoading ? (
                   <div className="py-8 text-center text-xs text-[#64748B] flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-[#23513C]" />
+                    <Loader2 className="h-4 w-4 animate-spin text-[#1F4A33]" />
                     Loading movement history...
                   </div>
                 ) : historyMovements.length === 0 ? (

@@ -4,43 +4,24 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-page-cream: #F6F4EE;
-  --color-card-cream: #FBFAF6;
-  --color-ink: #15201A;
-  --color-muted-text: #55605A;
-  --color-line: #D9D5C9;
-  --color-brand-green: #23513C;
-  --color-navy: #0F2236;
-  --color-orange: #BF3F0D;
-  --color-court-blue-light: #A9CDE8;
-  --color-court-blue: #8FBBE0;
-  --color-footer-ink: #15201A;
+  --color-page-white: #FFFFFF;
+  --color-panel-grey: #EFEFEF;
+  --color-ink: #111111;
+  --color-muted: #6B6B6B;
+  --color-line: #E6E6E6;
+  --color-brand-green: #1F4A33;
+  --color-on-green: #FFFFFF;
 
-  --color-brand-cream: #F6F4EE;
-  --color-brand-dark: #15201A;
-  --color-brand-orange: #BF3F0D;
-  --color-brand-green-light: #8DBF6F;
-  --color-brand-green-dark: #23513C;
-  --color-brand-border: #D9D5C9;
+  --font-anton: var(--font-anton), sans-serif;
+  --font-heading: var(--font-anton), sans-serif;
+  --font-sans: var(--font-sans), sans-serif;
 
-  /* Compatibility theme aliases */
-  --color-brand-offwhite: #F6F4EE;
-  --color-brand-lime: #BF3F0D;
-  --color-brand-court: #8FBBE0;
-  --color-brand-surface: #FBFAF6;
-  --color-brand-surface-light: #FFFFFF;
-
-  --font-display: var(--font-heading);
-  --font-heading: var(--font-heading);
-  --font-serif: var(--font-serif);
-  --font-sans: var(--font-sans);
-
-  --radius-pill: 9999px;
+  --radius-card-lg: 20px;
+  --radius-card-sm: 14px;
+  --radius-pill: 999px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,11 +30,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -70,128 +46,53 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-  --page-cream: #F6F4EE;
-  --card-cream: #FBFAF6;
-  --ink: #15201A;
-  --muted: #55605A;
-  --line: #D9D5C9;
-  --brand-green: #23513C;
-  --navy: #0F2236;
-  --orange: #BF3F0D;
-  --court-blue-light: #A9CDE8;
-  --court-blue: #8FBBE0;
-  --footer-ink: #15201A;
+  --page-white: #FFFFFF;
+  --panel-grey: #EFEFEF;
+  --ink: #111111;
+  --muted: #6B6B6B;
+  --line: #E6E6E6;
+  --brand-green: #1F4A33;
+  --on-green: #FFFFFF;
 
-  --background: #F6F4EE;
-  --foreground: #15201A;
-  --card: #FBFAF6;
-  --card-foreground: #15201A;
-  --popover: #FFFFFF;
-  --popover-foreground: #15201A;
-  --primary: #23513C;
-  --primary-foreground: #FFFFFF;
-  --secondary: #FBFAF6;
-  --secondary-foreground: #15201A;
-  --muted-foreground: #55605A;
-  --border: #D9D5C9;
-  --input: rgba(27, 27, 27, 0.2);
-  --ring: #5F9E4A;
-  --chart-1: #5F9E4A;
-  --chart-2: #E8883A;
-  --chart-3: #8DBF6F;
-  --chart-4: #3F7A37;
-  --chart-5: #1B1B1B;
-  --radius: 0.75rem;
-  --sidebar: #1B1B1B;
-  --sidebar-foreground: #F6F5E1;
-  --sidebar-primary: #E8883A;
-  --sidebar-primary-foreground: #1B1B1B;
-  --sidebar-accent: #EDECCF;
-  --sidebar-accent-foreground: #1B1B1B;
-  --sidebar-border: rgba(27, 27, 27, 0.1);
-  --sidebar-ring: #5F9E4A;
-}
-
-/* Scoped Light Theme for Staff & Owner Admin Portal */
-.admin-portal {
-  --background: #F8FAFC;
-  --foreground: #0F172A;
+  --background: #FFFFFF;
+  --foreground: #111111;
   --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card-foreground: #111111;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
-  --primary: #0B3B2C;
+  --popover-foreground: #111111;
+  --primary: #1F4A33;
   --primary-foreground: #FFFFFF;
-  --secondary: #F1F5F9;
-  --secondary-foreground: #0F172A;
-  --muted: #F8FAFC;
-  --muted-foreground: #64748B;
-  --accent: #F1F5F9;
-  --accent-foreground: #0B3B2C;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #0B3B2C;
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif !important;
+  --secondary: #EFEFEF;
+  --secondary-foreground: #111111;
+  --muted-foreground: #6B6B6B;
+  --border: #E6E6E6;
+  --input: #E6E6E6;
+  --ring: #1F4A33;
+  --radius: 14px;
 }
 
-.admin-portal table {
-  font-variant-numeric: tabular-nums;
+.font-anton {
+  font-family: var(--font-anton), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+::-webkit-scrollbar-track {
+  background: #FFFFFF;
+}
+::-webkit-scrollbar-thumb {
+  background: #E6E6E6;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6B6B6B;
 }

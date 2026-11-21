@@ -11,7 +11,6 @@ export default async function MemberLayout({
 }) {
   const user = await getCurrentUser();
 
-  // Security: Unauthenticated visitor hitting /member must be redirected to /login
   if (!user) {
     redirect("/login");
   }
@@ -24,7 +23,6 @@ export default async function MemberLayout({
     redirect("/admin/members");
   }
 
-  // Ensure member record exists for this member user
   let member = await prisma.member.findUnique({
     where: { userId: user.id },
   });
@@ -58,78 +56,54 @@ export default async function MemberLayout({
     redirect("/login");
   }
 
+  const navLinks = [
+    { label: "Overview", href: "/member" },
+    { label: "Book Court", href: "/member/book" },
+    { label: "My Bookings", href: "/member/bookings" },
+    { label: "Pro Shop", href: "/member/shop" },
+    { label: "Orders", href: "/member/orders" },
+    { label: "Plan", href: "/member/plan" },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#F6F5E1] text-[#1B1B1B]">
-      {/* Top Navbar */}
-      <header className="h-18 border-b border-[#1B1B1B]/15 bg-[#F6F5E1]/90 backdrop-blur-md sticky top-0 z-30 px-6 sm:px-10 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col bg-white text-[#111111]">
+      {/* Top Navbar matching landing page */}
+      <header className="h-16 border-b border-[#E6E6E6] bg-white sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full border border-[#D9D5C9] flex items-center justify-center font-bold text-base select-none bg-white">
-              <span className="text-[#BF3F0D]">c</span>
-            </div>
-            <span className="font-bold text-sm tracking-tight text-[#15201A]">
-              Champions Club
-            </span>
+          <Link
+            href="/"
+            className="font-anton text-[22px] tracking-normal text-[#111111] uppercase hover:opacity-85 transition-opacity"
+          >
+            CHAMPIONS CLUB
           </Link>
 
-          {/* Nav links */}
-          <nav className="hidden md:flex items-center gap-1.5 text-xs font-medium text-[#1B1B1B]">
-            <Link
-              prefetch={false}
-              href="/member"
-              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
-            >
-              Overview
-            </Link>
-            <Link
-              prefetch={false}
-              href="/member/book"
-              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
-            >
-              Book Court
-            </Link>
-            <Link
-              prefetch={false}
-              href="/member/bookings"
-              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
-            >
-              My Bookings
-            </Link>
-            <Link
-              prefetch={false}
-              href="/member/shop"
-              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
-            >
-              Pro Shop
-            </Link>
-            <Link
-              prefetch={false}
-              href="/member/orders"
-              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
-            >
-              Orders
-            </Link>
-            <Link
-              prefetch={false}
-              href="/member/plan"
-              className="px-3.5 py-1.5 rounded-full border border-[#1B1B1B]/20 hover:border-[#1B1B1B] hover:bg-white/60 transition-all"
-            >
-              Plan
-            </Link>
+          {/* Desktop Nav links */}
+          <nav className="hidden md:flex items-center gap-6 text-[14px] font-medium text-[#111111]">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                prefetch={false}
+                href={link.href}
+                className="hover:text-[#1F4A33] transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
 
+        {/* Member Profile and Sign Out */}
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex flex-col text-right">
-            <span className="text-xs font-bold text-[#1B1B1B]">{user.name}</span>
-            <span className="text-[10px] font-mono text-[#5F9E4A] font-semibold">{member.membershipNo}</span>
+            <span className="text-xs font-semibold text-[#111111]">{user.name}</span>
+            <span className="text-[10px] font-mono text-[#6B6B6B]">{member.membershipNo}</span>
           </div>
           <SignOutButton />
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto py-8 px-4 sm:px-8">
+      {/* Main Content Canvas */}
+      <main className="flex-1 w-full max-w-[1344px] mx-auto py-8 px-4 sm:px-8">
         {children}
       </main>
     </div>

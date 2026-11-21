@@ -97,7 +97,7 @@ export default async function AdminDashboardPage() {
           <div>
             <CardHeader className="px-5 pt-4 pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-semibold text-[#0F172A]">Low Stock Watch</CardTitle>
-              <Link href="/admin/inventory" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+              <Link href="/admin/inventory" prefetch={false} className="text-xs font-medium text-[#1F4A33] hover:underline">
                 Manage Inventory
               </Link>
             </CardHeader>
@@ -127,7 +127,7 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="p-3 bg-[#F8FAFC] border-t border-[#E2E8F0] rounded-b-lg flex items-center justify-between">
             <span className="text-xs text-[#64748B]">Restock actions and history</span>
-            <Link href="/admin/inventory" prefetch={false} className="text-xs font-semibold text-[#23513C] hover:underline">
+            <Link href="/admin/inventory" prefetch={false} className="text-xs font-semibold text-[#1F4A33] hover:underline">
               Open Inventory &rarr;
             </Link>
           </div>
@@ -177,7 +177,7 @@ export default async function AdminDashboardPage() {
         <Card className="shadow-none border border-[#E2E8F0] bg-white">
           <CardHeader className="px-5 pt-4 pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold text-[#0F172A]">Live Financial Ledger</CardTitle>
-            <Link href="/admin/transactions" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+            <Link href="/admin/transactions" prefetch={false} className="text-xs font-medium text-[#1F4A33] hover:underline">
               All Transactions
             </Link>
           </CardHeader>

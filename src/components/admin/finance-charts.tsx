@@ -50,7 +50,7 @@ interface FinanceChartsProps {
 }
 
 const METHOD_COLORS: Record<string, string> = {
-  CASH: "#23513C",
+  CASH: "#1F4A33",
   CARD: "#0F2236",
   UPI: "#8FBBE0",
   ONLINE: "#BF3F0D",
@@ -95,7 +95,7 @@ export function FinanceCharts({
             <Link
               href={buildTxUrl({})}
               prefetch={false}
-              className="text-xs font-medium text-[#23513C] hover:underline"
+              className="text-xs font-medium text-[#1F4A33] hover:underline"
             >
               Filter transactions
             </Link>
@@ -173,7 +173,7 @@ export function FinanceCharts({
                   key={btn.source}
                   href={buildTxUrl({ source: btn.source })}
                   prefetch={false}
-                  className="text-xs text-[#23513C] hover:underline"
+                  className="text-xs text-[#1F4A33] hover:underline"
                 >
                   {btn.label}
                 </Link>
@@ -191,7 +191,7 @@ export function FinanceCharts({
             <Link
               href={buildTxUrl({})}
               prefetch={false}
-              className="text-xs font-medium text-[#23513C] hover:underline"
+              className="text-xs font-medium text-[#1F4A33] hover:underline"
             >
               Filter transactions
             </Link>
@@ -244,7 +244,7 @@ export function FinanceCharts({
                   key={item.name}
                   href={buildTxUrl({ method: item.name })}
                   prefetch={false}
-                  className="text-xs text-[#23513C] hover:underline"
+                  className="text-xs text-[#1F4A33] hover:underline"
                 >
                   {item.name}: {formatInrPrecise(item.amount)}
                 </Link>
@@ -259,7 +259,7 @@ export function FinanceCharts({
         <div>
           <CardHeader className="px-5 pt-4 pb-2 flex flex-row items-baseline justify-between">
             <CardTitle className="text-sm font-semibold text-[#0F172A]">Top Products (Shop & Bar)</CardTitle>
-            <Link href="/admin/inventory" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+            <Link href="/admin/inventory" prefetch={false} className="text-xs font-medium text-[#1F4A33] hover:underline">
               Filter transactions
             </Link>
           </CardHeader>
@@ -298,7 +298,7 @@ export function FinanceCharts({
         <div>
           <CardHeader className="px-5 pt-4 pb-2 flex flex-row items-baseline justify-between">
             <CardTitle className="text-sm font-semibold text-[#0F172A]">Court Utilisation Rate</CardTitle>
-            <Link href="/admin/courts" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+            <Link href="/admin/courts" prefetch={false} className="text-xs font-medium text-[#1F4A33] hover:underline">
               Filter transactions
             </Link>
           </CardHeader>
@@ -316,7 +316,7 @@ export function FinanceCharts({
                   </div>
                   <div className="w-full bg-[#F1F5F9] rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="h-full bg-[#23513C] rounded-full"
+                      className="h-full bg-[#1F4A33] rounded-full"
                       style={{ width: `${court.percentage}%` }}
                     />
                   </div>

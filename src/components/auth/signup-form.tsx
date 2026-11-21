@@ -5,18 +5,13 @@ import Link from "next/link";
 import { z } from "zod";
 import { signIn } from "@/lib/auth-client";
 import { signUpMemberAction } from "@/app/actions/members";
-import { CourtIllustration } from "@/components/public/court-illustration";
+import { ClubImage } from "@/components/public/club-image";
 import {
-  ArrowRight,
   ArrowLeft,
   Eye,
   EyeOff,
   Loader2,
-  Calendar,
-  Percent,
-  QrCode,
   AlertCircle,
-  CheckCircle2,
 } from "lucide-react";
 
 // Helper to calculate age from YYYY-MM-DD
@@ -88,7 +83,6 @@ export function SignUpForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear field-specific error as user types
     if (errors[name as keyof SignUpFormData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -99,7 +93,6 @@ export function SignUpForm() {
     e.preventDefault();
     setServerError(null);
 
-    // 1. Client-side Zod Validation
     const validation = signUpSchema.safeParse(formData);
     if (!validation.success) {
       const fieldErrors: FormErrors = {};
@@ -115,7 +108,6 @@ export function SignUpForm() {
 
     setSubmitting(true);
 
-    // 2. Submit to Server Action (creates User + Member with MEMBER role)
     const payload = new FormData();
     payload.set("name", formData.name.trim());
     payload.set("phone", formData.phone.trim());
@@ -132,7 +124,6 @@ export function SignUpForm() {
       return;
     }
 
-    // 3. Auto sign in and redirect to /member/choose-plan
     try {
       const signInRes = await signIn.email({
         email: cleanEmail,
@@ -151,338 +142,283 @@ export function SignUpForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F6F5E1]">
-      {/* LEFT HALF: Fresh Green Brand Panel (Desktop) */}
-      <div className="lg:w-1/2 bg-[#5F9E4A] text-[#F6F5E1] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
-        {/* Subtle Ambient Background: Original Court Illustration */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 scale-125 translate-x-12 translate-y-12">
-          <CourtIllustration allowExpandModal={false} />
-        </div>
+    <div className="min-h-screen bg-white text-[#111111] flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-5xl bg-white border border-[#E6E6E6] rounded-[20px] overflow-hidden grid grid-cols-1 lg:grid-cols-12 shadow-sm">
+        {/* LEFT COLUMN: Rounded Image Card with "JOIN THE CHAMPIONS CLUB" in Anton */}
+        <div className="lg:col-span-5 relative m-3 rounded-[20px] overflow-hidden bg-[#1F4A33] text-white p-8 sm:p-10 flex flex-col justify-between min-h-[320px] lg:min-h-[640px]">
+          <ClubImage
+            src="/images/court-tennis-2.jpg"
+            alt="Champions Club Court"
+            sportName="JOIN THE CHAMPIONS CLUB"
+            priority={true}
+            fill
+            sizes="(max-width: 1024px) 100vw, 40vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40 z-10" />
 
-        {/* Top: Logo & Name */}
-        <div className="relative z-10 flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="h-10 w-10 rounded-full border border-white/30 flex items-center justify-center font-bold text-xl select-none bg-white text-[#1B1B1B] shadow-sm transition-transform group-hover:scale-105">
-              <span className="text-[#E8883A]">c</span>
-              <span className="text-[#5F9E4A]">.</span>
-            </div>
-            <div>
-              <span className="font-bold uppercase text-xl tracking-wider text-white block leading-none">
-                THE CHAMPIONS CLUB
-              </span>
-              <span className="text-[10px] tracking-widest text-[#F6F5E1]/80 uppercase font-semibold">
-                BENGALURU • PREMIER RACQUET SPORTS
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Middle: Headline & 3 Benefit Lines (Desktop only) */}
-        <div className="relative z-10 my-auto py-12 hidden lg:block space-y-8">
-          <div className="text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.05]">
-            join <span className="text-[#E8883A]">the</span> champions club.
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-white/20 text-sm text-white/90">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
-                <Calendar className="h-4 w-4" />
-              </div>
-              <span className="font-medium">Book courts in seconds</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
-                <Percent className="h-4 w-4" />
-              </div>
-              <span className="font-medium">Member discounts applied automatically</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
-                <QrCode className="h-4 w-4" />
-              </div>
-              <span className="font-medium">Your QR card, always with you</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Tagline */}
-        <div className="relative z-10 hidden lg:block text-xs text-white/60 font-mono">
-          EST. 2026 • CHAMPIONSHIP STANDARDS
-        </div>
-      </div>
-
-      {/* RIGHT HALF: Soft Cream Form Container */}
-      <div className="lg:w-1/2 flex-1 flex flex-col justify-center items-center p-6 sm:p-12 lg:p-16">
-        <div className="w-full max-w-md space-y-6">
-          {/* Back to Home Link */}
-          <div>
+          {/* Top Label */}
+          <div className="relative z-20">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/70 hover:text-[#1B1B1B] transition-colors"
+              className="font-anton text-lg uppercase tracking-normal text-white hover:opacity-85 transition-opacity inline-block"
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Home</span>
+              CHAMPIONS CLUB
             </Link>
           </div>
 
-          {/* Heading */}
-          <div className="space-y-1.5">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1B1B1B]">
-              Create member account
-            </h2>
-            <p className="text-sm text-[#1B1B1B]/70">
-              Join The Champions Club to access courts, select memberships, and member rates.
+          {/* Heading in Anton */}
+          <div className="relative z-20 my-auto py-8">
+            <h1 className="font-anton text-4xl sm:text-5xl uppercase leading-none text-white tracking-normal">
+              JOIN THE CHAMPIONS CLUB
+            </h1>
+            <p className="mt-4 text-xs sm:text-sm text-white/85 leading-relaxed">
+              Create your member account to access tournament courts, automated pricing discounts and member-only services.
             </p>
           </div>
 
-          {/* Server Error Alert */}
-          {serverError && (
-            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2.5">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
-              <span>{serverError}</span>
-            </div>
-          )}
+          {/* Footer note */}
+          <div className="relative z-20 text-[11px] font-mono text-white/60 uppercase tracking-widest">
+            EST. 2026 · INDIRANAGAR
+          </div>
+        </div>
 
-          {/* Sign Up Form */}
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            {/* Full Name */}
-            <div className="space-y-1">
-              <label
-                htmlFor="name"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
+        {/* RIGHT COLUMN: Form in Inter */}
+        <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
+          <div className="w-full max-w-md mx-auto space-y-5">
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-[#6B6B6B] hover:text-[#111111] transition-colors uppercase tracking-wider mb-4"
               >
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                disabled={submitting}
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="e.g. Sania Mirza"
-                className={`w-full h-11 px-4 rounded-xl bg-white border text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
-                  errors.name
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
-                }`}
-              />
-              {errors.name && (
-                <p className="text-xs text-red-600 font-medium pl-1">{errors.name}</p>
-              )}
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Home</span>
+              </Link>
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#111111]">
+                Create member account
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6B6B6B] mt-1">
+                Enter your details to join The Champions Club.
+              </p>
             </div>
 
-            {/* Phone Number */}
-            <div className="space-y-1">
-              <label
-                htmlFor="phone"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
-              >
-                Phone Number
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                autoComplete="tel"
-                required
-                disabled={submitting}
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="+91 98765 43210"
-                className={`w-full h-11 px-4 rounded-xl bg-white border text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
-                  errors.phone
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
-                }`}
-              />
-              {errors.phone && (
-                <p className="text-xs text-red-600 font-medium pl-1">{errors.phone}</p>
-              )}
-            </div>
+            {serverError && (
+              <div className="p-3.5 rounded-[14px] bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>{serverError}</span>
+              </div>
+            )}
 
-            {/* Email Address */}
-            <div className="space-y-1">
-              <label
-                htmlFor="email"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck="false"
-                required
-                disabled={submitting}
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="name@example.com"
-                className={`w-full h-11 px-4 rounded-xl bg-white border text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
-                  errors.email
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
-                }`}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-600 font-medium pl-1">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Date of Birth */}
-            <div className="space-y-1">
-              <label
-                htmlFor="dateOfBirth"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
-              >
-                Date of Birth
-              </label>
-              <input
-                id="dateOfBirth"
-                name="dateOfBirth"
-                type="date"
-                required
-                disabled={submitting}
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                min={(() => {
-                  const d = new Date();
-                  d.setFullYear(d.getFullYear() - 100);
-                  return d.toISOString().split("T")[0];
-                })()}
-                max={new Date().toISOString().split("T")[0]}
-                className={`w-full h-11 px-4 rounded-xl bg-white border text-sm text-[#1B1B1B] focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
-                  errors.dateOfBirth
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
-                }`}
-              />
-              {errors.dateOfBirth && (
-                <p className="text-xs text-red-600 font-medium pl-1">{errors.dateOfBirth}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1">
-              <label
-                htmlFor="password"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
-              >
-                Password
-              </label>
-              <div className="relative">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              {/* Full Name */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="name"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                >
+                  Full Name
+                </label>
                 <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
+                  id="name"
+                  name="name"
+                  type="text"
                   required
+                  autoComplete="name"
                   disabled={submitting}
-                  value={formData.password}
+                  value={formData.name}
                   onChange={handleChange}
-                  placeholder="Minimum 8 characters"
-                  className={`w-full h-11 pl-4 pr-11 rounded-xl bg-white border text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
-                    errors.password
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
+                  placeholder="Your full name"
+                  className={`w-full h-11 px-4 rounded-[14px] bg-white border text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all ${
+                    errors.name ? "border-red-400" : "border-[#E6E6E6]"
                   }`}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                {errors.name && (
+                  <p className="text-xs text-red-600 font-medium">{errors.name}</p>
+                )}
               </div>
-              {errors.password && (
-                <p className="text-xs text-red-600 font-medium pl-1">{errors.password}</p>
-              )}
-            </div>
 
-            {/* Confirm Password */}
-            <div className="space-y-1">
-              <label
-                htmlFor="confirmPassword"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
-              >
-                Confirm Password
-              </label>
-              <div className="relative">
+              {/* Phone */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="phone"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                >
+                  Phone Number
+                </label>
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  autoComplete="new-password"
+                  id="phone"
+                  name="phone"
+                  type="tel"
                   required
+                  autoComplete="tel"
                   disabled={submitting}
-                  value={formData.confirmPassword}
+                  value={formData.phone}
                   onChange={handleChange}
-                  placeholder="Re-enter password"
-                  className={`w-full h-11 pl-4 pr-11 rounded-xl bg-white border text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] transition-all shadow-2xs ${
-                    errors.confirmPassword
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-[#1B1B1B]/20 focus:border-[#5F9E4A]"
+                  placeholder="10-digit mobile number"
+                  className={`w-full h-11 px-4 rounded-[14px] bg-white border text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all ${
+                    errors.phone ? "border-red-400" : "border-[#E6E6E6]"
                   }`}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+                {errors.phone && (
+                  <p className="text-xs text-red-600 font-medium">{errors.phone}</p>
+                )}
               </div>
-              {errors.confirmPassword && (
-                <p className="text-xs text-red-600 font-medium pl-1">
-                  {errors.confirmPassword}
-                </p>
-              )}
-            </div>
 
-            {/* Password Hint */}
-            <p className="text-[11px] text-gray-500 pl-1">
-              Must be at least 8 characters long.
-            </p>
+              {/* Email */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="email"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                >
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  disabled={submitting}
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="name@example.com"
+                  className={`w-full h-11 px-4 rounded-[14px] bg-white border text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all ${
+                    errors.email ? "border-red-400" : "border-[#E6E6E6]"
+                  }`}
+                />
+                {errors.email && (
+                  <p className="text-xs text-red-600 font-medium">{errors.email}</p>
+                )}
+              </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full h-12 mt-2 rounded-full font-bold text-sm tracking-wide bg-[#1B1B1B] hover:bg-black text-[#F6F5E1] transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Creating Account...</span>
-                </>
-              ) : (
-                <>
+              {/* Date of Birth */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="dateOfBirth"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                >
+                  Date of Birth
+                </label>
+                <input
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
+                  required
+                  disabled={submitting}
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                  min={(() => {
+                    const d = new Date();
+                    d.setFullYear(d.getFullYear() - 100);
+                    return d.toISOString().split("T")[0];
+                  })()}
+                  max={new Date().toISOString().split("T")[0]}
+                  className={`w-full h-11 px-4 rounded-[14px] bg-white border text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all ${
+                    errors.dateOfBirth ? "border-red-400" : "border-[#E6E6E6]"
+                  }`}
+                />
+                {errors.dateOfBirth && (
+                  <p className="text-xs text-red-600 font-medium">{errors.dateOfBirth}</p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="password"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    disabled={submitting}
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="At least 8 characters"
+                    className={`w-full h-11 px-4 pr-11 rounded-[14px] bg-white border text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all ${
+                      errors.password ? "border-red-400" : "border-[#E6E6E6]"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#111111] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-xs text-red-600 font-medium">{errors.password}</p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                >
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    disabled={submitting}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Re-enter password"
+                    className={`w-full h-11 px-4 pr-11 rounded-[14px] bg-white border text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all ${
+                      errors.confirmPassword ? "border-red-400" : "border-[#E6E6E6]"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#111111] transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="text-xs text-red-600 font-medium">{errors.confirmPassword}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-11 mt-2 rounded-full bg-[#1F4A33] hover:bg-[#163826] text-white text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs disabled:opacity-60"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Creating account...</span>
+                  </>
+                ) : (
                   <span>Create Account</span>
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
+                )}
+              </button>
+            </form>
 
-            {/* Link to Sign in */}
-            <div className="text-center pt-3 border-t border-[#1B1B1B]/15 text-xs text-[#1B1B1B]/70">
+            <div className="pt-2 text-center text-xs text-[#6B6B6B]">
               Already a member?{" "}
-              <Link href="/login" className="text-[#5F9E4A] font-bold hover:underline">
+              <Link href="/login" className="font-semibold text-[#1F4A33] hover:underline">
                 Sign in
               </Link>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>

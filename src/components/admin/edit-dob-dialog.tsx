@@ -112,7 +112,7 @@ export function EditDobDialog({
               size="sm"
               disabled={loading}
               onClick={handleSave}
-              className="bg-[#23513C] hover:bg-[#1a3d2d] text-white"
+              className="bg-[#1F4A33] hover:bg-[#1a3d2d] text-white"
             >
               {loading ? (
                 <>

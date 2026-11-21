@@ -63,14 +63,14 @@ export default async function OwnerDashboardPage({
           <Link
             href="/admin/expenses"
             prefetch={false}
-            className="text-xs font-medium text-[#23513C] hover:underline"
+            className="text-xs font-medium text-[#1F4A33] hover:underline"
           >
             Manage Expenses
           </Link>
           <Link
             href={txUrl()}
             prefetch={false}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#23513C] text-white hover:bg-[#1b402f] transition-colors"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#1F4A33] text-white hover:bg-[#1b402f] transition-colors"
           >
             Filter transactions
           </Link>
@@ -175,7 +175,7 @@ export default async function OwnerDashboardPage({
               <CardTitle className="text-sm font-semibold text-[#0F172A]">
                 Active Open Tabs ({lists.openTabs.length})
               </CardTitle>
-              <Link href="/admin/bar" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+              <Link href="/admin/bar" prefetch={false} className="text-xs font-medium text-[#1F4A33] hover:underline">
                 Filter transactions
               </Link>
             </CardHeader>
@@ -218,7 +218,7 @@ export default async function OwnerDashboardPage({
               <CardTitle className="text-sm font-semibold text-[#0F172A]">
                 Expenses Payable ({lists.expensesPayable.length})
               </CardTitle>
-              <Link href="/admin/expenses" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+              <Link href="/admin/expenses" prefetch={false} className="text-xs font-medium text-[#1F4A33] hover:underline">
                 Filter transactions
               </Link>
             </CardHeader>

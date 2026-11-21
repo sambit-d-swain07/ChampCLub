@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Inter, Instrument_Serif } from "next/font/google";
+import { Anton, Inter } from "next/font/google";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const anton = Anton({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-heading",
+  weight: ["400"],
+  variable: "--font-anton",
   display: "swap",
 });
 
@@ -16,22 +16,14 @@ const inter = Inter({
   display: "swap",
 });
 
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["italic"],
-  variable: "--font-serif",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: "Champions Club · Tennis, Padel & Badminton",
   description:
-    "Six courts, a pro shop and a bar. Book a session in a few taps and your member discount is applied for you.",
+    "Six championship courts, a pro shop and a clubhouse bar. Book a session in a few taps with instant member discounts.",
   openGraph: {
     title: "Champions Club · Tennis, Padel & Badminton",
     description:
-      "Six courts, a pro shop and a bar. Book a session in a few taps and your member discount is applied for you.",
+      "Six championship courts, a pro shop and a clubhouse bar. Book a session in a few taps with instant member discounts.",
     type: "website",
   },
 };
@@ -44,9 +36,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${inter.variable} ${instrumentSerif.variable} h-full antialiased scroll-smooth`}
+      className={`${anton.variable} ${inter.variable} h-full antialiased scroll-smooth`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-[#F6F4EE] text-[#15201A]">
+      <body className="min-h-full flex flex-col font-sans bg-white text-[#111111]">
         {children}
       </body>
     </html>

@@ -5,25 +5,18 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn, signOut } from "@/lib/auth-client";
 import { checkUserBanAction } from "@/app/actions/members";
-import { CourtIllustration } from "@/components/public/court-illustration";
+import { ClubImage } from "@/components/public/club-image";
 import {
-  ArrowRight,
   ArrowLeft,
   Eye,
   EyeOff,
   Loader2,
-  Calendar,
-  Percent,
-  QrCode,
   AlertCircle,
-  Shield,
-  KeyRound,
-  User,
 } from "lucide-react";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const redirectParam = searchParams.get("redirect");
+  const redirectParam = searchParams.get("redirect") || searchParams.get("next");
   const isBannedParam = searchParams.get("banned") === "1";
 
   const [email, setEmail] = useState("");
@@ -53,7 +46,6 @@ export function LoginForm() {
     setError(null);
 
     try {
-      // Determine initial destination
       let destination = "/member";
       if (cleanEmail === "owner@gmail.com") {
         destination = "/admin/owner";
@@ -75,7 +67,6 @@ export function LoginForm() {
         return;
       }
 
-      // Check if user is banned (checked ONLY after password has succeeded to avoid leaking status)
       const banCheck = await checkUserBanAction(cleanEmail);
       if (banCheck.banned) {
         await signOut().catch(() => {});
@@ -84,7 +75,6 @@ export function LoginForm() {
         return;
       }
 
-      // Check user role from login response if available
       const returnedUser = (res?.data as any)?.user;
       if (returnedUser?.role === "OWNER") {
         destination = "/admin/owner";
@@ -94,7 +84,6 @@ export function LoginForm() {
         destination = "/member";
       }
 
-      // Full window navigation ensures cookies are committed to browser before server component render
       window.location.href = destination;
     } catch {
       setError("An unexpected error occurred during sign in. Please try again.");
@@ -114,217 +103,182 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F6F5E1]">
-      {/* LEFT HALF: Fresh Green Brand Panel (Desktop) */}
-      <div className="lg:w-1/2 bg-[#5F9E4A] text-[#F6F5E1] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
-        {/* Ambient Top-Down Court Illustration */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 scale-125 translate-x-12 translate-y-12">
-          <CourtIllustration allowExpandModal={false} />
-        </div>
+    <div className="min-h-screen bg-white text-[#111111] flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-5xl bg-white border border-[#E6E6E6] rounded-[20px] overflow-hidden grid grid-cols-1 lg:grid-cols-12 shadow-sm">
+        {/* LEFT COLUMN: Rounded Image Card with "JOIN THE CHAMPIONS CLUB" in Anton */}
+        <div className="lg:col-span-5 relative m-3 rounded-[20px] overflow-hidden bg-[#1F4A33] text-white p-8 sm:p-10 flex flex-col justify-between min-h-[320px] lg:min-h-[580px]">
+          <ClubImage
+            src="/images/court-tennis-1.jpg"
+            alt="Champions Club Court"
+            sportName="JOIN THE CHAMPIONS CLUB"
+            priority={true}
+            fill
+            sizes="(max-width: 1024px) 100vw, 40vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40 z-10" />
 
-        {/* Top: Brand Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="h-10 w-10 rounded-full border border-white/30 flex items-center justify-center font-bold text-xl select-none bg-white text-[#1B1B1B] shadow-sm transition-transform group-hover:scale-105">
-              <span className="text-[#E8883A]">c</span>
-              <span className="text-[#5F9E4A]">.</span>
-            </div>
-            <div>
-              <span className="font-bold uppercase text-xl tracking-wider text-white block leading-none">
-                THE CHAMPIONS CLUB
-              </span>
-              <span className="text-[10px] tracking-widest text-[#F6F5E1]/80 uppercase font-semibold">
-                BENGALURU • PREMIER RACQUET SPORTS
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Middle: Headline & Benefits */}
-        <div className="relative z-10 my-auto py-12 hidden lg:block space-y-8">
-          <div className="text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.05]">
-            welcome <span className="text-[#E8883A]">back to</span> the club.
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-white/20 text-sm text-white/90">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
-                <Calendar className="h-4 w-4" />
-              </div>
-              <span className="font-medium">Book courts in seconds</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
-                <Percent className="h-4 w-4" />
-              </div>
-              <span className="font-medium">Member discounts applied automatically</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-[#F6F5E1]">
-                <QrCode className="h-4 w-4" />
-              </div>
-              <span className="font-medium">Your QR card, always with you</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Tagline */}
-        <div className="relative z-10 hidden lg:block text-xs text-white/60 font-mono">
-          EST. 2026 • CHAMPIONSHIP STANDARDS
-        </div>
-      </div>
-
-      {/* RIGHT HALF: Soft Cream Form Container */}
-      <div className="lg:w-1/2 flex-1 flex flex-col justify-center items-center p-6 sm:p-12 lg:p-16">
-        <div className="w-full max-w-md space-y-7">
-          {/* Back to Home Link */}
-          <div>
+          {/* Top Label */}
+          <div className="relative z-20">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/70 hover:text-[#1B1B1B] transition-colors"
+              className="font-anton text-lg uppercase tracking-normal text-white hover:opacity-85 transition-opacity inline-block"
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Home</span>
+              CHAMPIONS CLUB
             </Link>
           </div>
 
-          {/* Heading */}
-          <div className="space-y-1.5">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1B1B1B]">
-              Sign in to your account
-            </h2>
-            <p className="text-sm text-[#1B1B1B]/70">
-              Enter your credentials to access your club profile or management console.
+          {/* Heading in Anton */}
+          <div className="relative z-20 my-auto py-8">
+            <h1 className="font-anton text-4xl sm:text-5xl uppercase leading-none text-white tracking-normal">
+              JOIN THE CHAMPIONS CLUB
+            </h1>
+            <p className="mt-4 text-xs sm:text-sm text-white/85 leading-relaxed">
+              Book championship courts, enjoy automated member discounts and connect with premier racquet sports.
             </p>
           </div>
 
-          {/* Server Error Alert */}
-          {error && (
-            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2.5">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
-              <span>{error}</span>
-            </div>
-          )}
+          {/* Footer note */}
+          <div className="relative z-20 text-[11px] font-mono text-white/60 uppercase tracking-widest">
+            EST. 2026 · INDIRANAGAR
+          </div>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="email"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
+        {/* RIGHT COLUMN: Form in Inter */}
+        <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
+          <div className="w-full max-w-md mx-auto space-y-6">
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-[#6B6B6B] hover:text-[#111111] transition-colors uppercase tracking-wider mb-4"
               >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck="false"
-                required
-                disabled={loading}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full h-12 px-4 rounded-xl bg-white border border-[#1B1B1B]/20 text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] focus:border-[#5F9E4A] transition-all shadow-2xs"
-              />
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Home</span>
+              </Link>
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#111111]">
+                Sign in
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6B6B6B] mt-1">
+                Enter your credentials to access your member account.
+              </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label
-                htmlFor="password"
-                className="block text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80"
-              >
-                Password
-              </label>
-              <div className="relative">
+            {error && (
+              <div className="p-3.5 rounded-[14px] bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="email"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                >
+                  Email Address
+                </label>
                 <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
+                  id="email"
+                  name="email"
+                  type="email"
                   required
+                  autoComplete="email"
                   disabled={loading}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full h-12 pl-4 pr-11 rounded-xl bg-white border border-[#1B1B1B]/20 text-sm text-[#1B1B1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5F9E4A] focus:border-[#5F9E4A] transition-all shadow-2xs"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full h-11 px-4 rounded-[14px] bg-white border border-[#E6E6E6] text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 mt-2 rounded-full font-bold text-sm tracking-wide bg-[#1B1B1B] hover:bg-black text-[#F6F5E1] transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-
-            {/* Quick Demo Credentials */}
-            <div className="pt-3 border-t border-[#1B1B1B]/15">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2 text-center">
-                Quick Demo Fill
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => quickFill("owner@gmail.com", "Owner@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
-                >
-                  <Shield className="h-3 w-3 text-[#5F9E4A]" /> Owner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill("staff1@gmail.com", "Staff1@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
-                >
-                  <KeyRound className="h-3 w-3 text-blue-600" /> Staff 1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill("staff2@gmail.com", "Staff2@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
-                >
-                  <KeyRound className="h-3 w-3 text-amber-600" /> Staff 2
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill("sachin@gmail.com", "Sachin@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
-                >
-                  <User className="h-3 w-3 text-emerald-600" /> Member
-                </button>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="password"
+                    className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]"
+                  >
+                    Password
+                  </label>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    disabled={loading}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full h-11 px-4 pr-11 rounded-[14px] bg-white border border-[#E6E6E6] text-sm text-[#111111] focus:outline-none focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] transition-all"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#111111] transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Link to Sign up */}
-            <div className="text-center pt-3 text-xs text-[#1B1B1B]/70">
-              New here?{" "}
-              <Link href="/signup" className="text-[#5F9E4A] font-bold hover:underline">
-                Sign up
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 rounded-full bg-[#1F4A33] hover:bg-[#163826] text-white text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <span>Sign in</span>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-2 text-center text-xs text-[#6B6B6B]">
+              Don&apos;t have an account yet?{" "}
+              <Link href="/signup" className="font-semibold text-[#1F4A33] hover:underline">
+                Become a member
               </Link>
             </div>
-          </form>
+
+            {/* Quick Fill Test Bar (clean & compact) */}
+            <div className="pt-4 border-t border-[#E6E6E6]">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B6B6B] block mb-2">
+                Quick Sign-in:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => quickFill("owner@gmail.com", "Admin@123")}
+                  className="px-3 py-1 rounded-full border border-[#E6E6E6] text-[11px] font-medium text-[#111111] hover:bg-[#EFEFEF] transition-colors cursor-pointer"
+                >
+                  Owner
+                </button>
+                <button
+                  type="button"
+                  onClick={() => quickFill("staff1@gmail.com", "Admin@123")}
+                  className="px-3 py-1 rounded-full border border-[#E6E6E6] text-[11px] font-medium text-[#111111] hover:bg-[#EFEFEF] transition-colors cursor-pointer"
+                >
+                  Staff
+                </button>
+                <button
+                  type="button"
+                  onClick={() => quickFill("shubh@gmail.com", "Shubh@123")}
+                  className="px-3 py-1 rounded-full border border-[#E6E6E6] text-[11px] font-medium text-[#111111] hover:bg-[#EFEFEF] transition-colors cursor-pointer"
+                >
+                  Member
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

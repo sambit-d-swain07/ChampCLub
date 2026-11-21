@@ -75,7 +75,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
         {/* Brand Header */}
         <div className="h-14 flex items-center justify-between px-5 border-b border-[#E5E7EB]">
           <Link href="/admin" prefetch={false} className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-[#23513C] flex items-center justify-center shrink-0">
+            <div className="h-7 w-7 rounded-lg bg-[#1F4A33] flex items-center justify-center shrink-0">
               <span className="text-white text-[11px] font-bold">CC</span>
             </div>
             <div className="font-bold text-sm tracking-tight text-[#0F172A] leading-none">
@@ -101,7 +101,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
             <span
               className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                 role === "OWNER"
-                  ? "bg-[#23513C] text-white"
+                  ? "bg-[#1F4A33] text-white"
                   : "bg-gray-200 text-gray-800"
               }`}
             >
@@ -133,7 +133,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                       onClick={() => setMobileOpen(false)}
                       className={`flex items-center px-3 py-2 text-xs rounded-lg transition-colors ${
                         isActive
-                          ? "bg-[#F1F5F9] text-[#23513C] font-semibold border-l-2 border-[#23513C]"
+                          ? "bg-[#F1F5F9] text-[#1F4A33] font-semibold border-l-2 border-[#1F4A33]"
                           : "text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
                       }`}
                     >

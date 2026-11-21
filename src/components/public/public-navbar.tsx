@@ -1,108 +1,205 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X, LogOut, User } from "lucide-react";
+import { signOut } from "@/lib/auth-client";
 
-export function PublicNavbar() {
+interface PublicNavbarProps {
+  currentUser?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
+}
+
+const NAV_ITEMS = [
+  { label: "Home", href: "#home", index: "01" },
+  { label: "Courts", href: "#courts", index: "02" },
+  { label: "Membership", href: "#membership", index: "03" },
+  { label: "Pro Shop", href: "#shop", index: "04" },
+  { label: "FAQ", href: "#faq", index: "05" },
+  { label: "Contact", href: "#contact", index: "06" },
+];
+
+export function PublicNavbar({ currentUser }: PublicNavbarProps) {
+  const [activeSection, setActiveSection] = useState("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navLinks = [
-    { label: "Courts & Facilities", href: "/#facilities" },
-    { label: "Availability", href: "/#availability" },
-    { label: "Memberships", href: "/#plans" },
-    { label: "Pro Shop", href: "/#shop" },
-    { label: "Contact", href: "/#contact" },
-  ];
+  // Scroll spy to detect active section
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 120;
+      const sections = NAV_ITEMS.map((item) => item.href.substring(1));
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const el = document.getElementById(sections[i]);
+        if (el) {
+          const top = el.offsetTop;
+          if (scrollPos >= top) {
+            setActiveSection(sections[i]);
+            return;
+          }
+        }
+      }
+      setActiveSection("home");
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const portalHref =
+    currentUser?.role === "OWNER"
+      ? "/admin/owner"
+      : currentUser?.role === "STAFF"
+      ? "/admin/members"
+      : "/member";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#1B1B1B]/15 bg-[#F6F5E1]/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-        {/* Brand */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="h-9 w-9 rounded-full border border-[#1B1B1B]/20 flex items-center justify-center font-bold text-lg select-none bg-white shadow-2xs group-hover:scale-105 transition-transform">
-            <span className="text-[#E8883A]">c</span>
-            <span className="text-[#5F9E4A]">.</span>
-          </div>
-          <div>
-            <span className="font-bold uppercase text-base tracking-wider text-[#1B1B1B] block leading-none">
-              THE CHAMPIONS CLUB
-            </span>
-            <span className="text-[9px] tracking-widest text-[#5F9E4A] uppercase font-semibold">
-              BENGALURU • PREMIER RACQUET SPORTS
-            </span>
-          </div>
+    <header className="sticky top-0 z-50 w-full h-16 bg-white border-b border-[#E6E6E6]">
+      <div className="max-w-[1344px] h-full mx-auto px-4 sm:px-8 flex items-center justify-between">
+        {/* Left: Brand Logo */}
+        <Link
+          href="/"
+          className="font-anton text-[22px] tracking-normal text-[#111111] uppercase select-none hover:opacity-85 transition-opacity"
+        >
+          CHAMPIONS CLUB
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-2 text-xs font-medium text-[#1B1B1B]">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="h-8 px-3.5 rounded-full border border-[#1B1B1B]/25 hover:border-[#1B1B1B] hover:bg-white/60 transition-all flex items-center justify-center"
-            >
-              {link.label}
-            </Link>
-          ))}
+        {/* Centre: Nav links with tiny index numbers and active underline */}
+        <nav className="hidden md:flex items-center gap-8 h-full">
+          {NAV_ITEMS.map((item) => {
+            const sectionId = item.href.substring(1);
+            const isActive = activeSection === sectionId;
+            return (
+              <a
+                key={item.label}
+                href={item.href}
+                className={`relative flex flex-col items-center justify-center h-full text-[14px] font-medium leading-none transition-colors group ${
+                  isActive ? "text-[#111111]" : "text-[#111111]/75 hover:text-[#111111]"
+                }`}
+              >
+                <span>{item.label}</span>
+                <span className="text-[10px] text-[#6B6B6B] mt-1 font-mono">{item.index}</span>
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#111111]" />
+                )}
+              </a>
+            );
+          })}
         </nav>
 
-        {/* Action Buttons: Sign in (outlined pill) & Sign up (filled orange pill) */}
-        <div className="hidden sm:flex items-center gap-2.5">
-          <Link
-            href="/login"
-            className="h-9 px-4 rounded-full text-xs font-medium text-[#1B1B1B] hover:border-[#1B1B1B] border border-[#1B1B1B]/30 hover:bg-white/50 transition-all flex items-center justify-center"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="h-9 px-5 rounded-full text-xs font-semibold bg-[#E8883A] text-[#1B1B1B] hover:bg-[#db7a2e] transition-all shadow-xs flex items-center justify-center"
-          >
-            Sign up
-          </Link>
+        {/* Right: Auth / Action items */}
+        <div className="hidden md:flex items-center gap-5">
+          {currentUser ? (
+            <>
+              <Link
+                href={portalHref}
+                className="h-10 px-5 rounded-full border border-[#111111] text-[#111111] text-xs font-semibold hover:bg-[#111111] hover:text-white transition-all flex items-center gap-2"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>My account</span>
+              </Link>
+              <button
+                onClick={async () => {
+                  await signOut();
+                  window.location.href = "/";
+                }}
+                className="text-xs font-medium text-[#6B6B6B] hover:text-[#111111] transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign out</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-xs font-medium text-[#111111] hover:text-[#1F4A33] transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                className="h-10 px-5 rounded-full border border-[#111111] text-[#111111] text-xs font-semibold hover:bg-[#111111] hover:text-white transition-all flex items-center gap-1.5"
+              >
+                <span>Become a member</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          )}
         </div>
 
-        {/* Mobile menu toggle */}
+        {/* Mobile menu hamburger button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 rounded-xl text-[#1B1B1B] hover:bg-black/5 transition-colors cursor-pointer"
-          aria-label="Toggle menu"
+          className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#111111] hover:bg-neutral-100 transition-colors"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
         >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-[#1B1B1B]/15 bg-[#F6F5E1] px-6 py-6 space-y-4">
-          <nav className="flex flex-col space-y-2 text-sm font-medium text-[#1B1B1B]">
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
+        <div className="md:hidden fixed inset-x-0 top-16 bg-white border-b border-[#E6E6E6] shadow-xl p-6 z-50 animate-in fade-in slide-in-from-top-4 duration-200">
+          <nav className="flex flex-col space-y-1">
+            {NAV_ITEMS.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-xl hover:bg-black/5 transition-colors"
+                className="h-12 px-4 rounded-xl flex items-center justify-between text-base font-medium text-[#111111] hover:bg-[#EFEFEF] transition-colors"
               >
-                {link.label}
-              </Link>
+                <span>{item.label}</span>
+                <span className="text-xs text-[#6B6B6B] font-mono">{item.index}</span>
+              </a>
             ))}
           </nav>
-          <div className="pt-4 border-t border-[#1B1B1B]/15 flex flex-col gap-2.5">
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-full text-xs font-medium text-[#1B1B1B] border border-[#1B1B1B]/30 bg-white"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-full text-xs font-semibold bg-[#E8883A] text-[#1B1B1B] shadow-xs"
-            >
-              Sign up
-            </Link>
+
+          <div className="pt-6 mt-4 border-t border-[#E6E6E6] flex flex-col gap-3">
+            {currentUser ? (
+              <>
+                <Link
+                  href={portalHref}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="h-12 rounded-full border border-[#111111] text-[#111111] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#111111] hover:text-white transition-all"
+                >
+                  <User className="w-4 h-4" />
+                  <span>My account</span>
+                </Link>
+                <button
+                  onClick={async () => {
+                    await signOut();
+                    window.location.href = "/";
+                  }}
+                  className="h-12 rounded-full text-sm font-medium text-[#6B6B6B] hover:text-[#111111] flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign out</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="h-12 rounded-full border border-[#111111] text-[#111111] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#111111] hover:text-white transition-all"
+                >
+                  <span>Become a member</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="h-12 rounded-full text-sm font-medium text-[#111111] flex items-center justify-center hover:bg-[#EFEFEF] transition-colors"
+                >
+                  Sign in
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

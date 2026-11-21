@@ -3,15 +3,21 @@ import Link from "next/link";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { siteSettings, formatInr } from "@/lib/site-settings";
+import { PublicNavbar } from "@/components/public/public-navbar";
+import { ClubImage } from "@/components/public/club-image";
+import { CourtsOverview } from "@/components/public/courts-overview";
+import { BookingBannerCard } from "@/components/public/booking-banner-card";
+import { FaqAccordion } from "@/components/public/faq-accordion";
+import { ArrowUpRight, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Champions Club · Tennis, Padel & Badminton",
+  title: "CHAMPIONS CLUB · Tennis, Padel & Badminton",
   description:
-    "Six courts, a pro shop and a bar. Book a session in a few taps and your member discount is applied for you.",
+    "Six championship courts, a pro shop and a clubhouse bar. Book a session in a few taps with instant member discounts.",
   openGraph: {
-    title: "Champions Club · Tennis, Padel & Badminton",
+    title: "CHAMPIONS CLUB · Tennis, Padel & Badminton",
     description:
-      "Six courts, a pro shop and a bar. Book a session in a few taps and your member discount is applied for you.",
+      "Six championship courts, a pro shop and a clubhouse bar. Book a session in a few taps with instant member discounts.",
     type: "website",
   },
 };
@@ -19,7 +25,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [currentUser, plans, dbCourts, distinctCategories] = await Promise.all([
+  const [currentUser, plans, dbCourts, distinctCategories, pricingRules] = await Promise.all([
     getCurrentUser().catch(() => null),
     withDbRetry(() =>
       prisma.plan.findMany({
@@ -40,778 +46,498 @@ export default async function HomePage() {
         orderBy: { category: "asc" },
       })
     ),
+    withDbRetry(() =>
+      prisma.pricingRule.findMany({
+        where: { planId: null },
+      })
+    ),
   ]);
 
   const courtCount = dbCourts.length || 6;
   const sports = Array.from(new Set(dbCourts.map((c) => c.sport))).sort();
-  const sportsCount = sports.length || 3;
 
-  // Determine user account portal destination
-  const portalHref =
-    currentUser?.role === "OWNER"
-      ? "/admin/owner"
-      : currentUser?.role === "STAFF"
-      ? "/admin/members"
-      : "/member";
+  // Price map by sport
+  const priceBySport: Record<string, number> = {};
+  for (const rule of pricingRules) {
+    priceBySport[rule.sport.toUpperCase()] = Number(rule.basePrice);
+  }
 
-  // Group surfaces by sport for the Courts section
-  const courtsBySport = sports.map((sport, idx) => {
-    const courtsForSport = dbCourts.filter((c) => c.sport === sport);
-    const count = courtsForSport.length;
-    const surfaces = courtsForSport
-      .map((c) => {
-        const match = c.name.match(/\(([^)]+)\)/);
-        return match ? match[1].toLowerCase() : c.name;
-      })
-      .join(" and ");
+  // Fallback prices if no pricing rule found
+  const getSportBasePrice = (sport: string): number => {
+    const s = sport.toUpperCase();
+    if (priceBySport[s]) return priceBySport[s];
+    if (s === "TENNIS") return 800;
+    if (s === "PADEL") return 1200;
+    if (s === "BADMINTON") return 600;
+    return 800;
+  };
 
-    const countInWords =
-      count === 1 ? "One court" : count === 2 ? "Two courts" : `${count} courts`;
-
-    const sportDisplayName =
-      sport.charAt(0) + sport.slice(1).toLowerCase();
-
-    return {
-      index: String(idx + 1).padStart(2, "0"),
-      sportName: sportDisplayName,
-      detail: surfaces ? `${countInWords} · ${surfaces}` : countInWords,
-    };
-  });
+  const activeCourts = dbCourts.map((c) => ({
+    id: c.id,
+    name: c.name,
+    sport: c.sport,
+    capacity: c.capacity,
+    basePrice: getSportBasePrice(c.sport),
+  }));
 
   const categories = distinctCategories.map((c) => c.category);
 
+  // Order plans: JUNIOR, SILVER, GOLD
+  const planOrder = ["JUNIOR", "SILVER", "GOLD"];
+  const sortedPlans = [...plans].sort((a, b) => {
+    const aIdx = planOrder.indexOf(a.name.toUpperCase());
+    const bIdx = planOrder.indexOf(b.name.toUpperCase());
+    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+    return Number(a.price) - Number(b.price);
+  });
+
   return (
-    <div className="bg-[#F6F4EE] text-[#15201A] min-h-screen selection:bg-[#23513C] selection:text-white">
-      {/* ===================== HERO SECTION ===================== */}
-      <section className="relative w-full min-h-[780px] bg-[#A9CDE8] overflow-hidden flex flex-col justify-between">
-        {/* Top-down Tennis Court SVG Background */}
-        <div className="absolute inset-0 z-0 pointer-events-none select-none">
-          <svg
-            viewBox="0 0 1440 760"
-            preserveAspectRatio="xMidYMid slice"
-            className="w-full h-full"
-            role="img"
-            aria-label="Top-down illustration of a tennis court with players and ball"
-          >
-            {/* Surround */}
-            <rect width="1440" height="760" fill="#A9CDE8" />
+    <div className="bg-white text-[#111111] min-h-screen selection:bg-[#1F4A33] selection:text-white">
+      {/* ===================== STICKY NAVIGATION ===================== */}
+      <PublicNavbar currentUser={currentUser} />
 
-            {/* Main Court Rectangle */}
-            <rect
-              x="80"
-              y="50"
-              width="1280"
-              height="660"
-              rx="4"
-              fill="#8FBBE0"
+      <main className="max-w-[1344px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-24">
+        {/* ===================== HERO SECTION ===================== */}
+        <section id="home" className="pt-2">
+          <div className="relative w-full h-[360px] sm:h-[440px] lg:h-[520px] rounded-[20px] overflow-hidden bg-[#1F4A33] flex items-center justify-center shadow-sm">
+            {/* Background image with flat fallback */}
+            <ClubImage
+              src="/images/hero-court.jpg"
+              alt="Champions Club Championship Court"
+              sportName="CHAMPIONS CLUB"
+              priority={true}
+              fill
+              sizes="100vw"
+              className="object-cover"
             />
+            {/* 25% Dark Overlay for optimal text contrast */}
+            <div className="absolute inset-0 bg-black/25 z-10" />
 
-            {/* Outer Baseline & Doubles Sidelines */}
-            <rect
-              x="140"
-              y="90"
-              width="1160"
-              height="580"
-              fill="none"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-
-            {/* Singles Sidelines (Top & Bottom) */}
-            <line
-              x1="140"
-              y1="160"
-              x2="1300"
-              y2="160"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-            <line
-              x1="140"
-              y1="600"
-              x2="1300"
-              y2="600"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-
-            {/* Service Lines (Left & Right) */}
-            <line
-              x1="430"
-              y1="160"
-              x2="430"
-              y2="600"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-            <line
-              x1="1010"
-              y1="160"
-              x2="1010"
-              y2="600"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-
-            {/* Centre Service Line */}
-            <line
-              x1="430"
-              y1="380"
-              x2="1010"
-              y2="380"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-
-            {/* Centre Service Tick Marks on Baselines */}
-            <line
-              x1="140"
-              y1="380"
-              x2="158"
-              y2="380"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-            <line
-              x1="1282"
-              y1="380"
-              x2="1300"
-              y2="380"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeOpacity="0.8"
-            />
-
-            {/* Dashed Net Line Down the Middle */}
-            <line
-              x1="720"
-              y1="65"
-              x2="720"
-              y2="695"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeDasharray="6 6"
-              strokeOpacity="0.85"
-            />
-            {/* Net Posts */}
-            <circle cx="720" cy="65" r="5" fill="#FFFFFF" opacity="0.9" />
-            <circle cx="720" cy="695" r="5" fill="#FFFFFF" opacity="0.9" />
-
-            {/* ---- 4 TOP-DOWN PLAYERS WITH SOFT ROTATED SHADOWS (-52 deg, 24% opacity) ---- */}
-            {/* Player 1 (Upper Right Near Net/Service) */}
-            <g>
-              <ellipse
-                cx="880"
-                cy="290"
-                rx="16"
-                ry="105"
-                fill="#0F2236"
-                opacity="0.24"
-                transform="rotate(-52 880 290)"
-              />
-              {/* Shoulders */}
-              <ellipse cx="900" cy="245" rx="13" ry="7" fill="#E8883A" />
-              {/* Head */}
-              <circle cx="900" cy="245" r="6" fill="#15201A" />
-              {/* Arm & Racket */}
-              <line x1="910" y1="245" x2="925" y2="230" stroke="#15201A" strokeWidth="2.5" />
-              <ellipse cx="935" cy="220" rx="9" ry="14" fill="none" stroke="#15201A" strokeWidth="2" transform="rotate(25 935 220)" />
-            </g>
-
-            {/* Player 2 (Upper Right Baseline) */}
-            <g>
-              <ellipse
-                cx="1140"
-                cy="230"
-                rx="18"
-                ry="120"
-                fill="#0F2236"
-                opacity="0.24"
-                transform="rotate(-52 1140 230)"
-              />
-              <ellipse cx="1165" cy="180" rx="14" ry="7.5" fill="#FFFFFF" />
-              <circle cx="1165" cy="180" r="6" fill="#F6F4EE" />
-              <line x1="1175" y1="180" x2="1195" y2="165" stroke="#0F2236" strokeWidth="2.5" />
-              <ellipse cx="1205" cy="155" rx="9" ry="14" fill="none" stroke="#0F2236" strokeWidth="2" transform="rotate(35 1205 155)" />
-            </g>
-
-            {/* Player 3 (Lower Right Near Service) */}
-            <g>
-              <ellipse
-                cx="1120"
-                cy="490"
-                rx="17"
-                ry="110"
-                fill="#0F2236"
-                opacity="0.24"
-                transform="rotate(-52 1120 490)"
-              />
-              <ellipse cx="1145" cy="445" rx="13" ry="7" fill="#BF3F0D" />
-              <circle cx="1145" cy="445" r="6" fill="#F6F4EE" />
-            </g>
-
-            {/* Player 4 (Left Side Court) */}
-            <g>
-              <ellipse
-                cx="830"
-                cy="370"
-                rx="16"
-                ry="100"
-                fill="#0F2236"
-                opacity="0.24"
-                transform="rotate(-52 830 370)"
-              />
-              <ellipse cx="850" cy="330" rx="13" ry="7" fill="#FBFAF6" />
-              <circle cx="850" cy="330" r="6" fill="#15201A" />
-            </g>
-
-            {/* Yellow-Green Tennis Ball */}
-            <circle cx="730" cy="330" r="5.5" fill="#D4E157" />
-          </svg>
-        </div>
-
-        {/* Top Navigation */}
-        <header className="relative z-10 w-full pt-6">
-          <div className="max-w-[1200px] mx-auto px-8 flex items-center justify-between">
-            {/* Logo */}
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 text-[#0F2236] font-heading font-bold text-xl tracking-tight"
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-[#23513C] shrink-0" />
-              <span>Champions Club</span>
-            </Link>
-
-            {/* Centre Links */}
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#0F2236]/80">
-              <a href="#courts" className="hover:text-[#0F2236] transition-opacity">
-                Courts
-              </a>
-              <a href="#how-it-works" className="hover:text-[#0F2236] transition-opacity">
-                How it works
-              </a>
-              <a href="#membership" className="relative hover:text-[#0F2236] transition-opacity py-1">
-                Membership
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#0F2236]" />
-              </a>
-              <a href="#pro-shop" className="hover:text-[#0F2236] transition-opacity">
-                Pro Shop
-              </a>
-              <a href="#contact" className="hover:text-[#0F2236] transition-opacity">
-                Contact
-              </a>
-            </nav>
-
-            {/* Right Action */}
-            <div className="flex items-center gap-4">
-              {currentUser ? (
-                <Link
-                  href={portalHref}
-                  className="bg-[#23513C] text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
-                >
-                  Open my account
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="text-sm font-medium text-[#0F2236] hover:opacity-80 transition-opacity"
-                  >
-                    Sign in
-                  </Link>
-                  <Link
-                    href="/signup"
-                    className="bg-[#23513C] text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
-                  >
-                    Sign up
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Hero Bottom Content */}
-        <div className="relative z-10 w-full pb-14 pt-24 sm:pt-36">
-          <div className="max-w-[1200px] mx-auto px-8 flex flex-col md:flex-row md:items-end justify-between gap-10">
-            {/* Bottom Left: Tagline & Giant Headline */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="w-8 h-[1px] bg-[#0F2236]" />
-                <span className="text-xs uppercase tracking-widest font-semibold text-[#0F2236]">
-                  Tennis · Padel · Badminton
-                </span>
-              </div>
-              <h1 className="font-heading font-bold text-[#0F2236] text-[clamp(72px,12vw,144px)] leading-[0.88] tracking-[-0.055em]">
-                <span className="text-[#BF3F0D]">c</span>hampions<br />
-                club.
+            {/* Hero Centered Content */}
+            <div className="relative z-20 flex flex-col items-center text-center px-4 max-w-4xl">
+              <h1 className="font-anton text-5xl sm:text-7xl md:text-8xl lg:text-[112px] leading-none text-white uppercase select-none tracking-normal">
+                THE CHAMPIONS CLUB
               </h1>
-            </div>
-
-            {/* Bottom Right: Pitch & Actions */}
-            <div className="md:max-w-[300px] md:text-right space-y-5">
-              <p className="text-sm text-[#0F2236]/90 leading-relaxed">
-                Six courts, a pro shop and a bar. Book a session in a few taps and your member discount is applied for you.
+              <p className="mt-4 sm:mt-5 text-white/95 text-base sm:text-lg md:text-xl font-medium tracking-wide max-w-xl">
+                Tennis, padel and badminton. Book in a few taps.
               </p>
-              <div className="flex flex-wrap md:justify-end gap-3">
-                <Link
-                  href={currentUser ? "/member/book" : "/login?redirect=/member/book"}
-                  className="bg-[#0F2236] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                <a
+                  href="#book-court"
+                  className="h-11 px-7 rounded-full bg-white text-[#111111] text-xs sm:text-sm font-semibold hover:bg-white/90 transition-colors flex items-center justify-center shadow-md cursor-pointer"
                 >
                   Book a court
-                </Link>
+                </a>
                 <Link
                   href="/signup"
-                  className="border border-[#0F2236] text-[#0F2236] px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-[#0F2236]/5 transition-colors"
+                  className="h-11 px-7 rounded-full border border-white text-white text-xs sm:text-sm font-semibold hover:bg-white/10 transition-colors flex items-center justify-center"
                 >
-                  Sign up
+                  Become a member
                 </Link>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ===================== FACTS STRIP ===================== */}
-      <section className="w-full bg-[#F6F4EE]">
-        <div className="max-w-[1200px] mx-auto px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 border-y border-[#D9D5C9] py-8 gap-6 md:gap-0">
-            <div className="md:pr-8 md:border-r border-[#D9D5C9]">
-              <div className="font-heading font-semibold text-3xl sm:text-4xl text-[#15201A]">
-                {courtCount}
-              </div>
-              <div className="text-sm text-[#55605A] mt-1">Courts</div>
-            </div>
+        {/* ===================== COURTS OVERVIEW ===================== */}
+        <section id="overview" className="scroll-mt-24">
+          <CourtsOverview
+            courtCount={courtCount}
+            sports={sports}
+            hours={siteSettings.hours}
+          />
+        </section>
 
-            <div className="md:px-8 md:border-r border-[#D9D5C9]">
-              <div className="font-heading font-semibold text-3xl sm:text-4xl text-[#15201A]">
-                {sportsCount}
-              </div>
-              <div className="text-sm text-[#55605A] mt-1">Sports</div>
-            </div>
-
-            <div className="md:px-8 md:border-r border-[#D9D5C9]">
-              <div className="font-heading font-semibold text-3xl sm:text-4xl text-[#15201A]">
-                60 min
-              </div>
-              <div className="text-sm text-[#55605A] mt-1">Per session</div>
-            </div>
-
-            <div className="md:pl-8">
-              <div className="font-heading font-semibold text-3xl sm:text-4xl text-[#15201A]">
-                30 min
-              </div>
-              <div className="text-sm text-[#55605A] mt-1">Between start times</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===================== COURTS SECTION ===================== */}
-      <section id="courts" className="w-full py-24 bg-[#F6F4EE]">
-        <div className="max-w-[1200px] mx-auto px-8 space-y-12">
-          {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-3">
-              <div className="text-xs font-bold uppercase tracking-widest text-[#55605A]">
-                Courts
-              </div>
-              <h2 className="font-heading font-semibold text-3xl sm:text-5xl tracking-[-0.04em] leading-[1.08] text-[#15201A]">
-                Three sports, <span className="font-serif italic font-normal text-[#23513C]">six</span> courts.
+        {/* ===================== COURTS GRID ===================== */}
+        <section id="courts" className="scroll-mt-24">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
+                FACILITIES
+              </span>
+              <h2 className="font-anton text-4xl sm:text-[56px] leading-none uppercase text-[#111111] mt-2">
+                ALL COURTS
               </h2>
             </div>
-            <p className="text-sm text-[#55605A] md:max-w-xs md:text-right">
-              Every court is booked in 60-minute sessions, with a new start time every half hour.
+            <p className="text-xs sm:text-sm text-[#6B6B6B] max-w-sm">
+              Each court features tournament-grade lighting, precise lines and seamless online booking.
             </p>
           </div>
 
-          {/* Sports List */}
-          <div className="border-y border-[#D9D5C9] divide-y divide-[#D9D5C9]">
-            {courtsBySport.map((row) => (
-              <div
-                key={row.sportName}
-                className="py-6 flex flex-col sm:flex-row sm:items-baseline justify-between gap-3"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6">
+            {activeCourts.map((court, idx) => {
+              // Row 1: spans 6, 3, 3. Subsequent rows: span 3 each.
+              const colSpanClass =
+                idx === 0
+                  ? "col-span-12 lg:col-span-6"
+                  : idx === 1
+                  ? "col-span-12 sm:col-span-6 lg:col-span-3"
+                  : idx === 2
+                  ? "col-span-12 sm:col-span-6 lg:col-span-3"
+                  : "col-span-12 sm:col-span-6 lg:col-span-3";
+
+              const sportSlug = court.sport.toLowerCase();
+              const imgVariant = (idx % 2) + 1;
+              const imgSrc = `/images/court-${sportSlug}-${imgVariant}.jpg`;
+              const bookingUrl = currentUser
+                ? `/member/book?court=${court.id}`
+                : `/login?next=${encodeURIComponent(`/member/book?court=${court.id}`)}`;
+
+              return (
+                <div key={court.id} className={`${colSpanClass} group flex flex-col`}>
+                  {/* Card Image Container */}
+                  <div className="relative aspect-[4/3] w-full rounded-[14px] overflow-hidden bg-[#1F4A33] shadow-xs">
+                    <ClubImage
+                      src={imgSrc}
+                      alt={court.name}
+                      sportName={court.sport}
+                      priority={false}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transition-none"
+                    />
+
+                    {/* Circular Action Button at bottom-right */}
+                    <Link
+                      href={bookingUrl}
+                      aria-label={`Book ${court.name}`}
+                      className="w-10 h-10 rounded-full bg-white text-[#111111] flex items-center justify-center absolute bottom-3 right-3 shadow-md hover:scale-105 transition-transform z-10"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+
+                  {/* Details below image */}
+                  <div className="mt-3 flex flex-col">
+                    <h3 className="text-[14px] font-semibold text-[#111111] leading-snug">
+                      {court.name}
+                    </h3>
+                    <div className="mt-1 flex items-center justify-between text-[12px]">
+                      <span className="text-[#6B6B6B]">
+                        {court.sport.charAt(0) + court.sport.slice(1).toLowerCase()}, capacity {court.capacity}
+                      </span>
+                      <span className="font-medium text-[#111111]">
+                        from {formatInr(court.basePrice)}/hr
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ===================== BOOK YOUR COURT BANNER ===================== */}
+        <section id="book-court" className="scroll-mt-24">
+          <div className="relative w-full rounded-[20px] overflow-hidden bg-[#1F4A33] p-8 sm:p-12 lg:p-16 flex flex-col lg:flex-row items-center justify-between gap-12 shadow-md">
+            {/* Background image & dark overlay */}
+            <ClubImage
+              src="/images/banner-ball.jpg"
+              alt="Champions Club Tennis Ball and Court"
+              sportName="BOOK YOUR COURT"
+              priority={false}
+              fill
+              sizes="100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-black/35 z-10" />
+
+            {/* Left Content */}
+            <div className="relative z-20 flex flex-col items-start max-w-xl text-left">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/80 mb-2">
+                RESERVATIONS
+              </span>
+              <h2 className="font-anton text-4xl sm:text-6xl lg:text-[72px] leading-none uppercase text-white">
+                BOOK YOUR COURT
+              </h2>
+              <p className="mt-4 text-white/90 text-sm sm:text-base leading-relaxed">
+                Choose your sport, select an available date, and lock in your session in seconds. Member discounts apply automatically.
+              </p>
+              <a
+                href="#courts"
+                className="mt-6 h-10 px-6 rounded-full bg-white text-[#111111] text-xs font-semibold hover:bg-white/90 transition-colors inline-flex items-center gap-1.5 shadow-md cursor-pointer"
               >
-                <div className="flex items-baseline gap-6 sm:gap-10">
-                  <span className="font-mono text-xs text-[#55605A]">{row.index}</span>
-                  <span className="font-heading font-semibold text-2xl sm:text-4xl text-[#15201A]">
-                    {row.sportName}
-                  </span>
-                </div>
-                <div className="text-sm text-[#55605A] sm:text-right">
-                  {row.detail}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===================== HOW IT WORKS SECTION ===================== */}
-      <section id="how-it-works" className="w-full py-24 bg-[#F6F4EE]">
-        <div className="max-w-[1200px] mx-auto px-8 space-y-12">
-          {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-3">
-              <div className="text-xs font-bold uppercase tracking-widest text-[#55605A]">
-                How it works
-              </div>
-              <h2 className="font-heading font-semibold text-3xl sm:text-5xl tracking-[-0.04em] leading-[1.08] text-[#15201A]">
-                From sign up to <span className="font-serif italic font-normal text-[#23513C]">first serve.</span>
-              </h2>
-            </div>
-            <p className="text-sm text-[#55605A] md:max-w-xs md:text-right">
-              Three simple steps, and you are on court.
-            </p>
-          </div>
-
-          {/* Three Steps */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
-            <div className="border-t border-[#15201A] pt-6 space-y-2">
-              <div className="font-mono text-xs text-[#55605A]">01</div>
-              <h3 className="font-heading font-semibold text-xl text-[#15201A]">
-                Create your account
-              </h3>
-              <p className="text-sm text-[#55605A] leading-relaxed">
-                Sign up with your name, phone and email. It takes under a minute.
-              </p>
+                <span>Explore courts</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             </div>
 
-            <div className="border-t border-[#15201A] pt-6 space-y-2">
-              <div className="font-mono text-xs text-[#55605A]">02</div>
-              <h3 className="font-heading font-semibold text-xl text-[#15201A]">
-                Choose a plan
-              </h3>
-              <p className="text-sm text-[#55605A] leading-relaxed">
-                Pick Junior, Silver or Gold whenever you are ready, and change it later.
-              </p>
-            </div>
-
-            <div className="border-t border-[#15201A] pt-6 space-y-2">
-              <div className="font-mono text-xs text-[#55605A]">03</div>
-              <h3 className="font-heading font-semibold text-xl text-[#15201A]">
-                Book your slot
-              </h3>
-              <p className="text-sm text-[#55605A] leading-relaxed">
-                Choose a sport, a day and a time. Your member discount is applied for you.
-              </p>
+            {/* Right Content: Floating Card */}
+            <div className="relative z-20 w-full lg:w-auto flex justify-center">
+              <BookingBannerCard
+                courts={activeCourts}
+                isLoggedIn={!!currentUser}
+              />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ===================== MEMBERSHIP SECTION ===================== */}
-      <section id="membership" className="w-full py-24 bg-[#F6F4EE]">
-        <div className="max-w-[1200px] mx-auto px-8 space-y-12">
-          {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-3">
-              <div className="text-xs font-bold uppercase tracking-widest text-[#55605A]">
-                Membership
-              </div>
-              <h2 className="font-heading font-semibold text-3xl sm:text-5xl tracking-[-0.04em] leading-[1.08] text-[#15201A]">
-                Membership, <span className="font-serif italic font-normal text-[#23513C]">kept simple.</span>
-              </h2>
-            </div>
-            <p className="text-sm text-[#55605A] md:max-w-xs md:text-right">
-              Choose a plan after you sign up. Your discounts apply automatically at the courts, the shop and the bar.
-            </p>
+        {/* ===================== MEMBERSHIP ===================== */}
+        <section id="membership" className="scroll-mt-24">
+          <div className="mb-10 text-center sm:text-left">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
+              TIERS & PRIVILEGES
+            </span>
+            <h2 className="font-anton text-4xl sm:text-[56px] leading-none uppercase text-[#111111] mt-2">
+              MEMBERSHIP
+            </h2>
           </div>
 
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-            {plans.map((p) => {
-              const nameUpper = p.name.toUpperCase();
-              const isGold = nameUpper === "GOLD";
-              const isJunior = nameUpper.includes("JUNIOR");
-              const isSilver = nameUpper === "SILVER";
-
-              // Duration label: show days if not whole months, or Junior shows 365 days
-              let durationLabel = "";
-              if (isJunior) {
-                durationLabel = `${p.durationDays} days`;
-              } else if (p.durationDays % 30 === 0) {
-                durationLabel = `${Math.round(p.durationDays / 30)} months`;
-              } else if (p.durationDays === 365) {
-                durationLabel = "12 months";
-              } else {
-                durationLabel = `${p.durationDays} days`;
-              }
-
-              const description = isJunior
-                ? "For members under 18"
-                : isSilver
-                ? "Standard membership"
-                : "Full access, best savings";
-
-              const chooseHref = currentUser ? "/member/plan" : "/signup";
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+            {sortedPlans.map((plan) => {
+              const isGold = plan.name.toUpperCase() === "GOLD";
+              const isJunior = plan.name.toUpperCase() === "JUNIOR";
+              const durationLabel =
+                plan.durationDays >= 365 ? "365 days" : `${plan.durationDays} days`;
 
               return (
                 <div
-                  key={p.id}
-                  className={`rounded-2xl p-8 flex flex-col justify-between transition-shadow ${
+                  key={plan.id}
+                  className={`rounded-[14px] p-8 flex flex-col justify-between transition-all ${
                     isGold
-                      ? "bg-[#23513C] text-white shadow-md"
-                      : "bg-[#FBFAF6] text-[#15201A] border border-[#D9D5C9]"
+                      ? "bg-[#1F4A33] text-white shadow-xl"
+                      : "bg-white border border-[#E6E6E6] text-[#111111] shadow-2xs hover:border-[#111111]/40"
                   }`}
                 >
-                  <div className="space-y-6">
-                    <div>
-                      <div
-                        className={`text-xs font-bold uppercase tracking-wider ${
-                          isGold ? "text-white/80" : "text-[#55605A]"
+                  <div>
+                    {/* Plan Name */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span
+                        className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${
+                          isGold ? "text-white/80" : "text-[#6B6B6B]"
                         }`}
                       >
-                        {p.name}
-                      </div>
-                      <div
-                        className={`text-sm mt-1 ${
-                          isGold ? "text-white/90" : "text-[#55605A]"
-                        }`}
-                      >
-                        {description}
-                      </div>
+                        {plan.name} PLAN
+                      </span>
+                      {isGold && (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-white/20 text-white">
+                          Featured
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-heading font-semibold text-4xl sm:text-[44px]">
-                        {formatInr(Number(p.price))}
+                    {/* Price and Duration */}
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="font-anton text-[48px] leading-none">
+                        {formatInr(Number(plan.price))}
                       </span>
                       <span
                         className={`text-xs ${
-                          isGold ? "text-white/70" : "text-[#55605A]"
+                          isGold ? "text-white/70" : "text-[#6B6B6B]"
                         }`}
                       >
-                        {durationLabel}
+                        / {durationLabel}
                       </span>
                     </div>
 
+                    {/* Divider */}
                     <div
-                      className={`border-t pt-5 space-y-3 text-sm ${
-                        isGold ? "border-white/20" : "border-[#D9D5C9]"
+                      className={`my-6 border-t ${
+                        isGold ? "border-white/20" : "border-[#E6E6E6]"
                       }`}
-                    >
-                      <div className="flex justify-between">
-                        <span className={isGold ? "text-white/80" : "text-[#55605A]"}>Courts</span>
-                        <span className="font-semibold">{Number(p.courtDiscountPct)}% off</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className={isGold ? "text-white/80" : "text-[#55605A]"}>Pro Shop</span>
-                        <span className="font-semibold">{Number(p.shopDiscountPct)}% off</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className={isGold ? "text-white/80" : "text-[#55605A]"}>Bar</span>
-                        <span className="font-semibold">{Number(p.barDiscountPct)}% off</span>
-                      </div>
-                    </div>
+                    />
+
+                    {/* Privilege Rows */}
+                    <ul className="space-y-3 text-xs leading-relaxed">
+                      <li className="flex items-center justify-between">
+                        <span className={isGold ? "text-white/80" : "text-[#6B6B6B]"}>
+                          Courts discount
+                        </span>
+                        <span className="font-semibold">
+                          {Number(plan.courtDiscountPct)}% off
+                        </span>
+                      </li>
+                      <li className="flex items-center justify-between">
+                        <span className={isGold ? "text-white/80" : "text-[#6B6B6B]"}>
+                          Pro Shop gear
+                        </span>
+                        <span className="font-semibold">
+                          {Number(plan.shopDiscountPct)}% off
+                        </span>
+                      </li>
+                      <li className="flex items-center justify-between">
+                        <span className={isGold ? "text-white/80" : "text-[#6B6B6B]"}>
+                          Champions Bar
+                        </span>
+                        <span className="font-semibold">
+                          {Number(plan.barDiscountPct)}% off
+                        </span>
+                      </li>
+                    </ul>
+
+                    {isJunior && (
+                      <p
+                        className={`text-xs mt-4 pt-4 border-t ${
+                          isGold ? "border-white/20 text-white/80" : "border-[#E6E6E6] text-[#6B6B6B]"
+                        }`}
+                      >
+                        For under 18. Age verified at the front desk.
+                      </p>
+                    )}
                   </div>
 
-                  <div className="pt-8">
+                  {/* Choose Plan CTA */}
+                  <div className="mt-8 pt-4">
                     <Link
-                      href={chooseHref}
-                      className={`block w-full py-3 rounded-full text-center text-sm font-semibold transition-colors ${
+                      href={currentUser ? "/member/plan" : "/signup"}
+                      className={`w-full h-11 rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center transition-all ${
                         isGold
-                          ? "bg-[#F6F4EE] text-[#15201A] hover:bg-white"
-                          : "border border-[#15201A] text-[#15201A] hover:bg-[#15201A]/5"
+                          ? "bg-white text-[#1F4A33] hover:bg-neutral-100"
+                          : "bg-[#111111] text-white hover:bg-black"
                       }`}
                     >
-                      Choose {p.name.charAt(0) + p.name.slice(1).toLowerCase()}
+                      Choose {plan.name}
                     </Link>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ===================== PRO SHOP SECTION ===================== */}
-      <section id="pro-shop" className="w-full py-24 bg-[#F6F4EE]">
-        <div className="max-w-[1200px] mx-auto px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <div className="text-xs font-bold uppercase tracking-widest text-[#55605A]">
-                  Pro Shop
-                </div>
-                <h2 className="font-heading font-semibold text-3xl sm:text-5xl tracking-[-0.04em] leading-[1.08] text-[#15201A]">
-                  Gear up <span className="font-serif italic font-normal text-[#23513C]">before you play.</span>
-                </h2>
+        {/* ===================== PRO SHOP ===================== */}
+        <section id="shop" className="scroll-mt-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+            {/* Left: Image card */}
+            <div className="lg:col-span-7">
+              <div className="relative aspect-[16/10] w-full rounded-[20px] overflow-hidden bg-[#1F4A33] shadow-sm">
+                <ClubImage
+                  src="/images/shop.jpg"
+                  alt="Champions Club Pro Shop"
+                  sportName="PRO SHOP"
+                  priority={false}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 55vw"
+                  className="object-cover"
+                />
               </div>
-              <p className="text-sm text-[#55605A] leading-relaxed max-w-md">
-                Order from your account and collect at the desk, pick it up courtside, or have it delivered home. The shop and the counter share one stock, so what you see is what is there.
+            </div>
+
+            {/* Right: Text and Categories */}
+            <div className="lg:col-span-5 flex flex-col justify-center">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
+                PRO SHOP
+              </span>
+              <h2 className="font-anton text-4xl sm:text-5xl lg:text-[56px] leading-none uppercase text-[#111111] mt-3 mb-6">
+                GEAR UP BEFORE YOU PLAY
+              </h2>
+              <p className="text-sm sm:text-base text-[#6B6B6B] leading-relaxed mb-6">
+                Pick up tournament rackets, fresh balls, shoes and grips at the clubhouse front desk, request courtside delivery directly to your court during play, or order for same-day home delivery from our live inventory.
               </p>
+
+              {/* Real DB categories as outlined pills */}
+              {categories.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {categories.map((cat) => (
+                    <span
+                      key={cat}
+                      className="px-3.5 py-1.5 rounded-full border border-[#E6E6E6] text-xs font-medium text-[#111111]"
+                    >
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Action Button */}
               <div>
                 <Link
-                  href={currentUser ? "/member/shop" : "/login?redirect=/member/shop"}
-                  className="inline-block bg-[#23513C] text-white px-6 py-3 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+                  href={currentUser ? "/member/shop" : "/login?next=/member/shop"}
+                  className="h-11 px-7 rounded-full bg-[#1F4A33] hover:bg-[#163826] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2 transition-colors shadow-sm"
                 >
-                  Open the Pro Shop
+                  <span>Open the Pro Shop</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
-
-            {/* Right Categories */}
-            <div className="flex flex-wrap gap-2.5 md:justify-end">
-              {categories.map((cat) => (
-                <span
-                  key={cat}
-                  className="px-5 py-2 rounded-full border border-[#D9D5C9] bg-white text-sm text-[#15201A] shadow-2xs"
-                >
-                  {cat}
-                </span>
-              ))}
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ===================== CLOSING BANNER ===================== */}
-      <section className="w-full pb-16 bg-[#F6F4EE]">
-        <div className="max-w-[1200px] mx-auto px-8">
-          <div className="bg-[#23513C] text-white rounded-[24px] p-12 sm:p-16 text-center space-y-4">
-            <h2 className="font-heading font-semibold text-3xl sm:text-5xl tracking-[-0.04em] leading-tight">
-              Your court is <span className="font-serif italic font-normal text-[#A9CDE8]">waiting.</span>
+        {/* ===================== FAQ ===================== */}
+        <section id="faq" className="scroll-mt-24">
+          <div className="mb-8">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
+              QUESTIONS & ANSWERS
+            </span>
+            <h2 className="font-anton text-4xl sm:text-[56px] leading-none uppercase text-[#111111] mt-2">
+              FAQ
             </h2>
-            <p className="text-sm text-white/80 max-w-md mx-auto">
-              Create an account, choose a plan and book your first session.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/signup"
-                className="inline-block bg-[#F6F4EE] text-[#15201A] px-8 py-3 rounded-full text-sm font-semibold hover:bg-white transition-colors"
-              >
-                Sign up
-              </Link>
-            </div>
           </div>
-        </div>
-      </section>
+
+          <FaqAccordion />
+        </section>
+      </main>
 
       {/* ===================== FOOTER ===================== */}
-      <footer id="contact" className="w-full bg-[#15201A] text-white rounded-t-[32px] pt-16 pb-12 overflow-hidden relative">
-        <div className="max-w-[1200px] mx-auto px-8 space-y-12 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
-            {/* Left Brand Column (5 cols) */}
-            <div className="md:col-span-5 space-y-5">
-              <div className="flex items-center gap-2.5 text-white font-heading font-bold text-xl tracking-tight">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#23513C] shrink-0" />
-                <span>Champions Club</span>
-              </div>
-              <p className="text-xs text-white/70 max-w-sm leading-relaxed">
+      <footer id="contact" className="w-full bg-white border-t border-[#E6E6E6] mt-24 py-16">
+        <div className="max-w-[1344px] mx-auto px-4 sm:px-8 space-y-12">
+          {/* Top Row: Brand & Uppercase Navigation Links */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-[#E6E6E6]">
+            <Link
+              href="/"
+              className="font-anton text-[28px] uppercase tracking-normal text-[#111111] select-none hover:opacity-85 transition-opacity"
+            >
+              CHAMPIONS CLUB
+            </Link>
+
+            <nav className="flex flex-wrap items-center gap-6 sm:gap-8 text-[12px] font-semibold tracking-wider uppercase text-[#111111]">
+              <a href="#home" className="hover:text-[#1F4A33] transition-colors">
+                HOME
+              </a>
+              <a href="#courts" className="hover:text-[#1F4A33] transition-colors">
+                COURTS
+              </a>
+              <a href="#membership" className="hover:text-[#1F4A33] transition-colors">
+                MEMBERSHIP
+              </a>
+              <a href="#shop" className="hover:text-[#1F4A33] transition-colors">
+                PRO SHOP
+              </a>
+              <a href="#faq" className="hover:text-[#1F4A33] transition-colors">
+                FAQ
+              </a>
+              <a href="#contact" className="hover:text-[#1F4A33] transition-colors">
+                CONTACT
+              </a>
+            </nav>
+          </div>
+
+          {/* Bottom Row: Description on left, Contact Details on right */}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 text-xs text-[#6B6B6B]">
+            <div className="max-w-md space-y-2">
+              <p className="leading-relaxed">
                 {siteSettings.tagline}
               </p>
-              <div className="flex gap-3 pt-2">
-                <Link
-                  href="/signup"
-                  className="bg-[#F6F4EE] text-[#15201A] px-5 py-2 rounded-full text-xs font-semibold hover:bg-white transition-colors"
-                >
-                  Sign up
-                </Link>
-                <Link
-                  href="/login"
-                  className="border border-white/30 text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-white/10 transition-colors"
-                >
-                  Sign in
-                </Link>
-              </div>
+              <p className="text-[11px] text-[#6B6B6B]/80 font-mono">
+                © {new Date().getFullYear()} {siteSettings.name}. All rights reserved.
+              </p>
             </div>
 
-            {/* Right 4 Columns (7 cols) */}
-            <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-6 text-xs">
-              {/* Col 1: Explore */}
-              <div className="space-y-3">
-                <div className="font-bold text-white uppercase tracking-wider text-[11px]">
-                  Explore
-                </div>
-                <div className="space-y-2 text-white/70">
-                  <div>
-                    <a href="#courts" className="hover:text-white transition-colors">
-                      Courts
-                    </a>
-                  </div>
-                  <div>
-                    <a href="#how-it-works" className="hover:text-white transition-colors">
-                      How it works
-                    </a>
-                  </div>
-                  <div>
-                    <a href="#membership" className="hover:text-white transition-colors">
-                      Membership
-                    </a>
-                  </div>
-                  <div>
-                    <a href="#pro-shop" className="hover:text-white transition-colors">
-                      Pro Shop
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Col 2: Visit */}
-              {(siteSettings.address || siteSettings.city) && (
-                <div className="space-y-3">
-                  <div className="font-bold text-white uppercase tracking-wider text-[11px]">
-                    Visit
-                  </div>
-                  <div className="space-y-1 text-white/70">
-                    {siteSettings.address && <div>{siteSettings.address}</div>}
-                    {siteSettings.city && <div>{siteSettings.city}</div>}
-                  </div>
+            <div className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-12 leading-relaxed text-left sm:text-right">
+              {siteSettings.address && (
+                <div>
+                  <span className="font-semibold text-[#111111] block mb-0.5">Location</span>
+                  <span>{siteSettings.address}</span>
+                  {siteSettings.city && <span className="block">{siteSettings.city}</span>}
                 </div>
               )}
 
-              {/* Col 3: Hours */}
-              {siteSettings.hours && (
-                <div className="space-y-3">
-                  <div className="font-bold text-white uppercase tracking-wider text-[11px]">
-                    Hours
-                  </div>
-                  <div className="space-y-1 text-white/70">
-                    <div>Open daily</div>
-                    <div>6:00 am to 10:00 pm</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Col 4: Contact */}
               {(siteSettings.phone || siteSettings.email) && (
-                <div className="space-y-3">
-                  <div className="font-bold text-white uppercase tracking-wider text-[11px]">
-                    Contact
-                  </div>
-                  <div className="space-y-1 text-white/70">
-                    {siteSettings.phone && <div>{siteSettings.phone}</div>}
-                    {siteSettings.email && (
-                      <div className="break-all">{siteSettings.email}</div>
-                    )}
-                  </div>
+                <div>
+                  <span className="font-semibold text-[#111111] block mb-0.5">Concierge</span>
+                  {siteSettings.phone && <span className="block">{siteSettings.phone}</span>}
+                  {siteSettings.email && <span className="block">{siteSettings.email}</span>}
+                </div>
+              )}
+
+              {siteSettings.hours && (
+                <div>
+                  <span className="font-semibold text-[#111111] block mb-0.5">Club Hours</span>
+                  <span>{siteSettings.hours}</span>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Divider & Copyright */}
-          <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between text-xs text-white/50 gap-2">
-            <div>© 2026 The Champions Club</div>
-            <div>Tennis · Padel · Badminton</div>
-          </div>
-        </div>
-
-        {/* Giant Faint Wordmark Cropped at Bottom */}
-        <div
-          aria-hidden="true"
-          className="select-none pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 text-[clamp(80px,14vw,160px)] font-heading font-bold text-[#F6F4EE]/[0.08] tracking-[-0.05em] whitespace-nowrap leading-none"
-        >
-          Champions Club
         </div>
       </footer>
     </div>

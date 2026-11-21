@@ -200,7 +200,7 @@ export default async function TransactionsPage({
         <Link
           href="/admin/owner"
           prefetch={false}
-          className="text-xs text-[#23513C] hover:underline mb-1 inline-block"
+          className="text-xs text-[#1F4A33] hover:underline mb-1 inline-block"
         >
           &larr; Back to Finance
         </Link>

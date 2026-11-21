@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { choosePlanAction } from "@/app/actions/members";
-import { Check, ArrowRight, Loader2, Sparkles, AlertCircle, Info } from "lucide-react";
+import { Check, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { formatInr } from "@/lib/site-settings";
 
 interface PlanItem {
   id: string;
@@ -29,11 +30,7 @@ interface Props {
   plans: PlanItem[];
   userName: string;
   currentMembership?: CurrentMembership | null;
-  memberDob?: string | null; // ISO string or null
-}
-
-function fmtRs(n: number) {
-  return "Rs " + n.toLocaleString("en-IN");
+  memberDob?: string | null;
 }
 
 function fmtDate(d: string | Date) {
@@ -66,7 +63,7 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
   function getPlanState(plan: PlanItem): "current" | "upgrade" | "downgrade" | "unavailable" {
     const isJunior = plan.name.toUpperCase().includes("JUNIOR");
     if (isJunior && currentAge !== null && currentAge >= 18) return "unavailable";
-    if (!currentMembership) return "upgrade"; // fresh activation
+    if (!currentMembership) return "upgrade";
     if (currentMembership.planId === plan.id) return "current";
     if (plan.price > (currentPlan?.price ?? 0)) return "upgrade";
     return "downgrade";
@@ -98,87 +95,105 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
 
       const res = await choosePlanAction(payload);
       if (!res.success) {
-        setError(res.error || "Failed to process membership selection.");
-        setShowConfirm(false);
+        setError(res.error || "Failed to update plan");
         return;
       }
 
       setShowConfirm(false);
-      if (res.scheduled) {
-        setResult({ scheduled: true, startsOn: res.startsOn, planName: res.planName });
-      } else if (res.upgraded) {
-        setResult({ upgraded: true, amountDue: res.amountDue, credit: res.credit });
-      } else {
-        router.push("/member/plan");
-        router.refresh();
-      }
+      setResult({
+        scheduled: res.scheduled,
+        startsOn: res.startsOn,
+        planName: res.planName,
+        upgraded: res.upgraded,
+        amountDue: res.amountDue,
+        credit: res.credit,
+      });
     });
   }
 
-  if (result?.scheduled) {
+  if (result) {
     return (
-      <div className="max-w-md mx-auto text-center space-y-6 py-16">
-        <div className="text-5xl">📅</div>
-        <h2 className="text-2xl font-extrabold text-[#1B1B1B]">Plan change scheduled</h2>
-        <p className="text-sm text-[#1B1B1B]/70">
-          Your current plan continues until it expires. You will switch to <strong>{result.planName}</strong> on{" "}
-          <strong>{result.startsOn ? fmtDate(result.startsOn) : "expiry"}</strong>. No payment now.
-        </p>
-        <Link prefetch={false} href="/member/plan" className="inline-block px-6 py-3 rounded-full bg-[#1B1B1B] text-[#F6F5E1] font-bold text-sm">
-          View my plan →
-        </Link>
-      </div>
-    );
-  }
+      <div className="max-w-xl mx-auto py-12 px-6">
+        <div className="bg-white border border-[#E6E6E6] rounded-[20px] p-8 sm:p-10 text-center space-y-6 shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-[#1F4A33] text-white flex items-center justify-center mx-auto">
+            <Check className="w-7 h-7" />
+          </div>
 
-  if (result?.upgraded) {
-    return (
-      <div className="max-w-md mx-auto text-center space-y-6 py-16">
-        <h2 className="text-2xl font-extrabold text-[#1B1B1B]">Plan upgraded</h2>
-        <p className="text-sm text-[#1B1B1B]/70">
-          {result.amountDue === 0
-            ? `Upgraded for free — your credit (${fmtRs(result.credit ?? 0)}) covered the full amount.`
-            : `You paid ${fmtRs(result.amountDue ?? 0)} (after ${fmtRs(result.credit ?? 0)} credit). Your new plan is active immediately.`}
-        </p>
-        <Link prefetch={false} href="/member/plan" className="inline-block px-6 py-3 rounded-full bg-[#5F9E4A] text-white font-bold text-sm">
-          View my plan →
-        </Link>
+          <div className="space-y-2">
+            <h2 className="font-anton text-3xl sm:text-4xl uppercase text-[#111111]">
+              {result.scheduled ? "Downgrade Scheduled" : "Membership Activated"}
+            </h2>
+            <p className="text-sm text-[#6B6B6B]">
+              {result.scheduled
+                ? `Your downgrade to ${result.planName} will automatically take effect on ${fmtDate(result.startsOn!)}.`
+                : `You are now on the ${result.planName} membership tier with full privileges.`}
+            </p>
+          </div>
+
+          {result.upgraded && result.amountDue !== undefined && (
+            <div className="bg-[#EFEFEF] rounded-[14px] p-4 text-xs space-y-1.5 text-left">
+              <div className="flex justify-between text-[#6B6B6B]">
+                <span>Previous Plan Credit:</span>
+                <span className="font-semibold text-[#111111]">{formatInr(result.credit)}</span>
+              </div>
+              <div className="flex justify-between text-[#6B6B6B]">
+                <span>Net Amount Paid:</span>
+                <span className="font-bold text-[#111111]">{formatInr(result.amountDue)}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="pt-4 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/member"
+              className="flex-1 h-11 rounded-full bg-[#1F4A33] hover:bg-[#163826] text-white text-xs font-semibold uppercase tracking-wider flex items-center justify-center transition-colors"
+            >
+              Go to Member Portal
+            </Link>
+            <Link
+              href="/member/book"
+              className="flex-1 h-11 rounded-full border border-[#E6E6E6] text-[#111111] hover:bg-[#EFEFEF] text-xs font-semibold uppercase tracking-wider flex items-center justify-center transition-colors"
+            >
+              Book a Court
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 text-[#1B1B1B]">
+    <div className="max-w-5xl mx-auto space-y-10 text-[#111111] py-8 px-4">
       {/* Header */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-[#1B1B1B]/15 text-xs font-semibold text-[#5F9E4A] shadow-2xs">
-          <Sparkles className="h-3.5 w-3.5" /> WELCOME TO THE CHAMPIONS CLUB
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#1B1B1B]">
-          {currentMembership ? "Change your plan," : "Select your membership tier,"} {userName}
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
+          MEMBERSHIP PRIVILEGES
+        </span>
+        <h1 className="font-anton text-4xl sm:text-5xl uppercase leading-none text-[#111111]">
+          {currentMembership ? "CHANGE YOUR MEMBERSHIP" : "SELECT YOUR MEMBERSHIP"}
         </h1>
-        <p className="text-xs sm:text-sm text-[#1B1B1B]/70 max-w-xl mx-auto">
+        <p className="text-xs sm:text-sm text-[#6B6B6B] max-w-lg mx-auto">
           {currentMembership
-            ? "Upgrade now or schedule a downgrade for when your current plan expires."
-            : "Choose a privilege tier below for automated discounts across courts, Pro Shop, and cafe."}
+            ? `Hello ${userName}, upgrade immediately or schedule a plan change.`
+            : `Hello ${userName}, choose a tier below for automated discounts across courts, Pro Shop and clubhouse bar.`}
         </p>
       </div>
 
-      {/* DOB prompt for members without DOB on file */}
+      {/* Date of Birth prompt for unverified accounts */}
       {!memberDob && (
-        <div className="max-w-md mx-auto bg-white border border-[#1B1B1B]/15 rounded-2xl p-5 shadow-sm space-y-2">
+        <div className="max-w-md mx-auto bg-white border border-[#E6E6E6] rounded-[16px] p-5 shadow-2xs space-y-2">
           <div className="flex items-center justify-between">
-            <label htmlFor="dob" className="text-xs font-bold uppercase tracking-wider text-[#1B1B1B]/80">
-              Date of Birth (required to choose Junior)
+            <label htmlFor="dob-prompt" className="text-[11px] font-semibold uppercase tracking-wider text-[#6B6B6B]">
+              Date of Birth (required for Junior)
             </label>
             {currentAge !== null && (
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isJuniorEligible ? "bg-[#E8883A] text-[#1B1B1B]" : "bg-[#EDECCF] text-[#1B1B1B]"}`}>
-                Age: {currentAge} yrs {isJuniorEligible ? "· Junior Eligible" : "· Adult"}
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isJuniorEligible ? "bg-[#1F4A33] text-white" : "bg-[#EFEFEF] text-[#111111]"}`}>
+                Age: {currentAge} yrs {isJuniorEligible ? "· Junior eligible" : "· Adult"}
               </span>
             )}
           </div>
           <input
-            id="dob"
+            id="dob-prompt"
             type="date"
             value={dob}
             onChange={(e) => setDob(e.target.value)}
@@ -188,205 +203,169 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
               return d.toISOString().split("T")[0];
             })()}
             max={new Date().toISOString().split("T")[0]}
-            className="w-full h-11 px-4 rounded-xl bg-[#F6F5E1] border border-[#1B1B1B]/20 text-[#1B1B1B] text-sm focus:border-[#5F9E4A] focus:outline-none"
+            className="w-full h-11 px-4 rounded-[14px] bg-white border border-[#E6E6E6] text-sm text-[#111111] focus:ring-1 focus:ring-[#1F4A33] focus:border-[#1F4A33] focus:outline-none"
           />
         </div>
       )}
 
       {error && (
-        <div className="max-w-md mx-auto p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div className="max-w-md mx-auto p-4 rounded-[14px] bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Plans Grid */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-3 gap-6 items-stretch">
         {plans.map((plan) => {
           const state = getPlanState(plan);
-          const isJunior = plan.name.toUpperCase().includes("JUNIOR");
           const isGold = plan.name.toUpperCase().includes("GOLD");
+          const isJunior = plan.name.toUpperCase().includes("JUNIOR");
           const isCurrent = state === "current";
           const isUnavailable = state === "unavailable";
           const isUpgrade = state === "upgrade";
-          const isDowngrade = state === "downgrade";
           const { credit, amountDue } = isUpgrade && currentMembership ? getUpgradeDetails(plan) : { credit: 0, amountDue: plan.price };
 
           return (
             <div
               key={plan.id}
               onClick={() => !isCurrent && !isUnavailable && handleSelectPlan(plan.id)}
-              className={`relative rounded-[28px] p-7 flex flex-col justify-between border transition-all ${
-                isCurrent
-                  ? "bg-[#F6F5E1] border-[#5F9E4A] opacity-80 cursor-not-allowed"
+              className={`rounded-[14px] p-8 flex flex-col justify-between transition-all ${
+                isGold && !isCurrent
+                  ? "bg-[#1F4A33] text-white shadow-xl cursor-pointer"
+                  : isCurrent
+                  ? "bg-[#EFEFEF] border border-[#111111] opacity-90 cursor-default"
                   : isUnavailable
-                  ? "bg-white border-[#1B1B1B]/10 opacity-50 cursor-not-allowed"
-                  : "bg-white border-[#1B1B1B]/15 hover:border-[#5F9E4A] hover:shadow-md cursor-pointer"
+                  ? "bg-white border border-[#E6E6E6] opacity-40 cursor-not-allowed"
+                  : "bg-white border border-[#E6E6E6] text-[#111111] hover:border-[#111111] cursor-pointer"
               }`}
             >
-              {isGold && !isCurrent && (
-                <div className="absolute -top-3 right-6 bg-[#E8883A] text-[#1B1B1B] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full shadow-2xs">
-                  MOST POPULAR
-                </div>
-              )}
-              {isCurrent && (
-                <div className="absolute -top-3 left-6 bg-[#5F9E4A] text-white text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full shadow-2xs">
-                  CURRENT PLAN
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold tracking-tight text-[#1B1B1B]">{plan.name}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold text-[#1B1B1B]">
-                    {fmtRs(plan.price)}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${isGold && !isCurrent ? "text-white/80" : "text-[#6B6B6B]"}`}>
+                    {plan.name} PLAN
                   </span>
-                  <span className="text-xs text-gray-500">/ {plan.durationDays} days</span>
+                  {isCurrent && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#111111] text-white">
+                      Current
+                    </span>
+                  )}
+                  {isGold && !isCurrent && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">
+                      Featured
+                    </span>
+                  )}
                 </div>
 
-                <div className="pt-4 border-t border-[#1B1B1B]/15 space-y-2.5 text-xs text-[#1B1B1B]/80">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#5F9E4A]" />
-                    <span><strong>{plan.courtDiscountPct}% OFF</strong> all Court bookings</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#5F9E4A]" />
-                    <span><strong>{plan.shopDiscountPct}% OFF</strong> Pro Shop merchandise</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#5F9E4A]" />
-                    <span><strong>{plan.barDiscountPct}% OFF</strong> Champions Bar &amp; Cafe</span>
-                  </div>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="font-anton text-[48px] leading-none">
+                    {formatInr(plan.price)}
+                  </span>
+                  <span className={`text-xs ${isGold && !isCurrent ? "text-white/70" : "text-[#6B6B6B]"}`}>
+                    / {plan.durationDays >= 365 ? "365 days" : `${plan.durationDays} days`}
+                  </span>
                 </div>
-              </div>
 
-              {/* CTA label */}
-              <div className="mt-6 pt-4">
-                {isCurrent ? (
-                  <div className="w-full py-2.5 rounded-full bg-[#5F9E4A]/15 text-[#5F9E4A] text-xs font-bold text-center">
-                    ✓ You are on this plan
-                  </div>
-                ) : isUnavailable ? (
-                  <div className="w-full py-2.5 rounded-full bg-[#1B1B1B]/10 text-[#1B1B1B]/40 text-xs font-bold text-center">
-                    {isJunior ? "Junior is for under 18" : "Not available"}
-                  </div>
-                ) : isUpgrade ? (
-                  <div className="w-full py-2.5 rounded-full bg-[#1B1B1B] text-[#F6F5E1] text-xs font-bold text-center">
-                    {currentMembership
-                      ? `Upgrade — Pay ${fmtRs(amountDue)}${credit > 0 ? ` (after ${fmtRs(credit)} credit)` : ""}`
-                      : "Select this plan →"}
-                  </div>
-                ) : (
-                  <div className="w-full py-2.5 rounded-full bg-[#F6F5E1] text-[#1B1B1B] border border-[#1B1B1B]/20 text-xs font-bold text-center">
-                    Downgrade — starts {currentMembership ? fmtDate(currentMembership.endsAt) : "on expiry"}
-                  </div>
+                <div className={`my-6 border-t ${isGold && !isCurrent ? "border-white/20" : "border-[#E6E6E6]"}`} />
+
+                <ul className="space-y-3 text-xs leading-relaxed">
+                  <li className="flex items-center justify-between">
+                    <span className={isGold && !isCurrent ? "text-white/80" : "text-[#6B6B6B]"}>Courts discount</span>
+                    <span className="font-semibold">{Number(plan.courtDiscountPct)}% off</span>
+                  </li>
+                  <li className="flex items-center justify-between">
+                    <span className={isGold && !isCurrent ? "text-white/80" : "text-[#6B6B6B]"}>Pro Shop gear</span>
+                    <span className="font-semibold">{Number(plan.shopDiscountPct)}% off</span>
+                  </li>
+                  <li className="flex items-center justify-between">
+                    <span className={isGold && !isCurrent ? "text-white/80" : "text-[#6B6B6B]"}>Champions Bar</span>
+                    <span className="font-semibold">{Number(plan.barDiscountPct)}% off</span>
+                  </li>
+                </ul>
+
+                {isJunior && (
+                  <p className={`text-xs mt-4 pt-4 border-t ${isGold && !isCurrent ? "border-white/20 text-white/80" : "border-[#E6E6E6] text-[#6B6B6B]"}`}>
+                    {isUnavailable ? "Junior is for under 18." : "For under 18. Age verified at the front desk."}
+                  </p>
                 )}
               </div>
 
-              {/* Upgrade breakdown pill */}
-              {isUpgrade && currentMembership && credit > 0 && (
-                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-[#1B1B1B]/50">
-                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                  <span>
-                    {fmtRs(plan.price)} − {fmtRs(credit)} credit = {fmtRs(amountDue)} due now
-                  </span>
-                </div>
-              )}
-              {isDowngrade && currentMembership && (
-                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-[#1B1B1B]/50">
-                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                  <span>Nothing to pay now. Scheduled for {fmtDate(currentMembership.endsAt)}.</span>
-                </div>
-              )}
+              <div className="mt-8 pt-4">
+                <button
+                  type="button"
+                  disabled={isCurrent || isUnavailable}
+                  className={`w-full h-11 rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center transition-all ${
+                    isCurrent
+                      ? "bg-[#111111] text-white opacity-60 cursor-default"
+                      : isUnavailable
+                      ? "bg-neutral-200 text-neutral-500 cursor-not-allowed"
+                      : isGold
+                      ? "bg-white text-[#1F4A33] hover:bg-neutral-100 cursor-pointer"
+                      : "bg-[#111111] text-white hover:bg-black cursor-pointer"
+                  }`}
+                >
+                  {isCurrent
+                    ? "Active Tier"
+                    : isUnavailable
+                    ? "Not Eligible"
+                    : state === "upgrade" && currentMembership
+                    ? `Upgrade (${formatInr(amountDue)})`
+                    : state === "downgrade"
+                    ? "Schedule Downgrade"
+                    : `Choose ${plan.name}`}
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Skip / action */}
-      <div className="pt-6 border-t border-[#1B1B1B]/15 flex items-center justify-start">
-        <Link prefetch={false} href="/member" className="text-xs font-semibold text-[#1B1B1B]/70 hover:text-[#1B1B1B] transition-colors py-2 px-4">
-          ← Back to dashboard
-        </Link>
-      </div>
-
-      {/* Confirm Dialog */}
+      {/* Confirmation Dialog */}
       {showConfirm && selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0">
-          <div className="w-full max-w-md bg-[#F6F5E1] rounded-3xl p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom-4 duration-200">
-            <h3 className="text-lg font-extrabold text-[#1B1B1B]">Confirm plan change</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-[20px] max-w-md w-full p-6 sm:p-8 space-y-6 shadow-2xl">
+            <h3 className="font-anton text-2xl uppercase text-[#111111]">
+              Confirm Plan Selection
+            </h3>
 
-            {(() => {
-              const st = getPlanState(selectedPlan);
-              const { credit, amountDue } = st === "upgrade" && currentMembership
-                ? getUpgradeDetails(selectedPlan)
-                : { credit: 0, amountDue: selectedPlan.price };
-              return (
-                <div className="bg-white rounded-2xl p-4 space-y-2 text-sm">
+            <div className="text-xs text-[#6B6B6B] space-y-2">
+              <p>
+                You are selecting the <strong className="text-[#111111]">{selectedPlan.name}</strong> membership tier.
+              </p>
+              {currentMembership && getPlanState(selectedPlan) === "upgrade" && (
+                <div className="bg-[#EFEFEF] rounded-[14px] p-4 space-y-1.5 mt-2">
                   <div className="flex justify-between">
-                    <span className="text-[#1B1B1B]/60">New plan</span>
-                    <span className="font-bold">{selectedPlan.name}</span>
+                    <span>New Plan Price:</span>
+                    <span className="font-semibold text-[#111111]">{formatInr(selectedPlan.price)}</span>
                   </div>
-                  {st === "upgrade" && currentMembership ? (
-                    <>
-                      <div className="flex justify-between text-[#1B1B1B]/60">
-                        <span>New plan price</span>
-                        <span>{fmtRs(selectedPlan.price)}</span>
-                      </div>
-                      <div className="flex justify-between text-[#5F9E4A] font-semibold">
-                        <span>Credit from current plan</span>
-                        <span>− {fmtRs(credit)}</span>
-                      </div>
-                      <div className="flex justify-between font-extrabold text-[#1B1B1B] text-base pt-1 border-t border-[#1B1B1B]/10">
-                        <span>Amount due now</span>
-                        <span>{fmtRs(amountDue)}</span>
-                      </div>
-                    </>
-                  ) : st === "downgrade" && currentMembership ? (
-                    <>
-                      <div className="flex justify-between text-[#1B1B1B]/60">
-                        <span>Amount due now</span>
-                        <span className="font-bold text-[#5F9E4A]">Rs 0</span>
-                      </div>
-                      <div className="flex justify-between text-[#1B1B1B]/60">
-                        <span>Starts on</span>
-                        <span className="font-bold">{fmtDate(currentMembership.endsAt)}</span>
-                      </div>
-                      <p className="text-xs text-[#1B1B1B]/50 pt-1">
-                        You keep your current {currentMembership.planName} benefits until {fmtDate(currentMembership.endsAt)}.
-                      </p>
-                    </>
-                  ) : (
-                    <div className="flex justify-between font-extrabold text-[#1B1B1B] text-base">
-                      <span>Amount due</span>
-                      <span>{fmtRs(selectedPlan.price)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span>Unused Credit:</span>
+                    <span className="font-semibold text-[#111111]">-{formatInr(getUpgradeDetails(selectedPlan).credit)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-[#E6E6E6] pt-1.5 font-bold text-[#111111]">
+                    <span>Amount Due Today:</span>
+                    <span>{formatInr(getUpgradeDetails(selectedPlan).amountDue)}</span>
+                  </div>
                 </div>
-              );
-            })()}
+              )}
+            </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 min-h-[48px] rounded-2xl border border-[#1B1B1B]/20 text-[#1B1B1B] font-bold text-sm cursor-pointer hover:bg-white"
+                disabled={isPending}
+                className="flex-1 h-11 rounded-full border border-[#E6E6E6] text-xs font-semibold uppercase tracking-wider text-[#111111] hover:bg-[#EFEFEF] transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleConfirm}
                 disabled={isPending}
-                className="flex-1 min-h-[48px] rounded-2xl bg-[#1B1B1B] text-[#F6F5E1] font-bold text-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                className="flex-1 h-11 rounded-full bg-[#1F4A33] hover:bg-[#163826] text-white text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
               >
-                {isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    Confirm <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
+                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Confirm</span>}
               </button>
             </div>
           </div>
