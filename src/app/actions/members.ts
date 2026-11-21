@@ -20,7 +20,7 @@ export async function getPostLoginRedirectAction(
       return "/admin/owner";
     }
     if (user?.role === "STAFF") {
-      return "/admin";
+      return "/admin/members";
     }
     if (requestedRedirect && requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("/login")) {
       return requestedRedirect;

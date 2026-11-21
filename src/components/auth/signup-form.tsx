@@ -86,7 +86,8 @@ export function SignUpForm() {
     const payload = new FormData();
     payload.set("name", formData.name.trim());
     payload.set("phone", formData.phone.trim());
-    payload.set("email", formData.email.trim());
+    const cleanEmail = formData.email.trim().toLowerCase();
+    payload.set("email", cleanEmail);
     payload.set("password", formData.password);
 
     const res = await signUpMemberAction(payload);
@@ -100,19 +101,18 @@ export function SignUpForm() {
     // 3. Auto sign in and redirect to /member/choose-plan
     try {
       const signInRes = await signIn.email({
-        email: formData.email.trim(),
+        email: cleanEmail,
         password: formData.password,
       });
 
       if (signInRes?.error) {
-        router.push("/login");
+        window.location.href = "/login";
         return;
       }
 
-      router.push("/member/choose-plan");
-      router.refresh();
+      window.location.href = "/member/choose-plan";
     } catch {
-      router.push("/login");
+      window.location.href = "/login";
     }
   };
 
