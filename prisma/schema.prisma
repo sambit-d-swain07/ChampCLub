@@ -1,0 +1,434 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  STAFF
+  MEMBER
+}
+
+enum BookingStatus {
+  HELD
+  CONFIRMED
+  CANCELLED
+}
+
+enum BookingKind {
+  NORMAL
+  SOCIAL
+}
+
+enum ShopChannel {
+  COUNTER
+  ONLINE
+}
+
+enum ShopFulfilment {
+  PICKUP
+  DELIVERY
+}
+
+enum ShopOrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum TabStatus {
+  OPEN
+  CLOSED
+}
+
+enum BarOrderStatus {
+  NEW
+  PREPARING
+  READY
+  SERVED
+  CANCELLED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUOTE_SENT
+  CONVERTED
+  LOST
+}
+
+enum LedgerSource {
+  COURT
+  SHOP
+  BAR
+  MEMBERSHIP
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  UPI
+  ONLINE
+}
+
+enum LedgerKind {
+  EARNED
+  COLLECTED
+  REFUNDED
+}
+
+// ----------------- Auth Models (Better Auth) -----------------
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String    @default("MEMBER")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+  member   Member?
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ----------------- Member & Memberships -----------------
+model Member {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipNo String   @unique
+  qrToken      String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships         Membership[]
+  bookings            Booking[]
+  bookingParticipants BookingParticipant[]
+  shopOrders          ShopOrder[]
+  tabs                Tab[]
+}
+
+model Plan {
+  id               String   @id @default(cuid())
+  name             String   @unique // GOLD, SILVER, JUNIOR
+  price            Decimal  @db.Decimal(10, 2)
+  durationDays     Int
+  courtDiscountPct Decimal  @default(0) @db.Decimal(5, 2)
+  shopDiscountPct  Decimal  @default(0) @db.Decimal(5, 2)
+  barDiscountPct   Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  memberships  Membership[]
+  pricingRules PricingRule[]
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  startsAt  DateTime
+  endsAt    DateTime
+  pricePaid Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+  @@index([planId])
+}
+
+// ----------------- Courts & Bookings -----------------
+model Court {
+  id        String   @id @default(cuid())
+  name      String
+  sport     String // TENNIS, PADEL, BADMINTON
+  capacity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings Booking[]
+}
+
+model PricingRule {
+  id        String   @id @default(cuid())
+  sport     String
+  planId    String?
+  plan      Plan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  basePrice Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sport])
+  @@index([planId])
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  courtId          String
+  court            Court         @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  memberId         String?
+  member           Member?       @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  guestName        String?
+  startsAt         DateTime
+  endsAt           DateTime
+  status           BookingStatus @default(CONFIRMED)
+  kind             BookingKind   @default(NORMAL)
+  priceSnapshot    Decimal       @db.Decimal(10, 2)
+  discountSnapshot Decimal       @default(0) @db.Decimal(10, 2)
+  holdExpiresAt    DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  participants BookingParticipant[]
+
+  @@index([courtId])
+  @@index([memberId])
+  @@index([startsAt, endsAt])
+}
+
+model BookingParticipant {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  memberId  String?
+  member    Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  guestName String?
+  createdAt DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([memberId])
+}
+
+// ----------------- Shop / Inventory -----------------
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  price        Decimal  @db.Decimal(10, 2)
+  stockQty     Int
+  reorderLevel Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orderItems ShopOrderItem[]
+}
+
+model ShopOrder {
+  id          String          @id @default(cuid())
+  memberId    String?
+  member      Member?         @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  channel     ShopChannel     @default(COUNTER)
+  fulfilment  ShopFulfilment  @default(PICKUP)
+  status      ShopOrderStatus @default(COMPLETED)
+  totalAmount Decimal         @db.Decimal(10, 2)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  items ShopOrderItem[]
+
+  @@index([memberId])
+}
+
+model ShopOrderItem {
+  id               String    @id @default(cuid())
+  orderId          String
+  order            ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity         Int
+  priceSnapshot    Decimal   @db.Decimal(10, 2)
+  discountSnapshot Decimal   @default(0) @db.Decimal(10, 2)
+  createdAt        DateTime  @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ----------------- Bar / F&B -----------------
+model BarItem {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  price        Decimal  @db.Decimal(10, 2)
+  stockQty     Int
+  reorderLevel Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orderItems BarOrderItem[]
+}
+
+model BarTable {
+  id        String   @id @default(cuid())
+  name      String
+  capacity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tabs Tab[]
+}
+
+model Tab {
+  id          String    @id @default(cuid())
+  memberId    String?
+  member      Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  tableId     String?
+  table       BarTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  guestName   String?
+  status      TabStatus @default(OPEN)
+  totalAmount Decimal   @default(0) @db.Decimal(10, 2)
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  orders BarOrder[]
+
+  @@index([memberId])
+  @@index([tableId])
+}
+
+model BarOrder {
+  id          String         @id @default(cuid())
+  tabId       String
+  tab         Tab            @relation(fields: [tabId], references: [id], onDelete: Cascade)
+  status      BarOrderStatus @default(NEW)
+  personLabel String?
+  totalAmount Decimal        @default(0) @db.Decimal(10, 2)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  items BarOrderItem[]
+
+  @@index([tabId])
+}
+
+model BarOrderItem {
+  id               String   @id @default(cuid())
+  orderId          String
+  order            BarOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  barItemId        String
+  barItem          BarItem  @relation(fields: [barItemId], references: [id], onDelete: Restrict)
+  quantity         Int
+  priceSnapshot    Decimal  @db.Decimal(10, 2)
+  discountSnapshot Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt        DateTime @default(now())
+
+  @@index([orderId])
+  @@index([barItemId])
+}
+
+// ----------------- Leads / CRM -----------------
+model Lead {
+  id             String     @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  source         String
+  status         LeadStatus @default(NEW)
+  assignedTo     String?
+  followUpAt     DateTime?
+  trialBookingId String?
+  notes          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+// ----------------- Finance / Accounting -----------------
+model Expense {
+  id         String   @id @default(cuid())
+  title      String
+  category   String
+  amount     Decimal  @db.Decimal(10, 2)
+  notes      String?
+  date       DateTime @default(now())
+  recordedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model LedgerEntry {
+  id        String        @id @default(cuid())
+  source    LedgerSource
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod
+  kind      LedgerKind
+  refType   String
+  refId     String
+  createdAt DateTime      @default(now())
+
+  @@index([source])
+  @@index([createdAt])
+  @@index([refType, refId])
+}
+
+// ----------------- Governance & Audit -----------------
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
