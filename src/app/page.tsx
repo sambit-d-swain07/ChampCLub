@@ -1,197 +1,207 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Trophy, ShieldCheck, Zap, ArrowRight, CheckCircle2 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { Trophy, Zap, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
 
-export default function HomePage() {
+export const metadata: Metadata = {
+  title: "The Champions Club — Premium Racquet & Sports Club",
+  description:
+    "World-class Tennis, Padel, and Badminton courts in the heart of the city. Book a free trial session today — no membership required.",
+  openGraph: {
+    title: "The Champions Club",
+    description: "Premium racquet sports club. Book a free trial today.",
+    type: "website",
+  },
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const plans = await prisma.plan.findMany({ orderBy: { price: "desc" }, take: 3 });
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-card/80 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col" style={{ background: "#0F2A1F" }}>
+      {/* Nav */}
+      <header
+        className="sticky top-0 z-30 border-b"
+        style={{ borderColor: "rgba(116,198,157,0.15)", background: "rgba(15,42,31,0.97)" }}
+      >
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow">
-              <Trophy className="h-5 w-5" />
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: "#2D6A4F" }}>
+              <Trophy className="h-5 w-5" style={{ color: "#74C69D" }} />
             </div>
             <div>
-              <div className="font-extrabold text-sm tracking-tight text-foreground">THE CHAMPIONS CLUB</div>
-              <div className="text-[10px] text-muted-foreground uppercase font-semibold">Racquet & Sports Club</div>
+              <div className="font-extrabold text-sm tracking-tight text-white">THE CHAMPIONS CLUB</div>
+              <div className="text-[10px] font-medium" style={{ color: "#74C69D" }}>Racquet &amp; Sports Club</div>
             </div>
           </div>
+          <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
+            {[["Facilities", "/facilities"], ["Plans", "/plans"], ["Contact", "/contact"]].map(([label, href]) => (
+              <Link key={href} href={href} className="transition-colors" style={{ color: "rgba(240,244,239,0.65)" }}>
+                {label}
+              </Link>
+            ))}
+          </nav>
           <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="outline" size="sm" className="text-xs h-8">
-                Sign In
-              </Button>
+            <Link
+              href="/trial"
+              className="px-4 py-2 rounded-lg text-sm font-semibold"
+              style={{ background: "#2D6A4F", color: "#74C69D", border: "1px solid rgba(116,198,157,0.25)" }}
+            >
+              Book a Trial
             </Link>
-            <Link href="/signup">
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
-                Apply for Membership <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
+            <Link
+              href="/login"
+              className="px-4 py-2 rounded-lg text-sm font-medium"
+              style={{ color: "rgba(240,244,239,0.55)", border: "1px solid rgba(240,244,239,0.1)" }}
+            >
+              Sign In
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <main className="flex-1">
-        <section className="py-20 px-6 text-center max-w-4xl mx-auto space-y-6">
-          <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 text-xs px-3 py-1">
-            Official 2026 Club Management System
-          </Badge>
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground">
-            Precision Performance. <br />
-            <span className="text-emerald-600">Pure Sporting Luxury.</span>
-          </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Championship Tennis, Panoramic Padel, Teakwood Badminton courts, complete with an artisanal sports bar, pro shop, and dynamic member reservations.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 pt-4">
-            <Link href="/login">
-              <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
-                Access Live Demo Portal
-              </Button>
-            </Link>
-            <Link href="/admin">
-              <Button size="lg" variant="outline" className="font-semibold">
-                Admin Operations
-              </Button>
-            </Link>
+      <section className="flex-1 flex flex-col justify-center px-6 pt-24 pb-20 max-w-5xl mx-auto w-full">
+        <div className="mb-4">
+          <span
+            className="text-xs font-semibold px-3 py-1 rounded-full"
+            style={{ background: "rgba(116,198,157,0.12)", color: "#74C69D", border: "1px solid rgba(116,198,157,0.2)" }}
+          >
+            Bengaluru's Premier Racquet Club
+          </span>
+        </div>
+        <h1
+          className="text-5xl sm:text-7xl font-black tracking-tight leading-none mb-6"
+          style={{ color: "#F0F4EF", fontFamily: "system-ui, -apple-system, sans-serif" }}
+        >
+          Play at a<br />
+          <span style={{ color: "#74C69D" }}>higher level.</span>
+        </h1>
+        <p className="text-base max-w-lg leading-relaxed mb-8" style={{ color: "rgba(240,244,239,0.6)" }}>
+          Championship Tennis, panoramic Padel, and teakwood Badminton courts — all in one place.
+          Your first session is on us.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <Link
+            href="/trial"
+            className="flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-sm"
+            style={{ background: "#74C69D", color: "#0F2A1F" }}
+          >
+            Book your free trial <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/facilities"
+            className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm"
+            style={{ color: "#74C69D", border: "1px solid rgba(116,198,157,0.25)" }}
+          >
+            See our courts
+          </Link>
+        </div>
+      </section>
+
+      {/* Sports strip */}
+      <section style={{ background: "#1A3D2B", borderTop: "1px solid rgba(116,198,157,0.1)" }}>
+        <div className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-3 gap-8">
+          {[
+            { icon: Trophy, label: "Championship Tennis", desc: "2 tournament-grade acrylic courts with floodlights. Dynamic peak/off-peak pricing.", color: "#60A5FA" },
+            { icon: Zap, label: "Pro Padel Arenas", desc: "2 panoramic glass arenas — perfect for 4-player social play with instant video replay.", color: "#74C69D" },
+            { icon: ShieldCheck, label: "Elite Badminton", desc: "2 shock-absorbing teakwood courts, BWF-certified lighting, and Yonex tournament shuttles.", color: "#C084FC" },
+          ].map(({ icon: Icon, label, desc, color }) => (
+            <div key={label} className="space-y-3">
+              <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)" }}>
+                <Icon className="h-5 w-5" style={{ color }} />
+              </div>
+              <div className="font-bold text-base" style={{ color: "#F0F4EF" }}>{label}</div>
+              <div className="text-sm leading-relaxed" style={{ color: "rgba(240,244,239,0.5)" }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Plans preview */}
+      {plans.length > 0 && (
+        <section style={{ background: "#0F2A1F", borderTop: "1px solid rgba(116,198,157,0.08)" }}>
+          <div className="max-w-6xl mx-auto px-6 py-20">
+            <div className="mb-10">
+              <h2 className="text-2xl font-bold" style={{ color: "#F0F4EF" }}>Membership plans</h2>
+              <p className="text-sm mt-2" style={{ color: "rgba(240,244,239,0.5)" }}>
+                Unlock member rates across courts, the pro shop, and the bar.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="rounded-xl p-6 flex flex-col gap-4"
+                  style={{ background: "#1A3D2B", border: "1px solid rgba(116,198,157,0.12)" }}
+                >
+                  <div>
+                    <div className="text-xs font-semibold mb-1" style={{ color: "#74C69D" }}>{plan.name}</div>
+                    <div className="text-3xl font-black" style={{ color: "#F0F4EF" }}>
+                      ₹{Number(plan.price).toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: "rgba(240,244,239,0.4)" }}>
+                      for {plan.durationDays >= 365 ? "1 year" : `${plan.durationDays} days`}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    {Number(plan.courtDiscountPct) > 0 && (
+                      <div className="flex items-center gap-2 text-xs" style={{ color: "rgba(240,244,239,0.65)" }}>
+                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#74C69D" }} />
+                        {Number(plan.courtDiscountPct)}% court discount
+                      </div>
+                    )}
+                    {Number(plan.shopDiscountPct) > 0 && (
+                      <div className="flex items-center gap-2 text-xs" style={{ color: "rgba(240,244,239,0.65)" }}>
+                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#74C69D" }} />
+                        {Number(plan.shopDiscountPct)}% pro shop discount
+                      </div>
+                    )}
+                    {Number(plan.barDiscountPct) > 0 && (
+                      <div className="flex items-center gap-2 text-xs" style={{ color: "rgba(240,244,239,0.65)" }}>
+                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#74C69D" }} />
+                        {Number(plan.barDiscountPct)}% bar discount
+                      </div>
+                    )}
+                  </div>
+                  <Link
+                    href="/trial"
+                    className="mt-auto block text-center py-2.5 rounded-lg text-xs font-bold"
+                    style={{ background: "#2D6A4F", color: "#74C69D" }}
+                  >
+                    Try before you join
+                  </Link>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8">
+              <Link
+                href="/plans"
+                className="text-sm font-semibold flex items-center gap-2"
+                style={{ color: "#74C69D" }}
+              >
+                Compare all plans <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </section>
-
-        {/* Sports Features */}
-        <section className="py-12 px-6 max-w-6xl mx-auto grid gap-6 md:grid-cols-3">
-          <Card className="border shadow-sm">
-            <CardHeader>
-              <div className="h-10 w-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center mb-2">
-                <Trophy className="h-5 w-5" />
-              </div>
-              <CardTitle className="text-lg font-bold">Championship Tennis</CardTitle>
-              <CardDescription className="text-xs">2 Tournament-grade cushioned acrylic courts with broadcast floodlights.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-xs text-muted-foreground space-y-1">
-              <div>• Capacity: 4 players per court</div>
-              <div>• Dynamic peak/off-peak pricing</div>
-              <div>• Ball machine & coaching integration</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border shadow-sm">
-            <CardHeader>
-              <div className="h-10 w-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2">
-                <Zap className="h-5 w-5" />
-              </div>
-              <CardTitle className="text-lg font-bold">Pro Padel Arenas</CardTitle>
-              <CardDescription className="text-xs">2 Panoramic glass & textured turf padel arenas with instant video replays.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-xs text-muted-foreground space-y-1">
-              <div>• Seamless 4-player social bookings</div>
-              <div>• Overlap-prevention exclusion locks</div>
-              <div>• Demo racket rentals from the Pro Shop</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border shadow-sm">
-            <CardHeader>
-              <div className="h-10 w-10 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center mb-2">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <CardTitle className="text-lg font-bold">Elite Badminton</CardTitle>
-              <CardDescription className="text-xs">2 Shock-absorbing teakwood & synthetic courts certified for competition.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-xs text-muted-foreground space-y-1">
-              <div>• BWF standard anti-glare illumination</div>
-              <div>• Yonex tournament shuttles in-stock</div>
-              <div>• Dedicated Junior academy sessions</div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Membership Plans */}
-        <section className="py-16 px-6 max-w-6xl mx-auto">
-          <div className="text-center mb-10 space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Privilege Memberships</h2>
-            <p className="text-xs text-muted-foreground">Select the tier tailored to your playing routine.</p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {/* Gold */}
-            <Card className="border-2 border-emerald-600 shadow-lg relative">
-              <Badge className="absolute -top-3 right-6 bg-emerald-600 text-white text-[10px]">MOST POPULAR</Badge>
-              <CardHeader>
-                <CardTitle className="text-xl font-bold">GOLD PASS</CardTitle>
-                <CardDescription className="text-xs">Full year complete club privileges</CardDescription>
-                <div className="mt-4">
-                  <span className="text-3xl font-extrabold">₹25,000</span>
-                  <span className="text-xs text-muted-foreground"> / year</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2.5 text-xs">
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 20% Court Booking Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 15% Pro Shop Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 10% Champions Bar & F&B Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Fast-Track QR Turnstile Pass</div>
-              </CardContent>
-              <CardFooter>
-                <Link href="/signup" className="w-full">
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs">Apply for Gold Pass</Button>
-                </Link>
-              </CardFooter>
-            </Card>
-
-            {/* Silver */}
-            <Card className="border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold">SILVER PASS</CardTitle>
-                <CardDescription className="text-xs">Essential racquet access</CardDescription>
-                <div className="mt-4">
-                  <span className="text-3xl font-extrabold">₹15,000</span>
-                  <span className="text-xs text-muted-foreground"> / year</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2.5 text-xs">
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 10% Court Booking Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 10% Pro Shop Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 5% Champions Bar Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Standard QR Pass</div>
-              </CardContent>
-              <CardFooter>
-                <Link href="/signup" className="w-full">
-                  <Button variant="outline" className="w-full text-xs">Apply for Silver Pass</Button>
-                </Link>
-              </CardFooter>
-            </Card>
-
-            {/* Junior */}
-            <Card className="border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold">JUNIOR PASS</CardTitle>
-                <CardDescription className="text-xs">Ages under 18 development program</CardDescription>
-                <div className="mt-4">
-                  <span className="text-3xl font-extrabold">₹8,000</span>
-                  <span className="text-xs text-muted-foreground"> / 6 months</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2.5 text-xs">
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 15% Court Booking Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> 5% Pro Shop Discount</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Junior Coaching Squad Access</div>
-              </CardContent>
-              <CardFooter>
-                <Link href="/signup" className="w-full">
-                  <Button variant="outline" className="w-full text-xs">Apply for Junior Pass</Button>
-                </Link>
-              </CardFooter>
-            </Card>
-          </div>
-        </section>
-      </main>
+      )}
 
       {/* Footer */}
-      <footer className="border-t py-8 px-6 text-center text-xs text-muted-foreground bg-muted/20">
-        <p>© 2026 The Champions Club • 24-Hour Hackathon Demo</p>
+      <footer
+        className="border-t py-8 px-6 text-center text-xs"
+        style={{ borderColor: "rgba(116,198,157,0.1)", color: "rgba(240,244,239,0.3)", background: "#0A1F16" }}
+      >
+        <p>© 2026 The Champions Club · 24 Racquet Road, Bengaluru · +91 80 4567 8900</p>
+        <p className="mt-2 space-x-4">
+          <Link href="/facilities" style={{ color: "rgba(116,198,157,0.5)" }}>Facilities</Link>
+          <Link href="/plans" style={{ color: "rgba(116,198,157,0.5)" }}>Plans</Link>
+          <Link href="/trial" style={{ color: "rgba(116,198,157,0.5)" }}>Book Trial</Link>
+          <Link href="/contact" style={{ color: "rgba(116,198,157,0.5)" }}>Contact</Link>
+          <Link href="/login" style={{ color: "rgba(116,198,157,0.5)" }}>Staff Login</Link>
+        </p>
       </footer>
     </div>
   );
