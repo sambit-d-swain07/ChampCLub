@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signIn, signOut } from "@/lib/auth-client";
+import { checkUserBanAction } from "@/app/actions/members";
 import { CourtIllustration } from "@/components/public/court-illustration";
 import {
   ArrowRight,
@@ -23,12 +24,23 @@ import {
 export function LoginForm() {
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get("redirect");
+  const isBannedParam = searchParams.get("banned") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    isBannedParam
+      ? "This account has been banned. If you think this is a mistake, please contact the club."
+      : null
+  );
+
+  useEffect(() => {
+    if (isBannedParam) {
+      setError("This account has been banned. If you think this is a mistake, please contact the club.");
+    }
+  }, [isBannedParam]);
 
   const performLogin = async (loginEmail: string, loginPass: string) => {
     const cleanEmail = loginEmail.trim().toLowerCase();
@@ -59,6 +71,15 @@ export function LoginForm() {
 
       if (res?.error) {
         setError(res.error.message || "Invalid email or password. Please verify your credentials.");
+        setLoading(false);
+        return;
+      }
+
+      // Check if user is banned (checked ONLY after password has succeeded to avoid leaking status)
+      const banCheck = await checkUserBanAction(cleanEmail);
+      if (banCheck.banned) {
+        await signOut().catch(() => {});
+        setError("This account has been banned. If you think this is a mistake, please contact the club.");
         setLoading(false);
         return;
       }

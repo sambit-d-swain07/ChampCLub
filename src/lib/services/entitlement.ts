@@ -59,7 +59,40 @@ export async function resolve(
           },
         });
 
-  if (!member || member.memberships.length === 0) {
+  if (!member) {
+    return {
+      memberId: null,
+      name: "Unknown Member",
+      membershipNo: null,
+      plan: null,
+      status: "EXPIRED",
+      courtDiscountPct: 0,
+      shopDiscountPct: 0,
+      barDiscountPct: 0,
+      bookingsLeftToday: 0,
+      endsAt: null,
+      graceEndsAt: null,
+    };
+  }
+
+  // Banned members receive zero benefits, zero quota, and expired status
+  if (member.user?.bannedAt) {
+    return {
+      memberId: member.id,
+      name: member.user?.name || `Member ${member.membershipNo}`,
+      membershipNo: member.membershipNo,
+      plan: null,
+      status: "EXPIRED",
+      courtDiscountPct: 0,
+      shopDiscountPct: 0,
+      barDiscountPct: 0,
+      bookingsLeftToday: 0,
+      endsAt: null,
+      graceEndsAt: null,
+    };
+  }
+
+  if (member.memberships.length === 0) {
     let bookingsToday = 0;
     if (member?.id) {
       const startOfDay = new Date(at);

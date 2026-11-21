@@ -7,6 +7,7 @@ import {
   restockProductAction,
   updateOrderStatusAction,
 } from "@/app/actions/shop";
+import { MemberIdInput, ResolvedMember } from "@/components/admin/member-id-input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,14 +89,14 @@ export interface GearUpQueueItem {
 
 interface StaffPosProps {
   inventory: InventoryItem[];
-  members: MemberOption[];
+  members?: MemberOption[];
   recentOrders: OrderRecord[];
   gearUpQueue: GearUpQueueItem[];
 }
 
 export function StaffPos({
   inventory: initialInventory,
-  members,
+  members = [],
   recentOrders: initialOrders,
   gearUpQueue,
 }: StaffPosProps) {
@@ -118,10 +119,11 @@ export function StaffPos({
     }>
   >([]);
 
-  // Member Selection
-  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+  // Customer Selection
+  const [customerType, setCustomerType] = useState<"GUEST" | "MEMBER">("GUEST");
+  const [resolvedMember, setResolvedMember] = useState<ResolvedMember | null>(null);
   const [guestName, setGuestName] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI" | "ONLINE">("CARD");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("CASH");
 
   // Modals & Async States
   const [submittingOrder, setSubmittingOrder] = useState(false);
@@ -149,8 +151,7 @@ export function StaffPos({
   });
 
   // Selected Member calculation
-  const selectedMember = members.find((m) => m.id === selectedMemberId);
-  const discountPct = selectedMember ? selectedMember.shopDiscountPct : 0;
+  const discountPct = customerType === "MEMBER" && resolvedMember ? resolvedMember.shopDiscountPct : 0;
 
   // Cart Calculations
   const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
@@ -197,13 +198,18 @@ export function StaffPos({
   // Complete Counter Sale
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    if (customerType === "MEMBER" && !resolvedMember) {
+      setOrderError("Please verify member ID first.");
+      return;
+    }
+
     setSubmittingOrder(true);
     setOrderError(null);
 
     const payload = {
       items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-      memberId: selectedMemberId ? selectedMemberId : null,
-      guestName: selectedMemberId ? null : guestName || "Walk-in Guest",
+      memberId: customerType === "MEMBER" && resolvedMember ? resolvedMember.id : null,
+      guestName: customerType === "MEMBER" ? null : guestName.trim() || "Walk-in Guest",
       paymentMethod,
     };
 
@@ -217,9 +223,9 @@ export function StaffPos({
 
     // Set Receipt
     setReceiptData({
-      orderId: res.order?.id || "ORD-" + Math.floor(1000 + Math.random() * 9000),
+      orderId: (res as any).order?.id || "ORD-" + Math.floor(1000 + Math.random() * 9000),
       createdAt: new Date().toISOString(),
-      customerName: selectedMember ? `${selectedMember.name} (${selectedMember.membershipNo})` : guestName || "Walk-in Guest",
+      customerName: customerType === "MEMBER" && resolvedMember ? `${resolvedMember.name} (${resolvedMember.membershipNo})` : guestName.trim() || "Walk-in Guest",
       channel: "COUNTER",
       paymentMethod,
       items: cart.map((i) => {
@@ -255,7 +261,8 @@ export function StaffPos({
 
     // Clear Cart
     setCart([]);
-    setSelectedMemberId("");
+    setResolvedMember(null);
+    setCustomerType("GUEST");
     setGuestName("");
     router.refresh();
   };
@@ -506,50 +513,44 @@ export function StaffPos({
               </CardHeader>
 
               <CardContent className="p-4 space-y-4">
-                {/* Member Lookup or Walk-in */}
+                {/* Customer Lookup or Walk-in */}
                 <div className="space-y-2">
                   <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                     Customer Lookup
                   </label>
-                  <select
-                    className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 focus:ring-1 focus:ring-emerald-600"
-                    value={selectedMemberId}
-                    onChange={(e) => {
-                      setSelectedMemberId(e.target.value);
-                      if (e.target.value) setGuestName("");
-                    }}
-                  >
-                    <option value="">Walk-in Guest (Standard Price)</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.membershipNo}) - {m.planName} ({m.shopDiscountPct}% OFF)
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted/60 rounded-lg">
+                    <Button
+                      type="button"
+                      variant={customerType === "GUEST" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => {
+                        setCustomerType("GUEST");
+                        setResolvedMember(null);
+                      }}
+                      className="text-xs h-7"
+                    >
+                      Walk-in Guest
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={customerType === "MEMBER" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCustomerType("MEMBER")}
+                      className="text-xs h-7"
+                    >
+                      Club Member
+                    </Button>
+                  </div>
 
-                  {!selectedMemberId && (
+                  {customerType === "MEMBER" ? (
+                    <MemberIdInput onMemberResolved={setResolvedMember} />
+                  ) : (
                     <Input
                       placeholder="Walk-in Guest Name (Optional)"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       className="text-xs h-8"
                     />
-                  )}
-
-                  {selectedMember && (
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-md border border-emerald-200 text-xs flex justify-between items-center">
-                      <div>
-                        <div className="font-semibold text-emerald-900 dark:text-emerald-300">
-                          {selectedMember.name}
-                        </div>
-                        <div className="text-[10px] text-emerald-700 dark:text-emerald-400">
-                          {selectedMember.planName} Privilege
-                        </div>
-                      </div>
-                      <Badge className="bg-emerald-600 text-white text-[10px]">
-                        {selectedMember.shopDiscountPct}% Member Discount
-                      </Badge>
-                    </div>
                   )}
                 </div>
 
@@ -642,8 +643,8 @@ export function StaffPos({
                   <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                     Payment Method
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["CARD", "UPI", "CASH", "ONLINE"] as const).map((method) => (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["CASH", "CARD", "UPI"] as const).map((method) => (
                       <Button
                         key={method}
                         type="button"
@@ -667,8 +668,8 @@ export function StaffPos({
 
                 {/* Complete Sale Action */}
                 <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 shadow"
-                  disabled={cart.length === 0 || submittingOrder}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 shadow disabled:opacity-50"
+                  disabled={cart.length === 0 || submittingOrder || (customerType === "MEMBER" && !resolvedMember)}
                   onClick={handleCheckout}
                 >
                   {submittingOrder ? (

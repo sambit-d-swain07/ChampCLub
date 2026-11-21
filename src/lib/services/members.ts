@@ -16,6 +16,7 @@ export interface MemberListItem {
   shopDiscountPct: number;
   barDiscountPct: number;
   endsAt: Date | null;
+  banned?: boolean;
 }
 
 import { withDbRetry } from "@/lib/prisma";
@@ -31,21 +32,37 @@ export interface PaginatedMembers {
 export async function searchMembers(
   query?: string,
   page = 1,
-  pageSize = 20
+  pageSize = 20,
+  statusFilter?: string
 ): Promise<PaginatedMembers> {
   const q = query?.trim();
 
   return withDbRetry(async () => {
-    const whereClause = q
-      ? {
-          OR: [
-            { membershipNo: { contains: q, mode: "insensitive" as const } },
-            { qrToken: { contains: q, mode: "insensitive" as const } },
-            { user: { name: { contains: q, mode: "insensitive" as const } } },
-            { user: { email: { contains: q, mode: "insensitive" as const } } },
-          ],
-        }
-      : undefined;
+    const conditions: any[] = [];
+
+    if (q) {
+      conditions.push({
+        OR: [
+          { membershipNo: { contains: q, mode: "insensitive" as const } },
+          { qrToken: { contains: q, mode: "insensitive" as const } },
+          { user: { name: { contains: q, mode: "insensitive" as const } } },
+          { user: { email: { contains: q, mode: "insensitive" as const } } },
+        ],
+      });
+    }
+
+    if (statusFilter === "banned") {
+      conditions.push({
+        user: { bannedAt: { not: null } },
+      });
+    } else if (statusFilter === "expiring") {
+      // Exclude banned members from expiring soon
+      conditions.push({
+        user: { bannedAt: null },
+      });
+    }
+
+    const whereClause = conditions.length > 0 ? { AND: conditions } : undefined;
 
     const [total, members] = await Promise.all([
       prisma.member.count({ where: whereClause }),
@@ -67,6 +84,7 @@ export async function searchMembers(
 
     const now = new Date();
     const results: MemberListItem[] = members.map((m) => {
+      const isBanned = Boolean(m.user?.bannedAt);
       const latestMembership = m.memberships?.[0];
       let status: EntitlementResult["status"] = "WALK_IN";
       let planName = "WALK-IN";
@@ -87,7 +105,7 @@ export async function searchMembers(
           status = "ACTIVE";
         }
 
-        const isEligible = status === "ACTIVE" || status === "GRACE";
+        const isEligible = (status === "ACTIVE" || status === "GRACE") && !isBanned;
         planName = latestMembership.plan?.name || "MEMBER";
         courtDiscountPct = isEligible && latestMembership.plan ? Number(latestMembership.plan.courtDiscountPct) : 0;
         shopDiscountPct = isEligible && latestMembership.plan ? Number(latestMembership.plan.shopDiscountPct) : 0;
@@ -106,6 +124,7 @@ export async function searchMembers(
         shopDiscountPct,
         barDiscountPct,
         endsAt,
+        banned: isBanned,
       };
     });
 
@@ -150,11 +169,21 @@ export async function getMemberDetail(idOrQr: string) {
 
   if (!member) return null;
 
+  let bannedByName: string | null = null;
+  if (member.user?.bannedById) {
+    const staffUser = await prisma.user.findUnique({
+      where: { id: member.user.bannedById },
+      select: { name: true },
+    });
+    bannedByName = staffUser?.name || "Staff";
+  }
+
   const entitlement = await resolve(member.id);
 
   return {
     member,
     entitlement,
+    bannedByName,
   };
 }
 

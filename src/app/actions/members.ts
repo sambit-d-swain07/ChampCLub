@@ -5,6 +5,182 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { createMemberService, renewMemberService } from "@/lib/services/members";
+import { resolve } from "@/lib/services/entitlement";
+import { getCurrentUser } from "@/lib/session";
+
+export async function lookupMemberByIdAction(query: string): Promise<{
+  success: boolean;
+  member?: {
+    id: string;
+    name: string;
+    membershipNo: string;
+    planName: string;
+    status: "ACTIVE" | "GRACE" | "EXPIRED" | "WALK_IN";
+    courtDiscountPct: number;
+    shopDiscountPct: number;
+    barDiscountPct: number;
+    bookingsLeftToday: number;
+  };
+  banned?: boolean;
+  error?: string;
+}> {
+  try {
+    const clean = query.trim().toUpperCase();
+    if (!clean) {
+      return { success: false, error: "Member ID required" };
+    }
+
+    const member = await prisma.member.findFirst({
+      where: {
+        OR: [
+          { membershipNo: { equals: clean, mode: "insensitive" } },
+          { qrToken: { equals: clean, mode: "insensitive" } },
+        ],
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!member) {
+      return { success: false, error: "No member found with this ID" };
+    }
+
+    if (member.user?.bannedAt) {
+      return { success: false, error: "This account is banned", banned: true };
+    }
+
+    const ent = await resolve(member.id);
+
+    return {
+      success: true,
+      member: {
+        id: member.id,
+        name: member.user?.name || `Member ${member.membershipNo}`,
+        membershipNo: member.membershipNo,
+        planName: ent.plan?.name || "No plan",
+        status: ent.status,
+        courtDiscountPct: ent.courtDiscountPct,
+        shopDiscountPct: ent.shopDiscountPct,
+        barDiscountPct: ent.barDiscountPct,
+        bookingsLeftToday: ent.bookingsLeftToday,
+      },
+    };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to verify member ID",
+    };
+  }
+}
+
+export async function checkUserBanAction(email: string): Promise<{ banned: boolean }> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+      select: { bannedAt: true },
+    });
+    return { banned: Boolean(user?.bannedAt) };
+  } catch {
+    return { banned: false };
+  }
+}
+
+const banMemberSchema = z.object({
+  memberId: z.string().min(1),
+  reason: z.enum(["Misconduct", "Non-payment", "Fraud", "Other"]),
+  note: z.string().optional(),
+  confirmId: z.string().min(1),
+});
+
+export async function banMemberAction(data: {
+  memberId: string;
+  reason: "Misconduct" | "Non-payment" | "Fraud" | "Other";
+  note?: string;
+  confirmId: string;
+}) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || (currentUser.role !== "OWNER" && currentUser.role !== "STAFF")) {
+      return { success: false, error: "Only staff or owners can ban accounts." };
+    }
+
+    const parsed = banMemberSchema.parse(data);
+
+    const targetMember = await prisma.member.findUnique({
+      where: { id: parsed.memberId },
+      include: { user: true },
+    });
+
+    if (!targetMember || !targetMember.user) {
+      return { success: false, error: "Member account not found." };
+    }
+
+    if (targetMember.user.id === currentUser.id) {
+      return { success: false, error: "You cannot ban your own account." };
+    }
+
+    if (targetMember.user.role === "OWNER" || targetMember.user.role === "STAFF") {
+      return { success: false, error: "Only member accounts can be banned." };
+    }
+
+    if (
+      targetMember.membershipNo.trim().toUpperCase() !==
+      parsed.confirmId.trim().toUpperCase()
+    ) {
+      return {
+        success: false,
+        error: "Confirmation ID does not match the member's ID.",
+      };
+    }
+
+    const now = new Date();
+    const fullReason = parsed.note?.trim()
+      ? `${parsed.reason}: ${parsed.note.trim()}`
+      : parsed.reason;
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Mark user as banned
+      await tx.user.update({
+        where: { id: targetMember.user!.id },
+        data: {
+          bannedAt: now,
+          bannedById: currentUser.id,
+          bannedReason: fullReason,
+        },
+      });
+
+      // 2. Revoke all active sessions
+      await tx.session.deleteMany({
+        where: { userId: targetMember.user!.id },
+      });
+
+      // 3. Cancel upcoming court bookings
+      await tx.booking.updateMany({
+        where: {
+          memberId: targetMember.id,
+          startsAt: { gt: now },
+          status: { in: ["HELD", "CONFIRMED"] },
+        },
+        data: {
+          status: "CANCELLED",
+          cancelReason: "Account banned",
+        },
+      });
+    });
+
+    revalidatePath("/admin/members");
+    revalidatePath(`/admin/members/${parsed.memberId}`);
+    revalidatePath("/admin/courts");
+
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to ban member.",
+    };
+  }
+}
 
 export async function getPostLoginRedirectAction(
   email: string,
@@ -88,7 +264,6 @@ export async function renewMemberAction(formData: FormData) {
   }
 }
 
-import { getCurrentUser } from "@/lib/session";
 
 const signUpSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -113,6 +288,17 @@ export async function signUpMemberAction(formData: FormData) {
     });
     if (existing) {
       return { success: false, error: "An account with this email already exists." };
+    }
+
+    // Reject phone numbers belonging to banned members
+    const bannedAddress = await prisma.memberAddress.findFirst({
+      where: {
+        phone: parsed.phone.trim(),
+        member: { user: { bannedAt: { not: null } } },
+      },
+    });
+    if (bannedAddress) {
+      return { success: false, error: "This phone number is associated with an account that cannot register." };
     }
 
     // 1. Create User via Better Auth API

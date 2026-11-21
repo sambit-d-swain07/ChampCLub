@@ -32,6 +32,16 @@ export async function placeCounterOrderAction(data: {
   paymentMethod: "CASH" | "CARD" | "UPI" | "ONLINE";
 }) {
   try {
+    if (data.memberId) {
+      const memberRec = await prisma.member.findUnique({
+        where: { id: data.memberId },
+        include: { user: true },
+      });
+      if (memberRec?.user?.bannedAt) {
+        return { success: false, error: "This account is banned and cannot make purchases." };
+      }
+    }
+
     const parsed = placeOrderSchema.parse({
       items: data.items,
       channel: "COUNTER",
@@ -71,7 +81,12 @@ export async function placeOnlineOrderAction(data: {
 
     const member = await prisma.member.findUnique({
       where: { userId: user.id },
+      include: { user: true },
     });
+
+    if (member?.user?.bannedAt) {
+      return { success: false, error: "This account is banned and cannot place orders." };
+    }
 
     const parsed = placeOrderSchema.parse({
       items: data.items,

@@ -2,21 +2,21 @@ import Link from "next/link";
 import { searchMembers, getPlans } from "@/lib/services/members";
 import { MemberSearchInput } from "@/components/admin/member-search-input";
 import { RegisterMemberDialog } from "@/components/admin/register-member-dialog";
-import { Eye, ArrowRight, ShieldCheck, Clock, AlertOctagon, ChevronLeft, ChevronRight, User } from "lucide-react";
+import { Eye, ShieldCheck, Clock, AlertOctagon, ChevronLeft, ChevronRight, User } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminMembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; status?: string }>;
 }) {
   console.time("[Route: /admin/members] searchMembers + getPlans");
-  const { q, page: pageParam } = await searchParams;
+  const { q, page: pageParam, status: statusParam } = await searchParams;
   const currentPage = Math.max(1, parseInt(pageParam || "1", 10) || 1);
 
   const [{ members, total, page, totalPages }, plans] = await Promise.all([
-    searchMembers(q, currentPage, 20),
+    searchMembers(q, currentPage, 20, statusParam),
     getPlans(),
   ]);
   console.timeEnd("[Route: /admin/members] searchMembers + getPlans");
@@ -38,8 +38,34 @@ export default async function AdminMembersPage({
 
       {/* Filters & Search Row */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-3.5 rounded-xl border border-[#E5E7EB]">
-        <div className="flex-1 max-w-md">
-          <MemberSearchInput initialQuery={q} />
+        <div className="flex-1 max-w-lg flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="flex-1">
+            <MemberSearchInput initialQuery={q} />
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <Link
+              href={`/admin/members${q ? `?q=${encodeURIComponent(q)}` : ""}`}
+              prefetch={false}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                !statusParam
+                  ? "bg-[#1B1B1B] text-white border-[#1B1B1B]"
+                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              All
+            </Link>
+            <Link
+              href={`/admin/members?status=banned${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              prefetch={false}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                statusParam === "banned"
+                  ? "bg-red-600 text-white border-red-600"
+                  : "bg-white text-red-600 border-red-200 hover:bg-red-50"
+              }`}
+            >
+              Banned
+            </Link>
+          </div>
         </div>
         <div className="text-xs text-[#64748B] flex items-center gap-1 self-center">
           <span>Total:</span>
@@ -85,29 +111,30 @@ export default async function AdminMembersPage({
                       </span>
                     </td>
                     <td className="py-2.5 px-4">
-                      {m.status === "ACTIVE" && (
+                      {m.banned ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 border border-red-300">
+                          <AlertOctagon className="h-3 w-3 text-red-600" /> BANNED
+                        </span>
+                      ) : m.status === "ACTIVE" ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <ShieldCheck className="h-3 w-3" /> ACTIVE
                         </span>
-                      )}
-                      {m.status === "GRACE" && (
+                      ) : m.status === "GRACE" ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                           <Clock className="h-3 w-3" /> 7D GRACE
                         </span>
-                      )}
-                      {m.status === "EXPIRED" && (
+                      ) : m.status === "EXPIRED" ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
                           <AlertOctagon className="h-3 w-3" /> EXPIRED
                         </span>
-                      )}
-                      {m.status === "WALK_IN" && (
+                      ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-50 text-gray-600 border border-gray-200">
                           <User className="h-3 w-3" /> WALK-IN
                         </span>
                       )}
                     </td>
                     <td className="py-2.5 px-4 text-right text-[#64748B] font-mono">
-                      {m.courtDiscountPct}% Crt • {m.shopDiscountPct}% Shop
+                      {m.banned ? "0% Crt • 0% Shop" : `${m.courtDiscountPct}% Crt • ${m.shopDiscountPct}% Shop`}
                     </td>
                     <td className="py-2.5 px-4 text-[#64748B]">
                       {m.endsAt
@@ -121,6 +148,7 @@ export default async function AdminMembersPage({
                     <td className="py-2.5 px-4 text-right">
                       <Link
                         href={`/admin/members/${m.id}`}
+                        prefetch={false}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-[#0B3B2C] hover:underline"
                       >
                         <Eye className="h-3.5 w-3.5" />
@@ -148,7 +176,8 @@ export default async function AdminMembersPage({
             </div>
             <div className="flex items-center gap-2">
               <Link
-                href={`/admin/members?${q ? `q=${encodeURIComponent(q)}&` : ""}page=${Math.max(1, page - 1)}`}
+                href={`/admin/members?${q ? `q=${encodeURIComponent(q)}&` : ""}${statusParam ? `status=${encodeURIComponent(statusParam)}&` : ""}page=${Math.max(1, page - 1)}`}
+                prefetch={false}
                 className={`p-1.5 rounded border border-[#E5E7EB] bg-white text-[#0F172A] hover:bg-gray-50 flex items-center gap-1 ${
                   page <= 1 ? "opacity-40 pointer-events-none" : ""
                 }`}
@@ -160,7 +189,8 @@ export default async function AdminMembersPage({
                 {page} / {totalPages}
               </span>
               <Link
-                href={`/admin/members?${q ? `q=${encodeURIComponent(q)}&` : ""}page=${Math.min(totalPages, page + 1)}`}
+                href={`/admin/members?${q ? `q=${encodeURIComponent(q)}&` : ""}${statusParam ? `status=${encodeURIComponent(statusParam)}&` : ""}page=${Math.min(totalPages, page + 1)}`}
+                prefetch={false}
                 className={`p-1.5 rounded border border-[#E5E7EB] bg-white text-[#0F172A] hover:bg-gray-50 flex items-center gap-1 ${
                   page >= totalPages ? "opacity-40 pointer-events-none" : ""
                 }`}

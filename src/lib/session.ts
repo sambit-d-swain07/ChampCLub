@@ -2,6 +2,7 @@ import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export const getSession = cache(async () => {
   try {
@@ -13,6 +14,15 @@ export const getSession = cache(async () => {
         headers: reqHeaders,
       });
       if (authSession?.user) {
+        // Check if user is banned
+        const userRec = await prisma.user.findUnique({
+          where: { id: authSession.user.id },
+          select: { bannedAt: true },
+        });
+        if (userRec?.bannedAt) {
+          await prisma.session.deleteMany({ where: { userId: authSession.user.id } }).catch(() => {});
+          redirect("/login?banned=1");
+        }
         return authSession;
       }
     } catch (e: any) {
@@ -45,6 +55,12 @@ export const getSession = cache(async () => {
 
     if (!dbSession || new Date(dbSession.expiresAt) <= new Date()) {
       return null;
+    }
+
+    // Check if user is banned
+    if (dbSession.user.bannedAt) {
+      await prisma.session.deleteMany({ where: { userId: dbSession.userId } }).catch(() => {});
+      redirect("/login?banned=1");
     }
 
     return {

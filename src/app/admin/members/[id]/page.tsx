@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getMemberDetail, getPlans } from "@/lib/services/members";
-import { RenewMemberDialog } from "@/components/admin/renew-member-dialog";
+import { getMemberDetail } from "@/lib/services/members";
+import { BanMemberDialog } from "@/components/admin/ban-member-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,8 @@ import {
   ShoppingBag, 
   Wine, 
   CreditCard,
-  QrCode
+  QrCode,
+  ShieldAlert
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -30,32 +31,50 @@ export default async function AdminMemberProfilePage({
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
 
-  const [data, plans] = await Promise.all([
-    getMemberDetail(decodedId),
-    getPlans(),
-  ]);
+  const data = await getMemberDetail(decodedId);
 
   if (!data) {
     notFound();
   }
 
-  const { member, entitlement } = data;
+  const { member, entitlement, bannedByName } = data;
+  const isBanned = Boolean(member.user?.bannedAt);
 
   return (
     <div className="space-y-6">
       {/* Top Navigation */}
       <div className="flex items-center justify-between">
-        <Link href="/admin/members">
+        <Link href="/admin/members" prefetch={false}>
           <Button variant="ghost" size="sm" className="text-xs">
             <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Members
           </Button>
         </Link>
-        <RenewMemberDialog
+        <BanMemberDialog
           memberId={member.id}
-          currentPlanId={entitlement.plan?.id}
-          plans={plans}
+          membershipNo={member.membershipNo}
+          memberName={member.user?.name || `Member ${member.membershipNo}`}
+          isBanned={isBanned}
         />
       </div>
+
+      {/* Banned Alert Banner */}
+      {isBanned && (
+        <div className="p-4 rounded-xl bg-red-600 text-white shadow-sm flex items-start sm:items-center gap-3">
+          <ShieldAlert className="h-5 w-5 shrink-0 text-white mt-0.5 sm:mt-0" />
+          <div className="text-xs sm:text-sm font-semibold leading-relaxed">
+            Banned on{" "}
+            {member.user?.bannedAt
+              ? new Date(member.user.bannedAt).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "â€”"}{" "}
+            by {bannedByName || "Staff"}. Reason:{" "}
+            <span className="font-normal opacity-95">{member.user?.bannedReason || "Account banned"}</span>
+          </div>
+        </div>
+      )}
 
       {/* Member Hero Card */}
       <div className="bg-card border rounded-xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -64,19 +83,25 @@ export default async function AdminMemberProfilePage({
             <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {member.membershipNo}
             </span>
-            {entitlement.status === "ACTIVE" && (
+            {isBanned ? (
+              <Badge variant="destructive" className="bg-red-600 text-white text-[10px] font-bold">
+                <AlertOctagon className="h-3 w-3 mr-1" /> BANNED
+              </Badge>
+            ) : entitlement.status === "ACTIVE" ? (
               <Badge className="bg-emerald-600 text-white text-[10px]">
                 <ShieldCheck className="h-3 w-3 mr-1" /> ACTIVE
               </Badge>
-            )}
-            {entitlement.status === "GRACE" && (
+            ) : entitlement.status === "GRACE" ? (
               <Badge className="bg-amber-500 text-white text-[10px]">
                 <Clock className="h-3 w-3 mr-1" /> 7-DAY GRACE PERIOD
               </Badge>
-            )}
-            {entitlement.status === "EXPIRED" && (
+            ) : entitlement.status === "EXPIRED" ? (
               <Badge variant="destructive" className="text-[10px]">
                 <AlertOctagon className="h-3 w-3 mr-1" /> EXPIRED
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[10px]">
+                WALK-IN
               </Badge>
             )}
           </div>

@@ -88,7 +88,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       <div>
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-[#E5E7EB]">
-          <Link href="/admin" className="flex items-center gap-2.5">
+          <Link href="/admin" prefetch={false} className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-[#0B3B2C] text-white flex items-center justify-center font-bold shadow-sm">
               <Trophy className="h-4 w-4 text-[#C8F13A]" />
             </div>
@@ -149,6 +149,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                     <Link
                       key={link.href}
                       href={link.href}
+                      prefetch={false}
                       onClick={() => setMobileOpen(false)}
                       className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition-colors ${
                         isActive

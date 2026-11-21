@@ -13,47 +13,23 @@ export default async function AdminShopPage() {
     redirect("/login");
   }
 
-  // 1. Fetch live inventory with 14-day velocity & days-left run rate
-  const inventory = await getShopInventory();
-
-  // 2. Fetch members with active plans for live discount resolution
-  const membersData = await prisma.member.findMany({
-    include: {
-      user: true,
-      memberships: {
-        where: { endsAt: { gte: new Date() } },
-        include: { plan: true },
-        orderBy: { endsAt: "desc" },
-        take: 1,
+  // 1. Parallelize independent queries: inventory, recent orders, gear-up queue
+  const [inventory, ordersData, gearUpQueueData] = await Promise.all([
+    getShopInventory(),
+    prisma.shopOrder.findMany({
+      include: {
+        items: {
+          include: { product: true },
+        },
+        member: {
+          include: { user: true },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const members = membersData.map((m: any) => {
-    const activePlan = m.memberships[0]?.plan;
-    return {
-      id: m.id,
-      membershipNo: m.membershipNo,
-      name: m.user?.name || `Member ${m.membershipNo}`,
-      planName: activePlan?.name || "Standard",
-      shopDiscountPct: activePlan ? Number(activePlan.shopDiscountPct) : 0,
-    };
-  });
-
-  // 3. Fetch recent shop orders
-  const ordersData = await prisma.shopOrder.findMany({
-    include: {
-      items: {
-        include: { product: true },
-      },
-      member: {
-        include: { user: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    getCourtGearUpQueue(),
+  ]);
 
   const recentOrders = ordersData.map((o) => ({
     id: o.id,
@@ -70,8 +46,6 @@ export default async function AdminShopPage() {
     })),
   }));
 
-  // 4. Fetch gear-up court delivery queue
-  const gearUpQueueData = await getCourtGearUpQueue();
   const gearUpQueue = gearUpQueueData.map((g) => ({
     ...g,
     startsAt: g.startsAt.toISOString(),
@@ -81,7 +55,6 @@ export default async function AdminShopPage() {
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
       <StaffPos
         inventory={inventory}
-        members={members}
         recentOrders={recentOrders}
         gearUpQueue={gearUpQueue}
       />

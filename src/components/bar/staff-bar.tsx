@@ -7,41 +7,30 @@ import {
   openTabAction,
   addOrderToTabAction,
   payTabAction,
+  freeTableAction,
   getShiftReportAction,
 } from "@/app/actions/bar";
+import { MemberIdInput, ResolvedMember } from "@/components/admin/member-id-input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Wine,
   Plus,
   Minus,
-  Trash2,
   CheckCircle2,
   AlertTriangle,
   Receipt,
-  Printer,
   CreditCard,
   Clock,
-  Layers,
   UtensilsCrossed,
   Users,
   ChefHat,
-  Sparkles,
   FileText,
-  DollarSign,
   Loader2,
   X,
-  UserCheck,
+  AlertCircle,
 } from "lucide-react";
 
 export interface BarTableItem {
@@ -96,43 +85,44 @@ export interface MemberOption {
 interface StaffBarProps {
   tables: BarTableItem[];
   menuItems: BarMenuItem[];
-  members: MemberOption[];
+  members?: MemberOption[];
 }
 
-export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
+export function StaffBar({ tables, menuItems }: StaffBarProps) {
   const router = useRouter();
 
   const [selectedTable, setSelectedTable] = useState<BarTableItem | null>(null);
 
   // Open Tab Modal
   const [openingForTable, setOpeningForTable] = useState<BarTableItem | null>(null);
-  const [openMemberId, setOpenMemberId] = useState<string>("");
+  const [openCustomerType, setOpenCustomerType] = useState<"GUEST" | "MEMBER">("GUEST");
+  const [openResolvedMember, setOpenResolvedMember] = useState<ResolvedMember | null>(null);
   const [openGuestName, setOpenGuestName] = useState<string>("");
   const [isOpeningTab, setIsOpeningTab] = useState(false);
   const [openTabError, setOpenTabError] = useState<string | null>(null);
 
   // Add Items Modal
   const [isAddingItems, setIsAddingItems] = useState(false);
-  const [orderPersonLabel, setOrderPersonLabel] = useState("Person 1");
   const [orderItemsCart, setOrderItemsCart] = useState<Array<{ item: BarMenuItem; quantity: number }>>([]);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [addOrderError, setAddOrderError] = useState<string | null>(null);
 
-  // Pay / Split Tab Modal
+  // Settle Tab Modal (No split rows, CASH/CARD/UPI only, default CASH)
   const [isPayingTab, setIsPayingTab] = useState(false);
-  const [splitRows, setSplitRows] = useState<
-    Array<{ method: "CASH" | "CARD" | "UPI" | "ONLINE"; amount: number; personLabel: string }>
-  >([{ method: "CARD", amount: 0, personLabel: "All / Split 1" }]);
+  const [settleAmount, setSettleAmount] = useState<number>(0);
+  const [settleMethod, setSettleMethod] = useState<"CASH" | "CARD" | "UPI">("CASH");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  // Free Table Confirm Modal
+  const [confirmFreeTable, setConfirmFreeTable] = useState(false);
+  const [isFreeingTable, setIsFreeingTable] = useState(false);
+  const [freeTableError, setFreeTableError] = useState<string | null>(null);
 
   // Shift Close Report Modal
   const [isViewingShiftReport, setIsViewingShiftReport] = useState(false);
   const [shiftReport, setShiftReport] = useState<any | null>(null);
   const [loadingShiftReport, setLoadingShiftReport] = useState(false);
-
-  // Find currently active tab for selected table
-  const currentTab = selectedTable?.activeTab || null;
 
   // Derive active table after mutation
   const activeSelectedTable = tables.find((t) => t.id === selectedTable?.id) || selectedTable;
@@ -140,13 +130,18 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
   // Open Tab handler
   const handleOpenTab = async () => {
     if (!openingForTable) return;
+    if (openCustomerType === "MEMBER" && !openResolvedMember) {
+      setOpenTabError("Please verify member ID first.");
+      return;
+    }
+
     setIsOpeningTab(true);
     setOpenTabError(null);
 
     const res = await openTabAction({
       tableId: openingForTable.id,
-      memberId: openMemberId ? openMemberId : null,
-      guestName: openMemberId ? null : openGuestName || "Walk-in Guest",
+      memberId: openCustomerType === "MEMBER" && openResolvedMember ? openResolvedMember.id : null,
+      guestName: openCustomerType === "MEMBER" ? null : openGuestName.trim() || "Walk-in Guest",
     });
 
     setIsOpeningTab(false);
@@ -157,7 +152,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
     }
 
     setOpeningForTable(null);
-    setOpenMemberId("");
+    setOpenResolvedMember(null);
     setOpenGuestName("");
     router.refresh();
   };
@@ -190,7 +185,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
     );
   };
 
-  // Submit Order to Tab
+  // Submit Order to Tab (No person label)
   const handleSubmitOrderToTab = async () => {
     if (!activeSelectedTable?.activeTab || orderItemsCart.length === 0) return;
     setIsSubmittingOrder(true);
@@ -198,7 +193,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
 
     const res = await addOrderToTabAction({
       tabId: activeSelectedTable.activeTab.id,
-      personLabel: orderPersonLabel || "Guest",
+      personLabel: null,
       items: orderItemsCart.map((c) => ({
         barItemId: c.item.id,
         quantity: c.quantity,
@@ -217,54 +212,35 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
     router.refresh();
   };
 
-  // Init Split Payment Modal
+  // Init Settle Payment Modal
   const openPaymentModal = () => {
     if (!activeSelectedTable?.activeTab) return;
     const balance = activeSelectedTable.activeTab.balance;
-
-    // Group person labels from orders on this tab
-    const orders = activeSelectedTable.activeTab.orders;
-    const people = Array.from(new Set(orders.map((o) => o.personLabel).filter(Boolean)));
-
-    if (people.length > 1) {
-      // Calculate each person's share
-      const personTotals = new Map<string, number>();
-      for (const ord of orders) {
-        personTotals.set(
-          ord.personLabel,
-          (personTotals.get(ord.personLabel) || 0) + ord.totalAmount
-        );
-      }
-
-      const rows = people.map((p) => ({
-        method: "CARD" as const,
-        amount: Math.round(personTotals.get(p) || balance / people.length),
-        personLabel: p,
-      }));
-      setSplitRows(rows);
-    } else {
-      setSplitRows([
-        { method: "CARD", amount: balance, personLabel: "Full Bill" },
-      ]);
-    }
-
+    setSettleAmount(balance);
+    setSettleMethod("CASH");
     setIsPayingTab(true);
     setPaymentError(null);
   };
 
-  // Submit Split Payment
+  // Submit Settle Payment (Single payment, CASH/CARD/UPI)
   const handlePayTabSubmit = async () => {
     if (!activeSelectedTable?.activeTab) return;
+    if (settleAmount <= 0) {
+      setPaymentError("Payment amount must be greater than zero.");
+      return;
+    }
+
     setIsSubmittingPayment(true);
     setPaymentError(null);
 
     const res = await payTabAction({
       tabId: activeSelectedTable.activeTab.id,
-      payments: splitRows.map((r) => ({
-        method: r.method,
-        amount: Number(r.amount),
-        personLabel: r.personLabel,
-      })),
+      payments: [
+        {
+          method: settleMethod,
+          amount: Number(settleAmount),
+        },
+      ],
     });
 
     setIsSubmittingPayment(false);
@@ -279,6 +255,29 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
     router.refresh();
   };
 
+  // Free Table Action
+  const handleFreeTable = async () => {
+    if (!activeSelectedTable) return;
+    setIsFreeingTable(true);
+    setFreeTableError(null);
+
+    const res = await freeTableAction({
+      tableId: activeSelectedTable.id,
+      tabId: activeSelectedTable.activeTab?.id,
+    });
+
+    setIsFreeingTable(false);
+
+    if (!res.success) {
+      setFreeTableError(res.error || "Failed to free table.");
+      return;
+    }
+
+    setConfirmFreeTable(false);
+    setSelectedTable(null);
+    router.refresh();
+  };
+
   // Open Shift Close Report
   const handleOpenShiftReport = async () => {
     setIsViewingShiftReport(true);
@@ -287,6 +286,20 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
     setShiftReport(data);
     setLoadingShiftReport(false);
   };
+
+  // Table free-ability calculation
+  const currentTabBalance = activeSelectedTable?.activeTab?.balance ?? 0;
+  const currentOrders = activeSelectedTable?.activeTab?.orders ?? [];
+  const hasOpenKitchenOrders = currentOrders.some((o) =>
+    ["NEW", "ACCEPTED", "PREPARING", "READY"].includes(o.status)
+  );
+  const canFreeTable = currentTabBalance <= 0.01 && !hasOpenKitchenOrders;
+  let freeTableDisabledReason = "";
+  if (currentTabBalance > 0.01) {
+    freeTableDisabledReason = `Outstanding balance of ₹${currentTabBalance.toFixed(0)} must be settled first`;
+  } else if (hasOpenKitchenOrders) {
+    freeTableDisabledReason = "Kitchen orders are still being prepared";
+  }
 
   return (
     <div className="space-y-6">
@@ -298,7 +311,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
             Champions Bar & Cafeteria POS
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage table tabs, add rounds with person labels, send orders to the live kitchen board, and split bills.
+            Manage table tabs, seat guests, send rounds to the live kitchen board, and settle tabs.
           </p>
         </div>
 
@@ -379,21 +392,22 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                         <div className="text-[11px] font-bold text-foreground line-clamp-1">
                           {table.activeTab.memberName || table.activeTab.guestName || "Walk-in"}
                         </div>
-                        <div className="text-[10px] text-muted-foreground font-mono">
-                          Bal: <strong className="text-emerald-700">₹{table.activeTab.balance.toFixed(0)}</strong>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Bal: <strong className="text-amber-700 dark:text-amber-400">₹{table.activeTab.balance.toFixed(0)}</strong>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                        <Users className="h-3 w-3" />
+                      <div className="text-[10px] text-muted-foreground">
                         Cap: {table.capacity}
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-1 border-t text-[10px] font-semibold text-muted-foreground flex justify-between items-center">
-                    <span>{table.name.includes("(") ? table.name.split("(")[1].replace(")", "") : "Lounge"}</span>
-                    <span className="text-emerald-600 font-bold">{isSelected ? "Viewing" : "Select"} →</span>
+                  <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1 border-t border-border/50">
+                    <span className="truncate max-w-[80px]">
+                      {table.name.includes("(") ? table.name.split("(")[1].replace(")", "") : "Main"}
+                    </span>
+                    <span className="text-emerald-600 font-semibold">{isSelected ? "Viewing" : "Select →"}</span>
                   </div>
                 </div>
               );
@@ -401,23 +415,21 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
           </div>
         </div>
 
-        {/* Selected Table / Tab Inspection Panel */}
+        {/* Selected Table Detail Panel */}
         <div className="lg:col-span-5">
           {activeSelectedTable ? (
-            <Card className="sticky top-20 shadow-md border-emerald-600/20">
-              <CardHeader className="p-4 border-b bg-muted/30 flex flex-row items-center justify-between">
+            <Card className="sticky top-20 shadow-md border-emerald-600/30">
+              <CardHeader className="p-4 border-b bg-muted/40 flex flex-row items-center justify-between">
                 <div>
-                  <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground">
-                    Table Details
-                  </Badge>
-                  <CardTitle className="text-base font-extrabold mt-0.5">
+                  <div className="text-[10px] font-bold uppercase text-muted-foreground">Table Details</div>
+                  <CardTitle className="text-base font-bold text-foreground">
                     {activeSelectedTable.name}
                   </CardTitle>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-6 w-6"
                   onClick={() => setSelectedTable(null)}
                 >
                   <X className="h-4 w-4" />
@@ -427,17 +439,17 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
               <CardContent className="p-4 space-y-4">
                 {activeSelectedTable.isOccupied && activeSelectedTable.activeTab ? (
                   <>
-                    {/* Customer & Tab Info */}
-                    <div className="p-3 bg-muted/40 rounded-lg space-y-1.5 text-xs">
+                    {/* Tab Header Stats */}
+                    <div className="bg-muted/30 p-3 rounded-lg space-y-1.5 text-xs">
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Tab Holder:</span>
-                        <strong className="text-foreground">
-                          {activeSelectedTable.activeTab.memberName || activeSelectedTable.activeTab.guestName}
-                        </strong>
+                        <span className="font-bold text-foreground">
+                          {activeSelectedTable.activeTab.memberName || activeSelectedTable.activeTab.guestName || "Walk-in"}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Opened:</span>
-                        <span>
+                        <span className="text-muted-foreground">
                           {new Date(activeSelectedTable.activeTab.openedAt).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -446,7 +458,9 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Total F&B Orders:</span>
-                        <span>₹{activeSelectedTable.activeTab.totalAmount.toFixed(0)}</span>
+                        <span className="font-semibold text-foreground">
+                          ₹{activeSelectedTable.activeTab.totalAmount.toFixed(0)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Payments Collected:</span>
@@ -462,7 +476,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                       </div>
                     </div>
 
-                    {/* Order Lines grouped with Person Label */}
+                    {/* Order Lines */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-muted-foreground uppercase">
@@ -487,9 +501,9 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                           activeSelectedTable.activeTab.orders.map((ord) => (
                             <div key={ord.id} className="p-2.5 text-xs space-y-1">
                               <div className="flex justify-between items-center">
-                                <Badge variant="outline" className="text-[10px] font-bold">
-                                  {ord.personLabel}
-                                </Badge>
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                  #{ord.id.slice(-5).toUpperCase()}
+                                </span>
                                 <div className="flex items-center gap-1.5">
                                   <Badge
                                     className={`text-[9px] ${
@@ -516,7 +530,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                       </div>
                     </div>
 
-                    {/* Tab Actions */}
+                    {/* Tab Actions: Settle Tab & Free Table */}
                     <div className="pt-2 space-y-2">
                       <Button
                         className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold h-10 shadow"
@@ -524,8 +538,29 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                         onClick={openPaymentModal}
                       >
                         <Receipt className="h-4 w-4 mr-2" />
-                        Split & Settle Tab (₹{activeSelectedTable.activeTab.balance.toFixed(0)})
+                        Settle Tab (₹{activeSelectedTable.activeTab.balance.toFixed(0)})
                       </Button>
+
+                      <div className="space-y-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!canFreeTable || isFreeingTable}
+                          onClick={() => setConfirmFreeTable(true)}
+                          className="w-full border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold h-9 disabled:opacity-50"
+                          title={freeTableDisabledReason || "Free this table"}
+                        >
+                          {isFreeingTable ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                          ) : null}
+                          Free Table
+                        </Button>
+                        {freeTableDisabledReason && (
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            {freeTableDisabledReason}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -563,7 +598,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
         </div>
       </div>
 
-      {/* MODAL 1: OPEN TAB DIALOG */}
+      {/* MODAL 1: OPEN TAB DIALOG (Uses MemberIdInput) */}
       {openingForTable && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <Card className="max-w-md w-full shadow-2xl animate-in fade-in-50">
@@ -586,40 +621,50 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
             </CardHeader>
 
             <CardContent className="p-4 space-y-4">
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-xs font-semibold text-muted-foreground uppercase">
-                  Select Member (Applies F&B Discount)
+                  Tab Holder
                 </label>
-                <select
-                  className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 focus:ring-1 focus:ring-emerald-600"
-                  value={openMemberId}
-                  onChange={(e) => {
-                    setOpenMemberId(e.target.value);
-                    if (e.target.value) setOpenGuestName("");
-                  }}
-                >
-                  <option value="">Walk-in Guest (No Member Discount)</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} ({m.membershipNo}) - {m.planName} ({m.barDiscountPct}% OFF)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {!openMemberId && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">
-                    Walk-in Guest Name
-                  </label>
-                  <Input
-                    placeholder="e.g. John Doe / Group A"
-                    value={openGuestName}
-                    onChange={(e) => setOpenGuestName(e.target.value)}
-                    className="text-xs h-9"
-                  />
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted/60 rounded-lg">
+                  <Button
+                    type="button"
+                    variant={openCustomerType === "GUEST" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => {
+                      setOpenCustomerType("GUEST");
+                      setOpenResolvedMember(null);
+                    }}
+                    className="text-xs h-7"
+                  >
+                    Walk-in Guest
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={openCustomerType === "MEMBER" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setOpenCustomerType("MEMBER")}
+                    className="text-xs h-7"
+                  >
+                    Club Member
+                  </Button>
                 </div>
-              )}
+
+                {openCustomerType === "MEMBER" ? (
+                  <MemberIdInput onMemberResolved={setOpenResolvedMember} />
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase">
+                      Walk-in Guest Name
+                    </label>
+                    <Input
+                      placeholder="e.g. John Doe / Group A"
+                      value={openGuestName}
+                      onChange={(e) => setOpenGuestName(e.target.value)}
+                      className="text-xs h-9"
+                    />
+                  </div>
+                )}
+              </div>
 
               {openTabError && (
                 <div className="p-2.5 rounded bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-start gap-1.5">
@@ -634,9 +679,9 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                 </Button>
                 <Button
                   size="sm"
-                  disabled={isOpeningTab}
+                  disabled={isOpeningTab || (openCustomerType === "MEMBER" && !openResolvedMember)}
                   onClick={handleOpenTab}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold disabled:opacity-50"
                 >
                   {isOpeningTab ? "Opening..." : "Confirm & Open Tab"}
                 </Button>
@@ -646,7 +691,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
         </div>
       )}
 
-      {/* MODAL 2: ADD ITEMS / ROUND WITH PERSON LABEL */}
+      {/* MODAL 2: ADD ITEMS / ROUND (No Person Label) */}
       {isAddingItems && activeSelectedTable?.activeTab && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <Card className="max-w-2xl w-full shadow-2xl animate-in fade-in-50 max-h-[90vh] flex flex-col">
@@ -671,35 +716,6 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
             </CardHeader>
 
             <CardContent className="p-4 space-y-4 overflow-y-auto flex-1">
-              {/* Person Label Input */}
-              <div className="bg-emerald-50 dark:bg-emerald-950/20 p-3 rounded-lg border border-emerald-200">
-                <label className="text-xs font-bold text-emerald-900 dark:text-emerald-300 block mb-1">
-                  Tag Order with &ldquo;Person&rdquo; Label:
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g. Person 1, Guest B, Alice"
-                    value={orderPersonLabel}
-                    onChange={(e) => setOrderPersonLabel(e.target.value)}
-                    className="text-xs h-8 bg-white dark:bg-slate-900"
-                  />
-                  <div className="flex gap-1">
-                    {["Person 1", "Person 2", "Person 3", "Person 4"].map((p) => (
-                      <Button
-                        key={p}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setOrderPersonLabel(p)}
-                        className="text-[10px] h-8 px-2"
-                      >
-                        {p}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
               {/* Menu Items Grid */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground uppercase">
@@ -738,7 +754,7 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
               {orderItemsCart.length > 0 && (
                 <div className="border rounded-md p-3 space-y-2 bg-muted/20">
                   <div className="text-xs font-bold flex justify-between items-center">
-                    <span>Order Cart ({orderPersonLabel})</span>
+                    <span>Order Cart</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -815,15 +831,15 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
         </div>
       )}
 
-      {/* MODAL 3: SPLIT PAYMENT DIALOG */}
+      {/* MODAL 3: SETTLE TAB (No split rows, CASH/CARD/UPI only, default CASH) */}
       {isPayingTab && activeSelectedTable?.activeTab && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-lg w-full shadow-2xl animate-in fade-in-50">
+          <Card className="max-w-md w-full shadow-2xl animate-in fade-in-50">
             <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <Receipt className="h-5 w-5 text-emerald-600" />
-                  Split & Settle Bar Tab
+                  Settle Bar Tab
                 </CardTitle>
                 <CardDescription className="text-xs">
                   {activeSelectedTable.name} • Total Due: ₹{activeSelectedTable.activeTab.balance.toFixed(0)}
@@ -840,86 +856,47 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
             </CardHeader>
 
             <CardContent className="p-4 space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-muted-foreground uppercase">
-                    Split Payment Breakdown:
+              <div className="space-y-3">
+                <div className="bg-muted/30 p-3 rounded-lg flex justify-between items-center text-xs">
+                  <span className="text-muted-foreground">Outstanding Balance:</span>
+                  <span className="font-bold text-foreground text-sm">
+                    ₹{activeSelectedTable.activeTab.balance.toFixed(0)}
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-[10px]"
-                    onClick={() =>
-                      setSplitRows([
-                        ...splitRows,
-                        { method: "CASH", amount: 0, personLabel: `Split ${splitRows.length + 1}` },
-                      ])
-                    }
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add Split Method
-                  </Button>
                 </div>
 
-                <div className="space-y-2 max-h-56 overflow-y-auto">
-                  {splitRows.map((row, idx) => (
-                    <div key={idx} className="p-2.5 rounded-lg border bg-muted/20 flex gap-2 items-center text-xs">
-                      <Input
-                        placeholder="Label"
-                        value={row.personLabel}
-                        onChange={(e) => {
-                          const updated = [...splitRows];
-                          updated[idx].personLabel = e.target.value;
-                          setSplitRows(updated);
-                        }}
-                        className="h-8 text-xs w-28 shrink-0"
-                      />
-                      <select
-                        className="h-8 text-xs rounded-md border border-input bg-background px-2"
-                        value={row.method}
-                        onChange={(e) => {
-                          const updated = [...splitRows];
-                          updated[idx].method = e.target.value as any;
-                          setSplitRows(updated);
-                        }}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Payment Amount
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold text-muted-foreground font-mono">₹</span>
+                    <Input
+                      type="number"
+                      value={settleAmount}
+                      onChange={(e) => setSettleAmount(Math.max(0, Number(e.target.value)))}
+                      className="text-sm font-bold h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Payment Method
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["CASH", "CARD", "UPI"] as const).map((method) => (
+                      <Button
+                        key={method}
+                        type="button"
+                        variant={settleMethod === method ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSettleMethod(method)}
+                        className="text-xs font-semibold h-8"
                       >
-                        <option value="CARD">CARD</option>
-                        <option value="CASH">CASH</option>
-                        <option value="UPI">UPI</option>
-                        <option value="ONLINE">ONLINE</option>
-                      </select>
-                      <div className="flex-1 flex items-center gap-1">
-                        <span className="text-muted-foreground font-mono">₹</span>
-                        <Input
-                          type="number"
-                          value={row.amount}
-                          onChange={(e) => {
-                            const updated = [...splitRows];
-                            updated[idx].amount = Number(e.target.value) || 0;
-                            setSplitRows(updated);
-                          }}
-                          className="h-8 text-xs font-bold"
-                        />
-                      </div>
-                      {splitRows.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => setSplitRows(splitRows.filter((_, i) => i !== idx))}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="bg-muted/40 p-3 rounded-lg flex justify-between items-center text-xs">
-                  <span className="text-muted-foreground">Total Paying Now:</span>
-                  <strong className="text-sm font-extrabold text-foreground">
-                    ₹{splitRows.reduce((a, b) => a + Number(b.amount), 0).toFixed(0)}
-                  </strong>
+                        {method}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -936,11 +913,11 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
                 </Button>
                 <Button
                   size="sm"
-                  disabled={isSubmittingPayment}
+                  disabled={isSubmittingPayment || settleAmount <= 0}
                   onClick={handlePayTabSubmit}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                 >
-                  {isSubmittingPayment ? "Writing Ledger..." : "Confirm Payment & Collect"}
+                  {isSubmittingPayment ? "Writing Ledger..." : `Confirm & Settle ₹${settleAmount.toFixed(0)}`}
                 </Button>
               </div>
             </CardContent>
@@ -948,114 +925,131 @@ export function StaffBar({ tables, menuItems, members }: StaffBarProps) {
         </div>
       )}
 
-      {/* MODAL 4: SHIFT CLOSE REPORT */}
+      {/* MODAL 4: CONFIRM FREE TABLE */}
+      {confirmFreeTable && activeSelectedTable && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-sm w-full shadow-2xl animate-in fade-in-50 bg-white">
+            <CardHeader className="p-4 border-b">
+              <CardTitle className="text-base font-bold text-red-700 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                Free {activeSelectedTable.name.split(" (")[0]}?
+              </CardTitle>
+              <CardDescription className="text-xs pt-1">
+                This will close the active tab and mark the table as FREE on the club floor map.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="p-4 space-y-3">
+              {freeTableError && (
+                <div className="p-2.5 rounded bg-red-50 text-red-700 text-xs border border-red-200">
+                  {freeTableError}
+                </div>
+              )}
+              <p className="text-xs text-gray-600">
+                Are you sure you want to release this table?
+              </p>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmFreeTable(false)}
+                  disabled={isFreeingTable}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleFreeTable}
+                  disabled={isFreeingTable}
+                  className="text-xs bg-red-600 hover:bg-red-700 text-white font-semibold"
+                >
+                  {isFreeingTable ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                  Confirm & Free Table
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* MODAL 5: SHIFT CLOSE REPORT */}
       {isViewingShiftReport && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-md w-full shadow-2xl bg-white text-slate-900 border-2">
-            <CardHeader className="p-6 border-b text-center relative">
+          <Card className="max-w-md w-full shadow-2xl animate-in fade-in-50 max-h-[85vh] flex flex-col">
+            <CardHeader className="p-4 border-b flex flex-row items-center justify-between shrink-0">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-emerald-600" />
+                  Bar Shift Close Report
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Summary of payments collected during this shift
+                </CardDescription>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-3 top-3 h-7 w-7 text-slate-500"
+                className="h-7 w-7"
                 onClick={() => setIsViewingShiftReport(false)}
               >
                 <X className="h-4 w-4" />
               </Button>
-              <div className="h-10 w-10 mx-auto rounded-full bg-slate-900 text-white flex items-center justify-center mb-2">
-                <FileText className="h-5 w-5" />
-              </div>
-              <h2 className="text-lg font-black tracking-tight text-slate-900">THE CHAMPIONS CLUB</h2>
-              <p className="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">
-                Bar & Cafeteria Shift Close Report
-              </p>
-              <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                {shiftReport?.shiftDate || "Today's Shift"}
-              </div>
             </CardHeader>
 
-            <CardContent className="p-6 space-y-4 text-xs">
+            <CardContent className="p-4 space-y-4 overflow-y-auto flex-1 text-xs">
               {loadingShiftReport ? (
-                <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
-                  <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-                  Aggregating ledger entries...
+                <div className="py-8 text-center text-muted-foreground flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Generating shift totals...
                 </div>
               ) : shiftReport ? (
-                <>
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">Staff Member:</span>
-                    <span className="font-bold text-slate-900">{shiftReport.staffName}</span>
-                  </div>
-
-                  {/* Revenue Summary */}
-                  <div className="p-3 bg-slate-50 rounded-lg space-y-1.5 border">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500 font-semibold">Total Earned (Served):</span>
-                      <span className="font-bold text-slate-900">
-                        ₹{shiftReport.earnedTotal.toLocaleString("en-IN")}
-                      </span>
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200">
+                    <div className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300">
+                      Total Shift Revenue
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500 font-semibold">Total Collected:</span>
-                      <span className="font-black text-emerald-700 text-sm">
-                        ₹{shiftReport.totalCollected.toLocaleString("en-IN")}
-                      </span>
+                    <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                      ₹{shiftReport.totalCollected.toFixed(0)}
                     </div>
                   </div>
 
-                  {/* Collected Breakdown by Method */}
-                  <div className="space-y-1.5 border-b pb-3">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">
-                      Collected By Payment Method:
+                  <div className="space-y-1.5 border rounded-lg p-3">
+                    <span className="font-bold text-muted-foreground uppercase text-[10px]">
+                      Collections by Payment Method:
                     </span>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">CASH:</span>
-                      <span className="font-mono font-semibold">₹{(shiftReport.collectedByMethod?.CASH || 0).toLocaleString("en-IN")}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">CARD:</span>
-                      <span className="font-mono font-semibold">₹{(shiftReport.collectedByMethod?.CARD || 0).toLocaleString("en-IN")}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">UPI:</span>
-                      <span className="font-mono font-semibold">₹{(shiftReport.collectedByMethod?.UPI || 0).toLocaleString("en-IN")}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">ONLINE:</span>
-                      <span className="font-mono font-semibold">₹{(shiftReport.collectedByMethod?.ONLINE || 0).toLocaleString("en-IN")}</span>
+                    <div className="space-y-1 pt-1 divide-y">
+                      {shiftReport.byMethod.map((m: any) => (
+                        <div key={m.method} className="pt-1 flex justify-between items-center">
+                          <span className="font-semibold">{m.method}</span>
+                          <span className="font-mono font-bold">₹{m.amount.toFixed(0)}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Open Tabs Outstanding Total */}
-                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-900 flex justify-between items-center">
-                    <div>
-                      <div className="font-bold text-xs">Still-Open Tabs Total:</div>
-                      <div className="text-[10px] text-amber-700">
-                        Across {shiftReport.openTabsCount} active tables
-                      </div>
+                  <div className="border rounded-lg p-3 space-y-1 text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Shift Closed Tabs:</span>
+                      <strong className="text-foreground">{shiftReport.tabsCount}</strong>
                     </div>
-                    <span className="font-black text-sm">
-                      ₹{shiftReport.stillOpenTabsTotal.toLocaleString("en-IN")}
-                    </span>
+                    <div className="flex justify-between">
+                      <span>Total F&B Orders:</span>
+                      <strong className="text-foreground">{shiftReport.ordersCount}</strong>
+                    </div>
                   </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  No shift data available.
+                </div>
+              )}
 
-                  <div className="flex gap-2 pt-3 border-t">
-                    <Button
-                      variant="outline"
-                      className="flex-1 text-xs"
-                      onClick={() => window.print()}
-                    >
-                      <Printer className="h-4 w-4 mr-1.5" />
-                      Print Report
-                    </Button>
-                    <Button
-                      className="flex-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
-                      onClick={() => setIsViewingShiftReport(false)}
-                    >
-                      Done
-                    </Button>
-                  </div>
-                </>
-              ) : null}
+              <div className="flex justify-end pt-2 border-t shrink-0">
+                <Button size="sm" onClick={() => setIsViewingShiftReport(false)}>
+                  Close
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

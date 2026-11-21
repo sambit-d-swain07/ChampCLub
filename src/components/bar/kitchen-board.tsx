@@ -209,7 +209,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: KitchenOrderIte
                           </div>
 
                           <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mt-1 flex items-center justify-between">
-                            <span>Person: <strong>{order.personLabel}</strong></span>
+                            <span>Table Order</span>
                             <span className="font-mono text-[11px]">#{order.id.slice(-5).toUpperCase()}</span>
                           </div>
                         </CardHeader>

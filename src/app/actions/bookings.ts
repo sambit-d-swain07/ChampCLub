@@ -34,6 +34,17 @@ export async function createBookingAction(formData: FormData) {
     };
 
     const parsed = createBookingSchema.parse(raw);
+
+    if (parsed.memberId) {
+      const targetMember = await prisma.member.findUnique({
+        where: { id: parsed.memberId },
+        include: { user: true },
+      });
+      if (targetMember?.user?.bannedAt) {
+        return { success: false, error: "This account is banned and cannot book courts." };
+      }
+    }
+
     const result = await createBooking({
       courtId: parsed.courtId,
       startsAt: new Date(parsed.startsAt),
@@ -94,6 +105,17 @@ export async function bookAndConfirmAction(formData: FormData) {
     };
 
     const parsed = createBookingSchema.parse(raw);
+
+    if (parsed.memberId) {
+      const targetMember = await prisma.member.findUnique({
+        where: { id: parsed.memberId },
+        include: { user: true },
+      });
+      if (targetMember?.user?.bannedAt) {
+        return { success: false, error: "This account is banned and cannot book courts." };
+      }
+    }
+
     const result = await bookAndConfirm({
       courtId: parsed.courtId,
       startsAt: new Date(parsed.startsAt),
@@ -127,10 +149,15 @@ export async function bookMemberCourtAction(formData: FormData) {
 
     const member = await prisma.member.findUnique({
       where: { userId: user.id },
+      include: { user: true },
     });
 
     if (!member) {
       return { success: false, error: "Member profile not found." };
+    }
+
+    if (member.user?.bannedAt) {
+      return { success: false, error: "This account has been banned. Booking courts is not permitted." };
     }
 
     const courtId = formData.get("courtId") as string;

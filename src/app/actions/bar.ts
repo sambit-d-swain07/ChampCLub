@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import { BarOrderStatus, PaymentMethod } from "@prisma/client";
 import {
   openTab,
@@ -32,6 +33,17 @@ export async function openTabAction(data: {
     }
 
     const parsed = openTabSchema.parse(data);
+
+    if (parsed.memberId) {
+      const targetMember = await prisma.member.findUnique({
+        where: { id: parsed.memberId },
+        include: { user: true },
+      });
+      if (targetMember?.user?.bannedAt) {
+        return { success: false, error: "This member account is banned." };
+      }
+    }
+
     const result = await openTab({
       ...parsed,
       staffUserId: user.id,
@@ -47,6 +59,79 @@ export async function openTabAction(data: {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to open bar tab.",
+    };
+  }
+}
+
+export async function freeTableAction(data: { tableId: string; tabId?: string }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user || (user.role !== "OWNER" && user.role !== "STAFF")) {
+      return { success: false, error: "Staff authentication required to free a table." };
+    }
+
+    const tab = data.tabId
+      ? await prisma.tab.findUnique({
+          where: { id: data.tabId },
+          include: { orders: { include: { items: true } } },
+        })
+      : await prisma.tab.findFirst({
+          where: { tableId: data.tableId, status: "OPEN" },
+          include: { orders: { include: { items: true } } },
+        });
+
+    if (tab) {
+      // Check outstanding balance
+      const totalAmount = Number(tab.totalAmount);
+      const payments = await prisma.ledgerEntry.aggregate({
+        where: {
+          source: "BAR",
+          refType: "BAR_TAB",
+          refId: tab.id,
+          kind: "COLLECTED",
+        },
+        _sum: { amount: true },
+      });
+      const collectedAmount = Number(payments._sum.amount || 0);
+      const balance = totalAmount - collectedAmount;
+
+      if (balance > 0.01) {
+        return {
+          success: false,
+          error: `Cannot free table: tab has an outstanding balance of â‚¹${balance.toFixed(0)}.`,
+        };
+      }
+
+      // Check open kitchen orders: NEW, PREPARING, READY (or ACCEPTED)
+      const hasOpenOrders = tab.orders.some((o) =>
+        ["NEW", "ACCEPTED", "PREPARING", "READY"].includes(o.status)
+      );
+      if (hasOpenOrders) {
+        return {
+          success: false,
+          error: "Cannot free table: kitchen orders are still active/preparing.",
+        };
+      }
+
+      // Safe to close/cancel tab and free table
+      await prisma.$transaction(async (tx) => {
+        await tx.tab.update({
+          where: { id: tab.id },
+          data: {
+            status: "CLOSED",
+            closedAt: new Date(),
+          },
+        });
+      });
+    }
+
+    revalidatePath("/admin/bar");
+    revalidatePath("/kitchen");
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to free table.",
     };
   }
 }

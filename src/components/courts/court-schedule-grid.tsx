@@ -9,6 +9,7 @@ import {
   cancelStaffBookingAction 
 } from "@/app/actions/bookings";
 import { MemberListItem } from "@/lib/services/members";
+import { MemberIdInput, ResolvedMember } from "@/components/admin/member-id-input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,13 +72,13 @@ interface CourtScheduleGridProps {
       }>;
     }>;
   };
-  members: MemberListItem[];
+  members?: MemberListItem[];
 }
 
 export function CourtScheduleGrid({
   initialDate,
   data,
-  members,
+  members = [],
 }: CourtScheduleGridProps) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(initialDate);
@@ -95,9 +96,9 @@ export function CourtScheduleGrid({
   } | null>(null);
 
   const [bookingType, setBookingType] = useState<"MEMBER" | "GUEST">("MEMBER");
-  const [selectedMemberId, setSelectedMemberId] = useState<string>(members[0]?.id || "");
+  const [resolvedMember, setResolvedMember] = useState<ResolvedMember | null>(null);
   const [guestName, setGuestName] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI" | "ONLINE">("UPI");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("CASH");
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
@@ -136,8 +137,7 @@ export function CourtScheduleGrid({
   };
 
   // Selected member discount calculation
-  const selectedMember = members.find((m) => m.id === selectedMemberId);
-  const discountPct = bookingType === "MEMBER" ? selectedMember?.courtDiscountPct || 0 : 0;
+  const discountPct = bookingType === "MEMBER" ? resolvedMember?.courtDiscountPct || 0 : 0;
   const basePrice = selectedSlot?.basePrice || 1000;
   const discountAmt = (basePrice * discountPct) / 100;
   const netPayable = Math.max(0, basePrice - discountAmt);
@@ -145,6 +145,11 @@ export function CourtScheduleGrid({
   // Handle Submit Booking
   const handleConfirmBooking = async () => {
     if (!selectedSlot) return;
+    if (bookingType === "MEMBER" && !resolvedMember) {
+      setBookingError("Please verify member ID first.");
+      return;
+    }
+
     setBookingLoading(true);
     setBookingError(null);
 
@@ -153,7 +158,7 @@ export function CourtScheduleGrid({
     formData.set("startsAt", selectedSlot.startsAt);
     formData.set("endsAt", selectedSlot.endsAt);
     if (bookingType === "MEMBER") {
-      formData.set("memberId", selectedMemberId);
+      formData.set("memberId", resolvedMember!.id);
     } else {
       formData.set("guestName", guestName || "Walk-in Guest");
     }
@@ -472,21 +477,10 @@ export function CourtScheduleGrid({
 
               {/* Player Selection */}
               {bookingType === "MEMBER" ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="memberSelect" className="text-xs font-semibold">Select Member</Label>
-                  <select
-                    id="memberSelect"
-                    value={selectedMemberId}
-                    onChange={(e) => setSelectedMemberId(e.target.value)}
-                    className="w-full border rounded-md p-2 text-xs bg-background text-foreground"
-                  >
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.membershipNo}) - {m.planName} ({m.courtDiscountPct}% Off)
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <MemberIdInput
+                  onMemberResolved={setResolvedMember}
+                  showBookingsLeft={true}
+                />
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="guestNameInput" className="text-xs font-semibold">Guest Full Name</Label>
@@ -523,8 +517,8 @@ export function CourtScheduleGrid({
               {/* Payment Method */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Settlement Method</Label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(["UPI", "CARD", "CASH", "ONLINE"] as const).map((method) => (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["CASH", "CARD", "UPI"] as const).map((method) => (
                     <Button
                       key={method}
                       type="button"
@@ -543,8 +537,8 @@ export function CourtScheduleGrid({
               <div className="pt-2 flex gap-2">
                 <Button
                   onClick={handleConfirmBooking}
-                  disabled={bookingLoading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9"
+                  disabled={bookingLoading || (bookingType === "MEMBER" && !resolvedMember)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 disabled:opacity-50"
                 >
                   {bookingLoading ? (
                     <span className="flex items-center gap-2">
