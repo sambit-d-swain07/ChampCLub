@@ -1,1 +1,3 @@
-export { GET, dynamic } from "../courts/availability/route";
+export const dynamic = "force-dynamic";
+
+export { GET } from "../courts/availability/route";
