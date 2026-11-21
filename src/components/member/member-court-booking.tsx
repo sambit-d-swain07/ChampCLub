@@ -56,10 +56,10 @@ const SPORTS = ["All", "Badminton", "Padel", "Tennis"] as const;
 type SportFilter = (typeof SPORTS)[number];
 
 const SPORT_EMOJI: Record<string, string> = {
-  All: "🎾",
-  Badminton: "🏸",
-  Padel: "🏓",
-  Tennis: "🎾",
+  All: "",
+  Badminton: "",
+  Padel: "",
+  Tennis: "",
 };
 
 function fmtDateLabel(isoDate: string) {

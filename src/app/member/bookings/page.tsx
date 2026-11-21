@@ -77,7 +77,8 @@ export default async function MemberBookingsPage() {
   }));
 
   return (
-    <div className="max-w-5xl mx-auto p-6 md:p-8">
+    <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 md:py-8 space-y-4">
+      <h1 className="text-xl font-bold text-[#15201A]">Bookings</h1>
       <MemberBookingsList
         bookings={formattedBookings}
         socialSessions={formattedSocial}

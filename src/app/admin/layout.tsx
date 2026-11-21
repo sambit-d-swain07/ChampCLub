@@ -24,18 +24,8 @@ export default async function AdminLayout({
       <AdminSidebar user={{ id: user.id, name: user.name, email: user.email, role }} />
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="h-16 border-b border-[#E5E7EB] bg-white hidden md:flex items-center justify-between px-8 sticky top-0 z-20">
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-semibold text-[#0F172A]">Sports Club Operations</span>
-            <span className="text-xs text-[#64748B]">/ Control Center</span>
-          </div>
-          <div className="flex items-center gap-4 text-xs text-[#64748B]">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Live Sync Active
-            </span>
-            <span>Welcome, <strong className="text-[#0F172A]">{user.name}</strong></span>
-          </div>
+        <header className="h-14 border-b border-[#E5E7EB] bg-white hidden md:flex items-center justify-end px-8 sticky top-0 z-20">
+          <span className="text-xs text-[#64748B]">Welcome, <strong className="text-[#0F172A] font-semibold">{user.name}</strong></span>
         </header>
 
         {/* Content canvas (max-width 1280px with 24px padding) */}

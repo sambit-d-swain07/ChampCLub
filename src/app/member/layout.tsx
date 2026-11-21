@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { Trophy, Calendar, ShoppingBag, CreditCard, LayoutDashboard, Clock } from "lucide-react";
 
 export default async function MemberLayout({
   children,
@@ -64,19 +63,13 @@ export default async function MemberLayout({
       {/* Top Navbar */}
       <header className="h-18 border-b border-[#1B1B1B]/15 bg-[#F6F5E1]/90 backdrop-blur-md sticky top-0 z-30 px-6 sm:px-10 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="h-9 w-9 rounded-full border border-[#1B1B1B]/20 flex items-center justify-center font-bold text-lg select-none bg-white shadow-2xs group-hover:scale-105 transition-transform">
-              <span className="text-[#E8883A]">c</span>
-              <span className="text-[#5F9E4A]">.</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-full border border-[#D9D5C9] flex items-center justify-center font-bold text-base select-none bg-white">
+              <span className="text-[#BF3F0D]">c</span>
             </div>
-            <div>
-              <span className="font-bold uppercase text-base tracking-wider text-[#1B1B1B] block leading-none">
-                THE CHAMPIONS CLUB
-              </span>
-              <span className="text-[9px] tracking-widest text-[#5F9E4A] uppercase font-semibold">
-                MEMBER PRIVILEGE
-              </span>
-            </div>
+            <span className="font-bold text-sm tracking-tight text-[#15201A]">
+              Champions Club
+            </span>
           </Link>
 
           {/* Nav links */}

@@ -75,20 +75,12 @@ export default async function OwnerDashboardPage({
     <div className="space-y-8">
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-foreground">Executive Financial Dashboard</h1>
-            <Badge className="bg-emerald-600 text-white text-[10px]">OWNER PRIVILEGE</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Real-time ledger tracking, revenue realization, operational expenditure, and club capacity utilisation.
-          </p>
-        </div>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Dashboard</h1>
 
         <Link href="/admin/expenses">
           <Button variant="outline" size="sm" className="text-xs gap-1.5">
             <Receipt className="h-3.5 w-3.5" />
-            Manage Expenses
+            Expenses
           </Button>
         </Link>
       </div>

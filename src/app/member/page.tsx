@@ -3,15 +3,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { resolve } from "@/lib/services/entitlement";
-import {
-  Trophy,
-  QrCode,
-  Calendar,
-  Sparkles,
-  ArrowRight,
-  ShoppingBag,
-  Clock,
-} from "lucide-react";
+import { formatClubDate, formatClubTime } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -129,229 +121,160 @@ export default async function MemberPortalPage() {
   }
 
   return (
-    <div className="space-y-8 text-[#1B1B1B]">
-      {/* Prominent Banner if Walk-in / No active plan */}
+    <div className="space-y-6 text-[#15201A]">
+      {/* No-plan banner */}
       {isWalkIn && (
-        <div className="rounded-[24px] p-5 bg-white border border-[#5F9E4A]/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className="h-10 w-10 rounded-full bg-[#E8883A] text-[#1B1B1B] flex items-center justify-center shrink-0 shadow-2xs">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#1B1B1B]">
-                Choose a plan to unlock member discounts
-              </h3>
-              <p className="text-xs text-gray-600">
-                You are currently booked under standard walk-in rates. Upgrade to Gold, Silver, or Junior to unlock up to 20% off courts, pro-shop, and cafe.
-              </p>
-            </div>
+        <div className="rounded-xl p-4 bg-white border border-[#D9D5C9] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-[#15201A]">No active membership plan</p>
+            <p className="text-xs text-[#55605A] mt-0.5">
+              You are on walk-in rates. Choose a plan to unlock up to 20% off courts, shop and bar.
+            </p>
           </div>
           <Link
             href="/member/choose-plan"
-            className="px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider bg-[#1B1B1B] text-[#F6F5E1] hover:bg-black transition-all shadow-md shrink-0 flex items-center gap-1.5"
+            className="px-4 py-2 rounded-lg font-semibold text-xs bg-[#23513C] text-white hover:bg-[#1a3d2d] transition-colors shrink-0"
           >
-            <span>Choose a Plan</span>
-            <ArrowRight className="h-4 w-4" />
+            Choose a plan
           </Link>
         </div>
       )}
 
-      {/* Hero Pass Card */}
-      <div className="rounded-[28px] p-6 sm:p-8 bg-white border border-[#1B1B1B]/15 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-          <Trophy className="h-64 w-64 -mr-12 -mt-12 text-[#1B1B1B]" />
-        </div>
-
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-          <div className="space-y-4">
+      {/* Member pass card */}
+      <div className="rounded-xl p-6 bg-white border border-[#D9D5C9]">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#1B1B1B] text-[#F6F5E1]">
-                {entitlement.plan?.name || "WALK-IN"} PRIVILEGE
+              <span className="px-2.5 py-1 rounded text-xs font-semibold uppercase bg-[#F6F4EE] border border-[#D9D5C9] text-[#15201A]">
+                {entitlement.plan?.name || "Walk-in"}
               </span>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#EDECCF] text-[#1B1B1B]">
-                {isWalkIn ? "Walk-in Status" : `${daysLeft} Days Remaining`}
+              <span className="px-2.5 py-1 rounded text-xs font-semibold text-[#55605A]">
+                {isWalkIn ? "Walk-in" : `${daysLeft} days left`}
               </span>
             </div>
 
             <div>
-              <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#1B1B1B]">
+              <h1 className="text-2xl font-bold tracking-tight text-[#15201A]">
                 {user.name}
               </h1>
-              <p className="text-xs font-mono text-gray-500 mt-1">
-                Pass ID: {member.membershipNo}
+              <p className="text-xs text-[#55605A] mt-0.5">
+                {member.membershipNo}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-4 text-xs text-[#1B1B1B]/80 pt-2 border-t border-[#1B1B1B]/10">
+            <div className="flex flex-wrap gap-6 text-xs pt-3 border-t border-[#D9D5C9]">
               <div>
-                <span className="text-[10px] uppercase text-gray-400 block">Court Discount</span>
-                <span className="font-bold text-[#5F9E4A] text-sm">{entitlement.courtDiscountPct}% OFF</span>
+                <span className="text-[#55605A] block mb-0.5">Court</span>
+                <span className="font-semibold text-[#23513C]">{entitlement.courtDiscountPct}% off</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase text-gray-400 block">Pro Shop Discount</span>
-                <span className="font-bold text-[#5F9E4A] text-sm">{entitlement.shopDiscountPct}% OFF</span>
+                <span className="text-[#55605A] block mb-0.5">Shop</span>
+                <span className="font-semibold text-[#23513C]">{entitlement.shopDiscountPct}% off</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase text-gray-400 block">Bar & Cafe</span>
-                <span className="font-bold text-[#5F9E4A] text-sm">{entitlement.barDiscountPct}% OFF</span>
+                <span className="text-[#55605A] block mb-0.5">Bar</span>
+                <span className="font-semibold text-[#23513C]">{entitlement.barDiscountPct}% off</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase text-gray-400 block">Daily Quota</span>
-                <span className="font-bold text-[#1B1B1B] text-sm">{entitlement.bookingsLeftToday} slots left</span>
+                <span className="text-[#55605A] block mb-0.5">Today</span>
+                <span className="font-semibold text-[#15201A]">{entitlement.bookingsLeftToday} bookings left</span>
               </div>
             </div>
           </div>
 
-          {/* Digital QR Pass */}
+          {/* QR pass link */}
           <Link
             href="/member/card"
-            className="bg-[#F6F5E1] text-[#1B1B1B] p-4 rounded-2xl border border-[#1B1B1B]/15 shadow-sm flex flex-col items-center gap-2 self-center md:self-end hover:scale-105 transition-transform"
+            className="px-4 py-2.5 rounded-lg border border-[#D9D5C9] text-xs font-semibold text-[#23513C] hover:bg-[#F6F4EE] transition-colors shrink-0"
           >
-            <QrCode className="h-20 w-20 text-[#1B1B1B]" />
-            <span className="text-[10px] font-mono font-bold tracking-widest text-[#1B1B1B]/70 uppercase">
-              {member.qrToken.slice(0, 14)}
-            </span>
-            <span className="text-[10px] font-bold text-[#5F9E4A] hover:underline">
-              Turnstile Digital Pass →
-            </span>
+            View digital pass →
           </Link>
         </div>
       </div>
 
-      {/* Quick Action Buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Link
-          href="/member/book"
-          className="p-5 rounded-2xl bg-white border border-[#1B1B1B]/15 hover:border-[#5F9E4A] transition-all flex flex-col justify-between group shadow-2xs"
-        >
-          <Calendar className="h-6 w-6 text-[#5F9E4A] mb-3 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-sm font-bold text-[#1B1B1B]">Book Court</div>
-            <div className="text-[11px] text-gray-500">Reserve tennis, padel & badminton</div>
-          </div>
-        </Link>
-
-        <Link
-          href="/member/bookings"
-          className="p-5 rounded-2xl bg-white border border-[#1B1B1B]/15 hover:border-[#5F9E4A] transition-all flex flex-col justify-between group shadow-2xs"
-        >
-          <Clock className="h-6 w-6 text-[#E8883A] mb-3 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-sm font-bold text-[#1B1B1B]">My Bookings</div>
-            <div className="text-[11px] text-gray-500">View schedule and cancellations</div>
-          </div>
-        </Link>
-
-        <Link
-          href="/member/shop"
-          className="p-5 rounded-2xl bg-white border border-[#1B1B1B]/15 hover:border-[#5F9E4A] transition-all flex flex-col justify-between group shadow-2xs"
-        >
-          <ShoppingBag className="h-6 w-6 text-[#5F9E4A] mb-3 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-sm font-bold text-[#1B1B1B]">Pro Shop</div>
-            <div className="text-[11px] text-gray-500">Rackets, balls & equipment</div>
-          </div>
-        </Link>
-
-        <Link
-          href="/member/orders"
-          className="p-5 rounded-2xl bg-white border border-[#1B1B1B]/15 hover:border-[#5F9E4A] transition-all flex flex-col justify-between group shadow-2xs"
-        >
-          <Sparkles className="h-6 w-6 text-[#E8883A] mb-3 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-sm font-bold text-[#1B1B1B]">My Orders</div>
-            <div className="text-[11px] text-gray-500">Order history & fulfillment</div>
-          </div>
-        </Link>
+      {/* Quick links */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { href: "/member/book", label: "Book Court", sub: "Tennis, Padel, Badminton" },
+          { href: "/member/bookings", label: "My Bookings", sub: "Schedule & history" },
+          { href: "/member/shop", label: "Pro Shop", sub: "Rackets, balls, gear" },
+          { href: "/member/orders", label: "My Orders", sub: "Order history" },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="p-4 rounded-xl bg-white border border-[#D9D5C9] hover:border-[#23513C] transition-colors"
+          >
+            <div className="text-sm font-semibold text-[#15201A]">{item.label}</div>
+            <div className="text-xs text-[#55605A] mt-0.5">{item.sub}</div>
+          </Link>
+        ))}
       </div>
 
-      {/* Two-Column Details: Upcoming Bookings & Recent Orders (All Database Records) */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Bookings Card */}
-        <div className="rounded-[28px] p-6 bg-white border border-[#1B1B1B]/15 space-y-4 shadow-sm">
+      {/* Two columns */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Recent bookings */}
+        <div className="rounded-xl p-5 bg-white border border-[#D9D5C9] space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold tracking-tight text-[#1B1B1B]">
-              UPCOMING COURT RESERVATIONS
-            </h3>
-            <Link href="/member/bookings" className="text-xs font-semibold text-[#5F9E4A] hover:underline">
-              Manage all →
+            <h2 className="text-sm font-semibold text-[#15201A]">Recent bookings</h2>
+            <Link href="/member/bookings" className="text-xs text-[#23513C] hover:underline">
+              View all
             </Link>
           </div>
 
           {member.bookings && member.bookings.length > 0 ? (
-            <div className="divide-y divide-[#1B1B1B]/10 text-xs">
+            <div className="divide-y divide-[#D9D5C9] text-xs">
               {member.bookings.map((b) => (
-                <div key={b.id} className="py-3 flex items-center justify-between">
+                <div key={b.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-[#1B1B1B]">{b.court.name}</div>
-                    <div className="text-[11px] text-gray-500">
-                      {new Date(b.startsAt).toLocaleDateString()} at{" "}
-                      {new Date(b.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    <div className="font-medium text-[#15201A]">{b.court.name}</div>
+                    <div className="text-[#55605A] mt-0.5">
+                      {formatClubDate(b.startsAt)} · {formatClubTime(b.startsAt)}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-[#EDECCF] text-[#1B1B1B]">
-                      {b.status}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-[#F6F4EE] text-[#55605A]">
+                    {b.status}
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 space-y-2">
-              <p className="text-xs text-gray-500">No court reservations scheduled.</p>
-              <Link
-                href="/member/book"
-                className="inline-block px-4 py-2 rounded-full text-xs font-bold bg-[#1B1B1B] text-[#F6F5E1]"
-              >
-                Book a Court
-              </Link>
-            </div>
+            <p className="text-xs text-[#55605A] py-4">No bookings yet.</p>
           )}
         </div>
 
-        {/* Recent Orders Card */}
-        <div className="rounded-[28px] p-6 bg-white border border-[#1B1B1B]/15 space-y-4 shadow-sm">
+        {/* Recent orders */}
+        <div className="rounded-xl p-5 bg-white border border-[#D9D5C9] space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold tracking-tight text-[#1B1B1B]">
-              RECENT PRO SHOP ORDERS
-            </h3>
-            <Link href="/member/orders" className="text-xs font-semibold text-[#5F9E4A] hover:underline">
-              View all →
+            <h2 className="text-sm font-semibold text-[#15201A]">Recent orders</h2>
+            <Link href="/member/orders" className="text-xs text-[#23513C] hover:underline">
+              View all
             </Link>
           </div>
 
           {member.shopOrders && member.shopOrders.length > 0 ? (
-            <div className="divide-y divide-[#1B1B1B]/10 text-xs">
+            <div className="divide-y divide-[#D9D5C9] text-xs">
               {member.shopOrders.map((o) => (
-                <div key={o.id} className="py-3 flex items-center justify-between">
+                <div key={o.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-[#1B1B1B]">
-                      {o.items.length} item{o.items.length > 1 ? "s" : ""} • {o.fulfilment}
+                    <div className="font-medium text-[#15201A]">
+                      {o.items.length} item{o.items.length > 1 ? "s" : ""}
                     </div>
-                    <div className="text-[11px] text-gray-500">
-                      {new Date(o.createdAt).toLocaleDateString()}
+                    <div className="text-[#55605A] mt-0.5">
+                      {formatClubDate(o.createdAt)}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-[#5F9E4A]">
+                    <div className="font-semibold text-[#15201A]">
                       ₹{Number(o.totalAmount).toLocaleString("en-IN")}
                     </div>
-                    <span className="text-[10px] uppercase text-gray-400">{o.status}</span>
+                    <span className="text-[10px] text-[#55605A] uppercase">{o.status}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 space-y-2">
-              <p className="text-xs text-gray-500">No shop orders yet.</p>
-              <Link
-                href="/member/shop"
-                className="inline-block px-4 py-2 rounded-full text-xs font-bold bg-[#1B1B1B] text-[#F6F5E1]"
-              >
-                Browse Pro Shop
-              </Link>
-            </div>
+            <p className="text-xs text-[#55605A] py-4">No orders yet.</p>
           )}
         </div>
       </div>

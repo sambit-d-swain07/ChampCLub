@@ -134,8 +134,7 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
   if (result?.upgraded) {
     return (
       <div className="max-w-md mx-auto text-center space-y-6 py-16">
-        <div className="text-5xl">🎉</div>
-        <h2 className="text-2xl font-extrabold text-[#1B1B1B]">Plan upgraded!</h2>
+        <h2 className="text-2xl font-extrabold text-[#1B1B1B]">Plan upgraded</h2>
         <p className="text-sm text-[#1B1B1B]/70">
           {result.amountDue === 0
             ? `Upgraded for free — your credit (${fmtRs(result.credit ?? 0)}) covered the full amount.`

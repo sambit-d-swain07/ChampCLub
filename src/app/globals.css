@@ -4,23 +4,35 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-brand-cream: #F6F5E1;
-  --color-brand-dark: #1B1B1B;
-  --color-brand-orange: #E8883A;
-  --color-brand-green: #5F9E4A;
+  --color-page-cream: #F6F4EE;
+  --color-card-cream: #FBFAF6;
+  --color-ink: #15201A;
+  --color-muted-text: #55605A;
+  --color-line: #D9D5C9;
+  --color-brand-green: #23513C;
+  --color-navy: #0F2236;
+  --color-orange: #BF3F0D;
+  --color-court-blue-light: #A9CDE8;
+  --color-court-blue: #8FBBE0;
+  --color-footer-ink: #15201A;
+
+  --color-brand-cream: #F6F4EE;
+  --color-brand-dark: #15201A;
+  --color-brand-orange: #BF3F0D;
   --color-brand-green-light: #8DBF6F;
-  --color-brand-green-dark: #3F7A37;
-  --color-brand-border: rgba(27, 27, 27, 0.3);
+  --color-brand-green-dark: #23513C;
+  --color-brand-border: #D9D5C9;
 
   /* Compatibility theme aliases */
-  --color-brand-offwhite: #F6F5E1;
-  --color-brand-lime: #E8883A;
-  --color-brand-court: #8DBF6F;
-  --color-brand-surface: #EDECCF;
+  --color-brand-offwhite: #F6F4EE;
+  --color-brand-lime: #BF3F0D;
+  --color-brand-court: #8FBBE0;
+  --color-brand-surface: #FBFAF6;
   --color-brand-surface-light: #FFFFFF;
 
-  --font-display: var(--font-sans);
-  --font-serif: var(--font-sans);
+  --font-display: var(--font-heading);
+  --font-heading: var(--font-heading);
+  --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
 
   --radius-pill: 9999px;
@@ -68,36 +80,30 @@
 }
 
 :root {
-  --brand-cream: #F6F5E1;
-  --brand-dark: #1B1B1B;
-  --brand-orange: #E8883A;
-  --brand-green: #5F9E4A;
-  --brand-green-light: #8DBF6F;
-  --brand-green-dark: #3F7A37;
-  --brand-border: rgba(27, 27, 27, 0.3);
+  --page-cream: #F6F4EE;
+  --card-cream: #FBFAF6;
+  --ink: #15201A;
+  --muted: #55605A;
+  --line: #D9D5C9;
+  --brand-green: #23513C;
+  --navy: #0F2236;
+  --orange: #BF3F0D;
+  --court-blue-light: #A9CDE8;
+  --court-blue: #8FBBE0;
+  --footer-ink: #15201A;
 
-  --brand-offwhite: #F6F5E1;
-  --brand-lime: #E8883A;
-  --brand-court: #8DBF6F;
-  --brand-surface: #EDECCF;
-  --brand-surface-light: #FFFFFF;
-
-  --background: #F6F5E1;
-  --foreground: #1B1B1B;
-  --card: #FFFFFF;
-  --card-foreground: #1B1B1B;
+  --background: #F6F4EE;
+  --foreground: #15201A;
+  --card: #FBFAF6;
+  --card-foreground: #15201A;
   --popover: #FFFFFF;
-  --popover-foreground: #1B1B1B;
-  --primary: #1B1B1B;
-  --primary-foreground: #F6F5E1;
-  --secondary: #5F9E4A;
-  --secondary-foreground: #FFFFFF;
-  --muted: #EDECCF;
-  --muted-foreground: #5A5A50;
-  --accent: #E8883A;
-  --accent-foreground: #1B1B1B;
-  --destructive: #EF4444;
-  --border: rgba(27, 27, 27, 0.2);
+  --popover-foreground: #15201A;
+  --primary: #23513C;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FBFAF6;
+  --secondary-foreground: #15201A;
+  --muted-foreground: #55605A;
+  --border: #D9D5C9;
   --input: rgba(27, 27, 27, 0.2);
   --ring: #5F9E4A;
   --chart-1: #5F9E4A;

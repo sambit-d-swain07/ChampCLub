@@ -64,14 +64,11 @@ export default async function ExpensesPage() {
           <div className="flex items-center gap-2">
             <Link href="/admin/owner">
               <Button variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1">
-                <ArrowLeft className="h-3.5 w-3.5" /> Back to Dashboard
+                <ArrowLeft className="h-3.5 w-3.5" /> Dashboard
               </Button>
             </Link>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Club Operating Expenses</h1>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Expenses</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Log, track, and reconcile vendor procurement, payroll, repairs, and overhead liabilities.
-          </p>
         </div>
 
         <ExpenseFormDialog />

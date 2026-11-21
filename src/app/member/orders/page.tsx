@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { ShoppingBag, ArrowRight, Package, CheckCircle2, Clock, Truck } from "lucide-react";
+import { formatClubDate, formatClubTime } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -34,41 +34,25 @@ export default async function MemberOrdersPage() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 text-[#1B1B1B]">
+    <div className="max-w-5xl mx-auto space-y-6 text-[#15201A]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1B1B1B]">
-            My Pro Shop <span className="text-[#5F9E4A]">orders</span>
-          </h1>
-          <p className="text-xs text-[#1B1B1B]/70 mt-1">
-            Track equipment purchases, court-side delivery, and order status.
-          </p>
-        </div>
-
+        <h1 className="text-xl font-bold tracking-tight text-[#15201A]">Orders</h1>
         <Link
           href="/member/shop"
-          className="inline-flex items-center gap-2 px-6 h-11 rounded-full font-bold text-xs tracking-wider uppercase bg-[#1B1B1B] text-[#F6F5E1] hover:bg-black transition-all shadow-sm self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs bg-[#23513C] text-white hover:bg-[#1a3d2d] transition-colors self-start sm:self-auto"
         >
-          <ShoppingBag className="h-4 w-4" />
-          <span>Browse Pro Shop</span>
+          Browse Pro Shop
         </Link>
       </div>
 
       {orders.length === 0 ? (
-        <div className="rounded-[28px] p-12 bg-white border border-[#1B1B1B]/15 text-center space-y-4 shadow-sm">
-          <Package className="h-12 w-12 text-[#5F9E4A] mx-auto opacity-80" />
-          <h3 className="text-xl font-bold tracking-tight text-[#1B1B1B]">
-            NO ORDERS PLACED YET
-          </h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto">
-            Explore our tournament rackets, premium grips, apparel, and nutrition in the Pro Shop.
-          </p>
+        <div className="rounded-xl p-8 bg-white border border-[#D9D5C9] text-center">
+          <p className="text-sm text-[#55605A]">No orders placed yet.</p>
           <Link
             href="/member/shop"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider bg-[#1B1B1B] text-[#F6F5E1]"
+            className="mt-3 inline-block px-4 py-2 rounded-lg font-semibold text-xs bg-[#23513C] text-white hover:bg-[#1a3d2d] transition-colors"
           >
-            <span>Start Shopping</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            Browse Pro Shop
           </Link>
         </div>
       ) : (
@@ -76,65 +60,58 @@ export default async function MemberOrdersPage() {
           {orders.map((o) => (
             <div
               key={o.id}
-              className="rounded-[24px] p-6 bg-white border border-[#1B1B1B]/15 shadow-sm space-y-4"
+              className="rounded-xl p-5 bg-white border border-[#D9D5C9] space-y-3"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1B1B1B]/10 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D9D5C9] pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-[#1B1B1B]">
-                      Order #{o.id.slice(-8).toUpperCase()}
+                    <span className="font-mono text-xs font-semibold text-[#15201A]">
+                      #{o.id.slice(-8).toUpperCase()}
                     </span>
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
                         o.status === "COMPLETED"
-                          ? "bg-[#5F9E4A]/15 text-[#3F7A37]"
+                          ? "bg-green-50 text-green-700"
                           : o.status === "PENDING"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-red-100 text-red-800"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-red-50 text-red-700"
                       }`}
                     >
                       {o.status}
                     </span>
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-1">
-                    Placed on {new Date(o.createdAt).toLocaleDateString()} at{" "}
-                    {new Date(o.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  <div className="text-xs text-[#55605A] mt-1">
+                    {formatClubDate(o.createdAt)} · {formatClubTime(o.createdAt)}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase text-gray-400 block">Total</span>
-                    <span className="text-base font-extrabold text-[#5F9E4A]">
-                      ₹{Number(o.totalAmount).toLocaleString("en-IN")}
-                    </span>
-                  </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-[#15201A]">
+                    ₹{Number(o.totalAmount).toLocaleString("en-IN")}
+                  </span>
+                  <div className="text-[11px] text-[#55605A]">{o.fulfilment}</div>
                 </div>
               </div>
 
-              {/* Items List */}
-              <div className="divide-y divide-[#1B1B1B]/10 text-xs">
+              {/* Items */}
+              <div className="divide-y divide-[#D9D5C9] text-xs">
                 {o.items.map((item) => (
-                  <div key={item.id} className="py-2.5 flex items-center justify-between">
+                  <div key={item.id} className="py-2 flex items-center justify-between">
                     <div>
-                      <div className="font-semibold text-[#1B1B1B]">{item.product.name}</div>
-                      <div className="text-[11px] text-gray-400">
-                        Qty: {item.quantity} × ₹{Number(item.priceSnapshot).toLocaleString("en-IN")}
+                      <div className="font-medium text-[#15201A]">{item.product.name}</div>
+                      <div className="text-[#55605A]">
+                        {item.quantity} × ₹{Number(item.priceSnapshot).toLocaleString("en-IN")}
                       </div>
                     </div>
-                    <div className="font-mono font-medium text-[#1B1B1B]">
+                    <div className="font-medium text-[#15201A]">
                       ₹{(item.quantity * Number(item.priceSnapshot)).toLocaleString("en-IN")}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="pt-2 flex items-center justify-between text-xs text-gray-500 border-t border-[#1B1B1B]/10">
-                <div className="flex items-center gap-1.5">
-                  <Truck className="h-3.5 w-3.5 text-[#5F9E4A]" />
-                  <span>Fulfilment: <strong>{o.fulfilment}</strong></span>
-                </div>
-                <span>Method: <strong>{o.channel}</strong></span>
+              <div className="pt-1 text-xs text-[#55605A]">
+                Via {o.channel}
               </div>
             </div>
           ))}

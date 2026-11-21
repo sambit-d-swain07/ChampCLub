@@ -3,21 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  CalendarDays,
-  Users,
-  ShoppingBag,
-  Wine,
-  ChefHat,
-  Landmark,
-  Receipt,
-  BookOpen,
-  LogOut,
-  Trophy,
-  Menu,
-  X,
-} from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 
 interface AdminSidebarProps {
@@ -34,7 +20,6 @@ interface NavSection {
   links: Array<{
     label: string;
     href: string;
-    icon: React.ComponentType<{ className?: string }>;
     roles: string[];
   }>;
 }
@@ -49,30 +34,30 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     {
       title: "Overview",
       links: [
-        { label: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["OWNER"] },
-        { label: "Executive Finance", href: "/admin/owner", icon: Landmark, roles: ["OWNER"] },
+        { label: "Dashboard", href: "/admin", roles: ["OWNER"] },
+        { label: "Executive Finance", href: "/admin/owner", roles: ["OWNER"] },
       ],
     },
     {
       title: "Operations",
       links: [
-        { label: "Courts & Bookings", href: "/admin/courts", icon: CalendarDays, roles: ["OWNER", "STAFF"] },
-        { label: "Members", href: "/admin/members", icon: Users, roles: ["OWNER", "STAFF"] },
+        { label: "Courts & Bookings", href: "/admin/courts", roles: ["OWNER", "STAFF"] },
+        { label: "Members", href: "/admin/members", roles: ["OWNER", "STAFF"] },
       ],
     },
     {
       title: "Commerce & F&B",
       links: [
-        { label: "Pro Shop", href: "/admin/shop", icon: ShoppingBag, roles: ["OWNER", "STAFF"] },
-        { label: "Champions Bar", href: "/admin/bar", icon: Wine, roles: ["OWNER", "STAFF"] },
-        { label: "Kitchen Board", href: "/kitchen", icon: ChefHat, roles: ["OWNER", "STAFF"] },
+        { label: "Pro Shop", href: "/admin/shop", roles: ["OWNER", "STAFF"] },
+        { label: "Champions Bar", href: "/admin/bar", roles: ["OWNER", "STAFF"] },
+        { label: "Kitchen Board", href: "/kitchen", roles: ["OWNER", "STAFF"] },
       ],
     },
     {
       title: "Management",
       links: [
-        { label: "Transactions", href: "/admin/transactions", icon: BookOpen, roles: ["OWNER"] },
-        { label: "Expenses", href: "/admin/expenses", icon: Receipt, roles: ["OWNER"] },
+        { label: "Transactions", href: "/admin/transactions", roles: ["OWNER"] },
+        { label: "Expenses", href: "/admin/expenses", roles: ["OWNER"] },
       ],
     },
   ];
@@ -87,18 +72,13 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     <div className="flex flex-col h-full justify-between bg-white select-none">
       <div>
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-[#E5E7EB]">
+        <div className="h-14 flex items-center justify-between px-5 border-b border-[#E5E7EB]">
           <Link href="/admin" prefetch={false} className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[#0B3B2C] text-white flex items-center justify-center font-bold shadow-sm">
-              <Trophy className="h-4 w-4 text-[#C8F13A]" />
+            <div className="h-7 w-7 rounded-lg bg-[#23513C] flex items-center justify-center shrink-0">
+              <span className="text-white text-[11px] font-bold">CC</span>
             </div>
-            <div>
-              <div className="font-bold text-sm tracking-tight text-[#0F172A] leading-none">
-                CHAMPIONS CLUB
-              </div>
-              <div className="text-[10px] text-[#64748B] font-medium tracking-wide uppercase mt-0.5">
-                Staff & Owner Portal
-              </div>
+            <div className="font-bold text-sm tracking-tight text-[#0F172A] leading-none">
+              CHAMPIONS CLUB
             </div>
           </Link>
 
@@ -120,7 +100,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
             <span
               className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                 role === "OWNER"
-                  ? "bg-[#0B3B2C] text-white"
+                  ? "bg-[#23513C] text-white"
                   : "bg-gray-200 text-gray-800"
               }`}
             >
@@ -137,12 +117,11 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
             if (visibleLinks.length === 0) return null;
 
             return (
-              <div key={sec.title} className="space-y-1">
+              <div key={sec.title} className="space-y-0.5">
                 <div className="text-[10px] font-bold tracking-wider text-[#94A3B8] uppercase px-3 pb-1">
                   {sec.title}
                 </div>
                 {visibleLinks.map((link) => {
-                  const Icon = link.icon;
                   const isActive = pathname === link.href;
 
                   return (
@@ -151,14 +130,13 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                       href={link.href}
                       prefetch={false}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg transition-colors ${
+                      className={`flex items-center px-3 py-2 text-xs rounded-lg transition-colors ${
                         isActive
-                          ? "bg-[#F1F5F9] text-[#0B3B2C] font-semibold border-l-2 border-[#0B3B2C]"
+                          ? "bg-[#F1F5F9] text-[#23513C] font-semibold border-l-2 border-[#23513C]"
                           : "text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
                       }`}
                     >
-                      <Icon className={`h-4 w-4 ${isActive ? "text-[#0B3B2C]" : "text-[#64748B]"}`} />
-                      <span>{link.label}</span>
+                      {link.label}
                     </Link>
                   );
                 })}
@@ -193,7 +171,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           <Menu className="h-5 w-5" />
         </button>
         <span className="font-bold text-xs uppercase tracking-wider text-[#0F172A]">
-          CHAMPIONS CLUB PORTAL
+          CHAMPIONS CLUB
         </span>
         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">
           {role}
@@ -210,7 +188,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
 
       {/* Mobile Drawer Content */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-60 bg-white shadow-xl transition-transform duration-200 md:hidden ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-56 bg-white shadow-xl transition-transform duration-200 md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -218,7 +196,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       </aside>
 
       {/* Desktop Fixed Sidebar */}
-      <aside className="hidden md:block w-60 border-r border-[#E5E7EB] bg-white h-screen sticky top-0 shrink-0">
+      <aside className="hidden md:block w-56 border-r border-[#E5E7EB] bg-white h-screen sticky top-0 shrink-0">
         {navContent}
       </aside>
     </>

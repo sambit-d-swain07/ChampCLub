@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { resolve } from "@/lib/services/entitlement";
 import { cancelPlanChangeAction } from "@/app/actions/members";
-import { Trophy, ArrowRight, ShieldCheck, Clock, AlertCircle } from "lucide-react";
+import { Clock, Trophy, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ function fmtDate(d: Date | string) {
 }
 
 function fmtRs(n: number) {
-  return "Rs " + n.toLocaleString("en-IN");
+  return "₹" + n.toLocaleString("en-IN");
 }
 
 export default async function MemberPlanPage() {
@@ -51,22 +51,14 @@ export default async function MemberPlanPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 p-6 text-[#1B1B1B]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1B1B1B]">
-            Membership <span className="text-[#5F9E4A]">and</span> privileges
-          </h1>
-          <p className="text-xs text-[#1B1B1B]/70 mt-1">
-            Review your current club standing, tier benefits, and renewal schedule.
-          </p>
-        </div>
+        <h1 className="text-xl font-bold tracking-tight text-[#1B1B1B]">Membership</h1>
 
         <Link
           prefetch={false}
           href="/member/choose-plan"
-          className="inline-flex items-center justify-center gap-2 px-6 h-11 rounded-full font-bold text-xs tracking-wider uppercase bg-[#1B1B1B] text-[#F6F5E1] hover:bg-black transition-all shadow-sm self-start sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg font-semibold text-xs bg-[#23513C] text-white hover:bg-[#1a3d2d] transition-colors self-start sm:self-auto"
         >
-          <span>Change or Renew Plan</span>
-          <ArrowRight className="h-4 w-4" />
+          Change plan
         </Link>
       </div>
 

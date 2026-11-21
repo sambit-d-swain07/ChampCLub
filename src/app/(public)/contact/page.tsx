@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ContactForm } from "@/components/public/contact-form";
 import { MapPin, Clock, Phone, Mail } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -91,7 +90,7 @@ export default function ContactPage() {
           <p className="text-xs text-gray-500">
             For court reservations, equipment fitting, or dining inquiries, reach our dedicated front desk team.
           </p>
-          <ContactForm />
+          <p className="text-xs text-gray-500 pt-2 border-t border-[#1B1B1B]/10">Walk-ins are welcome during operating hours. Members may book courts from their portal at any time.</p>
         </div>
       </section>
     </div>

@@ -25,14 +25,7 @@ export default async function AdminMembersPage({
     <div className="space-y-6">
       {/* Page Title & Primary Action */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A]">
-            Club Membership Roster
-          </h1>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Manage member privileges, entitlement status, renewals, and turnstile tokens.
-          </p>
-        </div>
+        <h1 className="text-xl font-bold tracking-tight text-[#0F172A]">Members</h1>
         <RegisterMemberDialog plans={plans} />
       </div>
 

@@ -1,20 +1,37 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
-  weight: ["400", "500", "700"],
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
 
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["italic"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "The Champions Club | Premier Racquet & Sports Club",
-  description: "Championship Tennis, Panoramic Padel & Competition Badminton. World-class courts, pro shop, and artisanal cafeteria in Bengaluru.",
+  title: "Champions Club · Tennis, Padel & Badminton",
+  description:
+    "Six courts, a pro shop and a bar. Book a session in a few taps and your member discount is applied for you.",
   openGraph: {
-    title: "The Champions Club",
-    description: "Championship Tennis, Panoramic Padel & Competition Badminton. Book your session today.",
+    title: "Champions Club · Tennis, Padel & Badminton",
+    description:
+      "Six courts, a pro shop and a bar. Book a session in a few taps and your member discount is applied for you.",
     type: "website",
   },
 };
@@ -27,9 +44,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${inter.variable} ${instrumentSerif.variable} h-full antialiased scroll-smooth`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-[#F6F5E1] text-[#1B1B1B]">
+      <body className="min-h-full flex flex-col font-sans bg-[#F6F4EE] text-[#15201A]">
         {children}
       </body>
     </html>
