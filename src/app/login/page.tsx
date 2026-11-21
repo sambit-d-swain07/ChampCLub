@@ -133,7 +133,7 @@ export default function LoginPage() {
                 variant="outline"
                 size="sm"
                 className="text-[11px] px-2 h-8"
-                onClick={() => quickLogin("owner@championsclub.test", "Password123!")}
+                onClick={() => quickLogin("owner@gmail.com", "Owner@123")}
                 disabled={loading}
               >
                 <Shield className="h-3 w-3 mr-1 text-emerald-600" /> Owner
@@ -142,19 +142,19 @@ export default function LoginPage() {
                 variant="outline"
                 size="sm"
                 className="text-[11px] px-2 h-8"
-                onClick={() => quickLogin("staff1@championsclub.test", "Password123!")}
+                onClick={() => quickLogin("staff1@gmail.com", "Staff1@123")}
                 disabled={loading}
               >
-                <KeyRound className="h-3 w-3 mr-1 text-blue-600" /> Staff
+                <KeyRound className="h-3 w-3 mr-1 text-blue-600" /> Staff 1
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="text-[11px] px-2 h-8"
-                onClick={() => quickLogin("member@championsclub.test", "Password123!")}
+                onClick={() => quickLogin("staff2@gmail.com", "Staff2@123")}
                 disabled={loading}
               >
-                <Trophy className="h-3 w-3 mr-1 text-purple-600" /> Member
+                <KeyRound className="h-3 w-3 mr-1 text-amber-600" /> Staff 2
               </Button>
             </div>
           </div>
