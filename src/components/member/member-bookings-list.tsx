@@ -203,6 +203,24 @@ export function MemberBookingsList({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Quick Gear Up Callout */}
+          <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+              <div className="text-xs font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                Gear Up for Your Match
+              </div>
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                Need fresh balls, overgrips, or strings? Order from the Pro Shop and staff will deliver directly to your court before match time.
+              </p>
+            </div>
+            <Link href="/member/shop">
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-7 px-3">
+                Order Gear →
+              </Button>
+            </Link>
+          </div>
+
           <Table>
             <TableHeader>
               <TableRow>

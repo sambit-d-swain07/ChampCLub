@@ -194,6 +194,20 @@ export default async function MemberPortalPage() {
                 </div>
                 <Badge className="bg-emerald-600 text-[10px]">AUTHORIZED</Badge>
               </div>
+
+              <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold text-emerald-950 dark:text-emerald-300">Champions Pro Shop</div>
+                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    Order balls, overgrips, strings & gear for instant court delivery.
+                  </div>
+                </div>
+                <Link href="/member/shop">
+                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] cursor-pointer">
+                    Open Shop →
+                  </Badge>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

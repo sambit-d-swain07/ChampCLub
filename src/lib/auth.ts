@@ -17,15 +17,33 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  secret: process.env.BETTER_AUTH_SECRET || "chamclub-hackathon-secret-key-32chars-minimum!!",
   baseURL,
-  trustedOrigins: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://champ-creator.vercel.app",
-    "https://*.vercel.app",
-    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
-    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
-  ],
+  trustedOrigins: async (request) => {
+    const list = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://champ-creator.vercel.app",
+      "https://*.vercel.app",
+      ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+      ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+    ];
+    if (request) {
+      const origin = request.headers.get("origin") || request.headers.get("referer");
+      if (origin) {
+        try {
+          const u = new URL(origin);
+          list.push(u.origin);
+        } catch {}
+      }
+      const host = request.headers.get("host") || request.headers.get("x-forwarded-host");
+      if (host) {
+        list.push(`https://${host}`);
+        list.push(`http://${host}`);
+      }
+    }
+    return Array.from(new Set(list));
+  },
   emailAndPassword: {
     enabled: true,
   },
