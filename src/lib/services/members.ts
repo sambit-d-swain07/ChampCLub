@@ -18,52 +18,105 @@ export interface MemberListItem {
   endsAt: Date | null;
 }
 
-export async function searchMembers(query?: string): Promise<MemberListItem[]> {
+import { withDbRetry } from "@/lib/prisma";
+
+export interface PaginatedMembers {
+  members: MemberListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export async function searchMembers(
+  query?: string,
+  page = 1,
+  pageSize = 20
+): Promise<PaginatedMembers> {
   const q = query?.trim();
 
-  const members = await prisma.member.findMany({
-    where: q
+  return withDbRetry(async () => {
+    const whereClause = q
       ? {
           OR: [
-            { membershipNo: { contains: q, mode: "insensitive" } },
-            { qrToken: { contains: q, mode: "insensitive" } },
-            { user: { name: { contains: q, mode: "insensitive" } } },
-            { user: { email: { contains: q, mode: "insensitive" } } },
+            { membershipNo: { contains: q, mode: "insensitive" as const } },
+            { qrToken: { contains: q, mode: "insensitive" as const } },
+            { user: { name: { contains: q, mode: "insensitive" as const } } },
+            { user: { email: { contains: q, mode: "insensitive" as const } } },
           ],
         }
-      : undefined,
-    include: {
-      user: true,
-      memberships: {
-        include: { plan: true },
-        orderBy: { endsAt: "desc" },
-        take: 1,
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      : undefined;
 
-  const now = new Date();
-  const results: MemberListItem[] = [];
+    const [total, members] = await Promise.all([
+      prisma.member.count({ where: whereClause }),
+      prisma.member.findMany({
+        where: whereClause,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          user: true,
+          memberships: {
+            include: { plan: true },
+            orderBy: { endsAt: "desc" },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
-  for (const m of members) {
-    const ent = await resolve(m.id, now);
-    results.push({
-      id: m.id,
-      name: m.user?.name || `Member ${m.membershipNo}`,
-      email: m.user?.email || "No email",
-      membershipNo: m.membershipNo,
-      qrToken: m.qrToken,
-      planName: ent.plan?.name || "NONE",
-      status: ent.status,
-      courtDiscountPct: ent.courtDiscountPct,
-      shopDiscountPct: ent.shopDiscountPct,
-      barDiscountPct: ent.barDiscountPct,
-      endsAt: ent.endsAt,
+    const now = new Date();
+    const results: MemberListItem[] = members.map((m) => {
+      const latestMembership = m.memberships?.[0];
+      let status: EntitlementResult["status"] = "WALK_IN";
+      let planName = "WALK-IN";
+      let courtDiscountPct = 0;
+      let shopDiscountPct = 0;
+      let barDiscountPct = 0;
+      let endsAt: Date | null = null;
+
+      if (latestMembership) {
+        endsAt = new Date(latestMembership.endsAt);
+        const graceEndsAt = new Date(endsAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        if (now.getTime() > graceEndsAt.getTime()) {
+          status = "EXPIRED";
+        } else if (now.getTime() > endsAt.getTime()) {
+          status = "GRACE";
+        } else {
+          status = "ACTIVE";
+        }
+
+        const isEligible = status === "ACTIVE" || status === "GRACE";
+        planName = latestMembership.plan?.name || "MEMBER";
+        courtDiscountPct = isEligible && latestMembership.plan ? Number(latestMembership.plan.courtDiscountPct) : 0;
+        shopDiscountPct = isEligible && latestMembership.plan ? Number(latestMembership.plan.shopDiscountPct) : 0;
+        barDiscountPct = isEligible && latestMembership.plan ? Number(latestMembership.plan.barDiscountPct) : 0;
+      }
+
+      return {
+        id: m.id,
+        name: m.user?.name || `Member ${m.membershipNo}`,
+        email: m.user?.email || "No email",
+        membershipNo: m.membershipNo,
+        qrToken: m.qrToken,
+        planName,
+        status,
+        courtDiscountPct,
+        shopDiscountPct,
+        barDiscountPct,
+        endsAt,
+      };
     });
-  }
 
-  return results;
+    return {
+      members: results,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize) || 1,
+    };
+  });
 }
 
 export async function getMemberDetail(idOrQr: string) {

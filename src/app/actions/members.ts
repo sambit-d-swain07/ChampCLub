@@ -6,6 +6,31 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { createMemberService, renewMemberService } from "@/lib/services/members";
 
+export async function getPostLoginRedirectAction(
+  email: string,
+  requestedRedirect?: string | null
+): Promise<string> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+      select: { role: true },
+    });
+
+    if (user?.role === "OWNER") {
+      return "/admin/owner";
+    }
+    if (user?.role === "STAFF") {
+      return "/admin";
+    }
+    if (requestedRedirect && requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("/login")) {
+      return requestedRedirect;
+    }
+    return "/member";
+  } catch {
+    return "/member";
+  }
+}
+
 type PaymentMethod = "CASH" | "CARD" | "UPI" | "ONLINE";
 
 const registerMemberSchema = z.object({

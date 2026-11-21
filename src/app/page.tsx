@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PublicNavbar } from "@/components/public/public-navbar";
 import { CourtIllustration } from "@/components/public/court-illustration";
 import { WeekAvailabilityStrip } from "@/components/public/week-availability-strip";
+import { ContactForm } from "@/components/public/contact-form";
 import { getCourtAvailability, formatKolkataDate } from "@/lib/services/booking";
 import {
   Trophy,
@@ -15,9 +16,7 @@ import {
   Phone,
   Mail,
   Zap,
-  ShoppingBag,
   ShieldCheck,
-  Star,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "The Champions Club | Premier Racquet Sports",
     description:
-      "Championship Tennis, panoramic Padel, and BWF Badminton courts in Bengaluru. Book your session or start a free trial today.",
+      "Championship Tennis, panoramic Padel, and BWF Badminton courts in Bengaluru. Book your session or apply for membership today.",
     type: "website",
   },
 };
@@ -46,12 +45,7 @@ export default async function HomePage() {
     orderBy: { name: "asc" },
   });
 
-  // 3. Fetch Courts for Facilities Section
-  const courts = await prisma.court.findMany({
-    orderBy: { name: "asc" },
-  });
-
-  // 4. Build 7-day availability strip
+  // 3. Build 7-day availability strip
   const today = new Date();
   const weekDays = [];
 
@@ -127,20 +121,20 @@ export default async function HomePage() {
           Championship Plexipave tennis courts, Spanish panoramic glass padel arenas, and Olympic-grade teakwood badminton halls. Book your court or join our sports fraternity.
         </p>
 
-        {/* CTA Buttons */}
+        {/* Hero CTA Buttons: "Book a Court" and "Sign up" */}
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <Link
-            href="/member/book"
+            href="/login?redirect=/member/book"
             className="px-8 h-12 rounded-full font-bold text-sm tracking-wide bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all flex items-center justify-center gap-2 shadow-xl hover:scale-105"
           >
             <span>Book a Court</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/trial"
+            href="/signup"
             className="px-8 h-12 rounded-full font-bold text-sm tracking-wide text-[#F4F1EA] hover:text-[#C8F13A] border border-white/25 hover:border-[#C8F13A] transition-all flex items-center justify-center gap-2"
           >
-            Start Free Trial
+            Sign up
           </Link>
         </div>
 
@@ -393,19 +387,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 6. FREE TRIAL & CONTACT SECTION */}
+      {/* 6. VISIT THE CLUB & INQUIRIES SECTION */}
       <section id="contact" className="py-20 px-6 bg-[#07271D] border-t border-white/10">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          {/* Trial Pitch */}
+          {/* Club Info & Pitch */}
           <div className="space-y-6">
             <span className="text-xs font-bold uppercase tracking-widest text-[#C8F13A] block">
-              EXPERIENCE THE DIFFERENCE
+              VISIT THE CLUB
             </span>
             <h2 className="text-5xl sm:text-6xl font-display uppercase tracking-tight text-[#F4F1EA]">
-              START WITH A <span className="font-serif italic lowercase text-[#C8F13A] font-normal">complimentary</span> TRIAL
+              EXPERIENCE <span className="font-serif italic lowercase text-[#C8F13A] font-normal">championship</span> CALIBER
             </h2>
             <p className="text-xs sm:text-sm text-[#F4F1EA]/70 leading-relaxed max-w-lg">
-              Book a 60-minute complimentary trial session on our championship courts. Experience our surface quality, lighting, and hospitality first-hand.
+              Visit The Champions Club in the heart of Indiranagar. Experience our world-class courts, Pro Shop, and members lounge, or contact our concierge for corporate and private bookings.
             </p>
 
             <div className="space-y-4 pt-2">
@@ -419,7 +413,7 @@ export default async function HomePage() {
               </div>
               <div className="flex items-center gap-3 text-xs text-[#F4F1EA]/80">
                 <Phone className="h-5 w-5 text-[#C8F13A] shrink-0" />
-                <span>+91 80 4910 8800 • Concierge & Bookings</span>
+                <span>+91 80 4910 8800 • Concierge & Inquiries</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-[#F4F1EA]/80">
                 <Mail className="h-5 w-5 text-[#C8F13A] shrink-0" />
@@ -429,16 +423,16 @@ export default async function HomePage() {
 
             <div className="pt-2">
               <Link
-                href="/trial"
+                href="/signup"
                 className="inline-flex items-center gap-2 px-8 h-12 rounded-full font-bold text-xs uppercase tracking-wider bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all shadow-xl"
               >
-                <span>Book Your Free Trial Session</span>
+                <span>Apply for Club Membership</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
 
-          {/* Quick Contact & Inquiries Card */}
+          {/* Contact & Inquiries Card */}
           <div className="rounded-3xl p-8 bg-[#0E4433] border border-white/10 shadow-2xl space-y-4">
             <h3 className="text-2xl font-display uppercase tracking-wider text-[#F4F1EA]">
               CLUB CONCIERGE & INQUIRIES
@@ -447,53 +441,7 @@ export default async function HomePage() {
               Interested in corporate tournament bookings, junior academy coaching, or private events? Send us a quick note.
             </p>
 
-            <form
-              action="/trial"
-              className="space-y-3.5 pt-2"
-            >
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[#F4F1EA]/70 block mb-1">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Sania Mirza"
-                  required
-                  className="w-full h-11 px-4 rounded-xl bg-[#07271D] border border-white/15 text-xs text-[#F4F1EA] focus:border-[#C8F13A] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[#F4F1EA]/70 block mb-1">
-                  Phone or Email
-                </label>
-                <input
-                  type="text"
-                  placeholder="+91 98765 43210 or email"
-                  required
-                  className="w-full h-11 px-4 rounded-xl bg-[#07271D] border border-white/15 text-xs text-[#F4F1EA] focus:border-[#C8F13A] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[#F4F1EA]/70 block mb-1">
-                  Sport of Interest
-                </label>
-                <select className="w-full h-11 px-4 rounded-xl bg-[#07271D] border border-white/15 text-xs text-[#F4F1EA] focus:border-[#C8F13A] focus:outline-none">
-                  <option value="TENNIS">Tennis Championship Courts</option>
-                  <option value="PADEL">Panoramic Padel Arena</option>
-                  <option value="BADMINTON">Elite Badminton Hall</option>
-                  <option value="ALL">All Sports / Membership Inquiry</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full h-11 rounded-full font-bold text-xs uppercase tracking-wider bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all shadow-md mt-2 cursor-pointer"
-              >
-                Connect with Concierge
-              </button>
-            </form>
+            <ContactForm />
           </div>
         </div>
       </section>

@@ -53,9 +53,6 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 SEED_OWNER_PASSWORD="Owner@123"
 SEED_STAFF1_PASSWORD="Staff1@123"
 SEED_STAFF2_PASSWORD="Staff2@123"
-
-# Optional Trial Session Fee (default 500)
-TRIAL_BOOKING_FEE="500"
 ```
 
 ---

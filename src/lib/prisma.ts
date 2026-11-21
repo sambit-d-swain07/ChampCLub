@@ -8,12 +8,14 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const connectionString = process.env.DATABASE_URL || "";
+
+// Serverless connection pooler configuration
 export const pool =
   globalForPrisma.pool ||
   new Pool({
     connectionString,
-    max: 5,
-    idleTimeoutMillis: 10000,
+    max: process.env.NODE_ENV === "production" ? 3 : 5,
+    idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
   });
 
@@ -25,7 +27,39 @@ export const prisma =
     adapter,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-  globalForPrisma.pool = pool;
+// Always retain global singleton in all environments to prevent connection pool exhaustion on serverless
+globalForPrisma.prisma = prisma;
+globalForPrisma.pool = pool;
+
+/**
+ * Executes a database operation with automatic retry on cold-start/transient connection errors.
+ */
+export async function withDbRetry<T>(
+  operation: () => Promise<T>,
+  retries = 2,
+  delayMs = 300
+): Promise<T> {
+  let attempt = 0;
+  while (attempt <= retries) {
+    try {
+      return await operation();
+    } catch (err: unknown) {
+      attempt++;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isTransient =
+        msg.includes("connection") ||
+        msg.includes("ECONNRESET") ||
+        msg.includes("ETIMEDOUT") ||
+        msg.includes("timeout") ||
+        msg.includes("closed") ||
+        msg.includes("SASL");
+
+      if (attempt > retries || !isTransient) {
+        throw err;
+      }
+      console.warn(`[Prisma Retry] Transient database error (attempt ${attempt}/${retries}). Retrying in ${delayMs}ms:`, msg);
+      await new Promise((res) => setTimeout(res, delayMs));
+    }
+  }
+  throw new Error("Database operation failed after retries.");
 }

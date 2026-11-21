@@ -43,7 +43,6 @@ function planBenefits(plan: {
   if (plan.name.toUpperCase().includes("JUNIOR")) {
     benefits.push("Junior Academy coaching access");
   }
-  benefits.push("Free trial session included");
   return benefits;
 }
 
@@ -126,18 +125,18 @@ export default async function PlansPage() {
 
                     <div className="mt-6 space-y-2">
                       <Link
-                        href="/trial"
+                        href="/signup"
                         className="block text-center py-2.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90"
                         style={{ background: "#0F2A1F", color: "#74C69D" }}
                       >
-                        Book a free trial
+                        Apply for Membership
                       </Link>
                       <Link
-                        href="/signup"
+                        href="/login?redirect=/member/book"
                         className="block text-center py-2.5 rounded-lg text-xs font-bold border transition-colors hover:bg-[#F0F4EF]"
                         style={{ borderColor: "#2D6A4F", color: "#0F2A1F" }}
                       >
-                        Apply for membership
+                        Book a Court
                       </Link>
                     </div>
                   </div>
@@ -154,12 +153,12 @@ export default async function PlansPage() {
           <h2 className="text-xl font-bold text-[#0F2A1F]">Common questions</h2>
           {[
             [
-              "Can I try before I join?",
-              "Yes — book a free one-hour trial session for any sport. No credit card required, just show up and play.",
+              "Can I book courts without a plan?",
+              "Yes — guests and walk-in members can book courts directly at standard non-member rates.",
             ],
             [
               "Are there family or couple plans?",
-              "We offer group rates for families of 3 or more. Contact us directly to discuss a custom package.",
+              "We offer group rates for families of 3 or more. Contact our concierge to discuss custom club packages.",
             ],
             [
               "What's included in the court discount?",

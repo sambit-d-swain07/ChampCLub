@@ -12,10 +12,10 @@ export default async function AdminCourtsPage({
   const { date } = await searchParams;
   const targetDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : formatKolkataDate(new Date());
 
-  const [availability, members] = await Promise.all([
+  const [availability, membersData] = await Promise.all([
     getCourtAvailability(targetDate),
-    searchMembers(""),
+    searchMembers("", 1, 100),
   ]);
 
-  return <CourtScheduleGrid initialDate={targetDate} data={availability} members={members} />;
+  return <CourtScheduleGrid initialDate={targetDate} data={availability} members={membersData.members} />;
 }

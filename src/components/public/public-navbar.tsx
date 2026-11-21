@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Trophy, Menu, X, ArrowRight } from "lucide-react";
+import { Trophy, Menu, X } from "lucide-react";
 
 export function PublicNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,20 +46,19 @@ export function PublicNavbar() {
           ))}
         </nav>
 
-        {/* Action Buttons */}
+        {/* Action Buttons: Sign in (outlined pill) & Sign up (filled lime pill) */}
         <div className="hidden sm:flex items-center gap-3">
           <Link
             href="/login"
             className="px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider text-[#F4F1EA] hover:text-[#C8F13A] border border-white/20 hover:border-[#C8F13A] transition-all"
           >
-            Member Login
+            Sign in
           </Link>
           <Link
-            href="/trial"
+            href="/signup"
             className="px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#C8F13A] text-[#07271D] hover:bg-[#d6fa55] transition-all shadow-md flex items-center gap-1.5"
           >
-            <span>Start Free Trial</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            Sign up
           </Link>
         </div>
 
@@ -94,14 +93,14 @@ export function PublicNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center py-3 rounded-full text-xs font-bold uppercase tracking-wider text-[#F4F1EA] border border-white/20"
             >
-              Member Login
+              Sign in
             </Link>
             <Link
-              href="/trial"
+              href="/signup"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center py-3 rounded-full text-xs font-bold uppercase tracking-wider bg-[#C8F13A] text-[#07271D]"
             >
-              Start Free Trial
+              Sign up
             </Link>
           </div>
         </div>

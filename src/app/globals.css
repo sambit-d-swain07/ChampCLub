@@ -103,6 +103,34 @@
   --sidebar-ring: #C8F13A;
 }
 
+/* Scoped Light Theme for Staff & Owner Admin Portal */
+.admin-portal {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #0B3B2C;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F8FAFC;
+  --muted-foreground: #64748B;
+  --accent: #F1F5F9;
+  --accent-foreground: #0B3B2C;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #0B3B2C;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif !important;
+}
+
+.admin-portal table {
+  font-variant-numeric: tabular-nums;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

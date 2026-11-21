@@ -92,11 +92,11 @@ export default function FacilitiesPage() {
           your session.
         </p>
         <Link
-          href="/trial"
-          className="mt-8 inline-block px-8 py-3 rounded-lg font-bold text-[#0F2A1F] text-sm transition-opacity hover:opacity-90"
+          href="/login?redirect=/member/book"
+          className="mt-8 inline-block px-8 py-3 rounded-full font-bold text-[#0F2A1F] text-sm transition-opacity hover:opacity-90"
           style={{ background: "#74C69D" }}
         >
-          Book your free trial
+          Book a Court
         </Link>
       </section>
 
@@ -163,15 +163,23 @@ export default function FacilitiesPage() {
       >
         <h2 className="text-2xl font-bold text-white mb-3">Ready to play?</h2>
         <p className="text-[#74C69D] text-sm mb-6">
-          Try any court for free — no membership required.
+          Book championship courts or apply for club membership today.
         </p>
-        <Link
-          href="/trial"
-          className="inline-block px-8 py-3 rounded-lg font-bold text-[#0F2A1F] text-sm"
-          style={{ background: "#74C69D" }}
-        >
-          Book your free trial
-        </Link>
+        <div className="flex flex-wrap justify-center gap-4">
+          <Link
+            href="/login?redirect=/member/book"
+            className="inline-block px-8 py-3 rounded-full font-bold text-[#0F2A1F] text-sm"
+            style={{ background: "#74C69D" }}
+          >
+            Book a Court
+          </Link>
+          <Link
+            href="/signup"
+            className="inline-block px-8 py-3 rounded-full font-bold text-white text-sm border border-white/30 hover:border-white"
+          >
+            Sign up
+          </Link>
+        </div>
       </section>
     </div>
   );

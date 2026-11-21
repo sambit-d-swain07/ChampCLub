@@ -4,6 +4,52 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
+export async function createWebsiteLeadAction(formData: FormData) {
+  try {
+    const name = (formData.get("name") as string)?.trim();
+    const contact = (formData.get("contact") as string)?.trim() || (formData.get("email") as string)?.trim();
+    const sport = (formData.get("sport") as string)?.trim();
+    const message = (formData.get("message") as string)?.trim();
+
+    if (!name) {
+      return { success: false, error: "Name is required" };
+    }
+
+    const email = contact?.includes("@") ? contact : null;
+    const phone = !contact?.includes("@") && contact ? contact : (formData.get("phone") as string)?.trim() || null;
+
+    const noteContent = [
+      sport ? `Sport of Interest: ${sport}` : null,
+      message ? `Message: ${message}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const lead = await prisma.lead.create({
+      data: {
+        name,
+        email,
+        phone,
+        source: "WEBSITE",
+        status: "NEW",
+        notes: noteContent || "Website inquiry from landing page contact form",
+      },
+    });
+
+    try {
+      revalidatePath("/admin/leads");
+      revalidatePath("/admin");
+    } catch {}
+
+    return { success: true, leadId: lead.id };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to submit inquiry",
+    };
+  }
+}
+
 async function requireStaffOrOwner() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");

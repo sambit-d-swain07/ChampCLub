@@ -29,7 +29,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 {[
                   ["Facilities", "/facilities"],
                   ["Membership Plans", "/plans"],
-                  ["Book a Trial", "/trial"],
+                  ["Apply for Membership", "/signup"],
                   ["Contact Us", "/contact"],
                   ["Sign In", "/login"],
                 ].map(([label, href]) => (
