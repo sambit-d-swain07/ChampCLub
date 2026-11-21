@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Shield,
   KeyRound,
+  User,
 } from "lucide-react";
 
 export function LoginForm() {
@@ -246,7 +247,7 @@ export function LoginForm() {
               <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2 text-center">
                 Quick Demo Fill
               </span>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={() => quickFill("owner@gmail.com", "Owner@123")}
@@ -267,6 +268,13 @@ export function LoginForm() {
                   className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
                 >
                   <KeyRound className="h-3 w-3 text-amber-600" /> Staff 2
+                </button>
+                <button
+                  type="button"
+                  onClick={() => quickFill("sachin@gmail.com", "Sachin@123")}
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-[#EDECCF] text-[#1B1B1B] text-[11px] font-semibold border border-[#1B1B1B]/20 transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
+                >
+                  <User className="h-3 w-3 text-emerald-600" /> Member
                 </button>
               </div>
             </div>
