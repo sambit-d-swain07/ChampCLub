@@ -1,14 +1,21 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/prisma";
+
+// Clean up any localhost environment variables in production runtime
+if (process.env.NODE_ENV === "production") {
+  if (process.env.BETTER_AUTH_URL?.includes("localhost")) {
+    delete process.env.BETTER_AUTH_URL;
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL?.includes("localhost")) {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+  }
+}
 
 const baseURL =
   process.env.NODE_ENV === "production"
-    ? (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes("localhost")
-        ? process.env.NEXT_PUBLIC_APP_URL
-        : (process.env.VERCEL_PROJECT_PRODUCTION_URL
-            ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-            : "https://champ-creator.vercel.app"))
+    ? "https://champ-creator.vercel.app"
     : (process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000");
 
 export const auth = betterAuth({
@@ -39,4 +46,10 @@ export const auth = betterAuth({
       },
     },
   },
+  advanced: {
+    useSecureCookies: process.env.NODE_ENV === "production",
+  },
+  plugins: [
+    nextCookies(),
+  ],
 });

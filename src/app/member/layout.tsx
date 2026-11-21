@@ -31,21 +31,32 @@ export default async function MemberLayout({
   });
 
   if (!member) {
-    // If somehow a member record wasn't created, initialize one
-    const memberCount = await prisma.member.count();
-    const membershipNo = `CC-2026-${String(memberCount + 1).padStart(3, "0")}`;
-    const qrToken = `QR-CC-${String(memberCount + 1).padStart(3, "0")}-${Math.random()
-      .toString(36)
-      .substring(2, 8)
-      .toUpperCase()}`;
+    try {
+      const memberCount = await prisma.member.count();
+      const membershipNo = `CC-2026-${String(memberCount + 1).padStart(3, "0")}`;
+      const qrToken = `QR-CC-${String(memberCount + 1).padStart(3, "0")}-${Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase()}`;
 
-    member = await prisma.member.create({
-      data: {
-        userId: user.id,
-        membershipNo,
-        qrToken,
-      },
-    });
+      member = await prisma.member.upsert({
+        where: { userId: user.id },
+        update: {},
+        create: {
+          userId: user.id,
+          membershipNo,
+          qrToken,
+        },
+      });
+    } catch {
+      member = await prisma.member.findUnique({
+        where: { userId: user.id },
+      });
+    }
+  }
+
+  if (!member) {
+    redirect("/login");
   }
 
   return (

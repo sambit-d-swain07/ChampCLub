@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
-import { getPostLoginRedirectAction } from "@/app/actions/members";
 import { CourtIllustration } from "@/components/public/court-illustration";
 import {
   ArrowRight,
@@ -42,9 +41,20 @@ export function LoginForm() {
     setError(null);
 
     try {
+      // Determine initial destination
+      let destination = "/member";
+      if (cleanEmail === "owner@gmail.com") {
+        destination = "/admin/owner";
+      } else if (cleanEmail.startsWith("staff")) {
+        destination = "/admin/members";
+      } else if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("/login")) {
+        destination = redirectParam;
+      }
+
       const res = await signIn.email({
         email: cleanEmail,
         password: loginPass,
+        callbackURL: destination,
       });
 
       if (res?.error) {
@@ -53,8 +63,15 @@ export function LoginForm() {
         return;
       }
 
-      // Resolve destination based on server-side role
-      const destination = await getPostLoginRedirectAction(cleanEmail, redirectParam);
+      // Check user role from login response if available
+      const returnedUser = (res?.data as any)?.user;
+      if (returnedUser?.role === "OWNER") {
+        destination = "/admin/owner";
+      } else if (returnedUser?.role === "STAFF") {
+        destination = "/admin/members";
+      } else if (!redirectParam && returnedUser?.role === "MEMBER") {
+        destination = "/member";
+      }
 
       // Full window navigation ensures cookies are committed to browser before server component render
       window.location.href = destination;
