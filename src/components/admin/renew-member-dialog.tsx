@@ -41,7 +41,7 @@ export function RenewMemberDialog({
     const res = await renewMemberAction(formData);
 
     if (!res.success) {
-      setError(res.error);
+      setError(res.error ?? null);
       setLoading(false);
       return;
     }

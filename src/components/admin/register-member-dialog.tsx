@@ -32,7 +32,7 @@ export function RegisterMemberDialog({ plans }: { plans: PlanItem[] }) {
     const res = await registerMemberAction(formData);
 
     if (!res.success) {
-      setError(res.error);
+      setError(res.error ?? null);
       setLoading(false);
       return;
     }

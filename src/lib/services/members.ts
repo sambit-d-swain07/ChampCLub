@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { resolve, EntitlementResult } from "@/lib/services/entitlement";
 import { hashPassword } from "better-auth/crypto";
-import { LedgerSource, PaymentMethod, LedgerKind } from "@prisma/client";
+
+type PaymentMethod = "CASH" | "CARD" | "UPI" | "ONLINE";
 
 export interface MemberListItem {
   id: string;
@@ -182,13 +183,12 @@ export async function createMemberService(data: {
 
   const membership = member.memberships[0];
 
-  // Record ledger entry
   await prisma.ledgerEntry.create({
     data: {
-      source: LedgerSource.MEMBERSHIP,
+      source: "MEMBERSHIP",
       amount: plan.price,
       method: data.paymentMethod,
-      kind: LedgerKind.COLLECTED,
+      kind: "COLLECTED",
       refType: "MEMBERSHIP",
       refId: membership.id,
       createdAt: startsAt,
@@ -239,10 +239,10 @@ export async function renewMemberService(data: {
 
   await prisma.ledgerEntry.create({
     data: {
-      source: LedgerSource.MEMBERSHIP,
+      source: "MEMBERSHIP",
       amount: plan.price,
       method: data.paymentMethod,
-      kind: LedgerKind.COLLECTED,
+      kind: "COLLECTED",
       refType: "MEMBERSHIP",
       refId: membership.id,
       createdAt: now,
