@@ -47,12 +47,12 @@ async function runVerification() {
     const failCount = (!b1.success ? 1 : 0) + (!b2.success ? 1 : 0);
 
     if (successCount === 1 && failCount === 1) {
+      const successfulId = (b1 as any).booking?.id || (b2 as any).booking?.id;
       console.log(`  ✓ SUCCESS: Exactly 1 booking succeeded and 1 was rejected.`);
-      console.log(`    - Successful booking: ${b1.success ? b1.bookingId : b2.bookingId}`);
+      console.log(`    - Successful booking: ${successfulId}`);
       console.log(`    - Rejected reason: ${b1.success ? b2.error : b1.error}`);
 
       // Clean up test booking
-      const successfulId = b1.success ? b1.bookingId : b2.bookingId;
       if (successfulId) {
         await prisma.booking.delete({ where: { id: successfulId } });
       }
@@ -152,7 +152,7 @@ async function runVerification() {
         where: { id: { notIn: occupiedTableIds } },
       });
       const openRes = await openTab({ tableId: freeTable?.id, guestName: "Verification Guest" });
-      targetTab = await prisma.tab.findUniqueOrThrow({ where: { id: openRes.tabId! } });
+      targetTab = await prisma.tab.findUniqueOrThrow({ where: { id: (openRes as any).tab?.id } });
     }
 
     const tabId = targetTab.id;
