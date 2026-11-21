@@ -51,6 +51,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
         { label: "Pro Shop", href: "/admin/shop", roles: ["OWNER", "STAFF"] },
         { label: "Champions Bar", href: "/admin/bar", roles: ["OWNER", "STAFF"] },
         { label: "Kitchen Board", href: "/kitchen", roles: ["OWNER", "STAFF"] },
+        { label: "Inventory", href: "/admin/inventory", roles: ["OWNER", "STAFF"] },
       ],
     },
     {

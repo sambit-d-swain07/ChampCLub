@@ -27,6 +27,17 @@ export function formatInr(amount: number | string | null | undefined): string {
 }
 
 /**
+ * Format currency with Indian number grouping and 2 decimal places: ₹1,70,782.10
+ */
+export function formatInrPrecise(amount: number | string | null | undefined): string {
+  const num = Number(amount || 0);
+  return `₹${num.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/**
  * Format dates as "22 Nov 2026"
  */
 export function formatClubDate(date: Date | string | null | undefined): string {

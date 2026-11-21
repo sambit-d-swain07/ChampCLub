@@ -146,6 +146,7 @@ export async function getTablesWithActiveTabs() {
 export async function getBarMenuItems() {
   await ensureBarSeedData();
   const items = await prisma.barItem.findMany({
+    where: { archivedAt: null },
     orderBy: [{ category: "asc" }, { name: "asc" }],
   });
 
@@ -267,6 +268,13 @@ export async function addOrderToTab(input: {
             throw new Error(`Insufficient stock for "${product.name}".`);
           }
 
+          // Record StockMovement
+          const smId = 'c_sm_b_' + Math.random().toString(36).substring(2, 12);
+          await tx.$executeRaw`
+            INSERT INTO "StockMovement" ("id", "itemType", "itemId", "type", "quantityChange", "unitCost", "note", "createdAt")
+            VALUES (${smId}, 'BAR', ${reqItem.barItemId}, 'SALE', ${-reqItem.quantity}, ${product.costPrice || 0}, 'Bar Tab Order', NOW())
+          `;
+
           const basePrice = Number(product.price);
           const itemDiscount = (basePrice * discountPct) / 100;
           const netPrice = Math.max(0, basePrice - itemDiscount);
@@ -366,6 +374,12 @@ export async function updateBarOrderStatus(
             where: { id: item.barItemId },
             data: { stockQty: { increment: item.quantity } },
           });
+
+          const smId = 'c_sm_b_c_' + Math.random().toString(36).substring(2, 12);
+          await tx.$executeRaw`
+            INSERT INTO "StockMovement" ("id", "itemType", "itemId", "type", "quantityChange", "unitCost", "note", "createdAt")
+            VALUES (${smId}, 'BAR', ${item.barItemId}, 'RETURN', ${item.quantity}, 0, 'Bar Order Cancelled', NOW())
+          `;
         }
         await tx.tab.update({
           where: { id: order.tabId },
@@ -374,7 +388,7 @@ export async function updateBarOrderStatus(
       }
 
       return updated;
-    }, { timeout: 15000, maxWait: 10000 });
+    }, { timeout: 20000, maxWait: 10000 });
 
     return { success: true, order: result };
   } catch (err: unknown) {
@@ -529,7 +543,7 @@ export async function payTab(input: {
         totalPaidNow: totalPaying,
         remainingBalance,
       };
-    }, { timeout: 15000, maxWait: 10000 });
+    }, { timeout: 20000, maxWait: 10000 });
 
     return { success: true, ...result };
   } catch (err: unknown) {

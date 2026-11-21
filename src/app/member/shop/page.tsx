@@ -2,16 +2,26 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { resolve } from "@/lib/services/entitlement";
+import { getShopProductsPaginated } from "@/lib/services/shop";
 import { MemberShop } from "@/components/shop/member-shop";
 
 export const dynamic = "force-dynamic";
 
-export default async function MemberShopPage() {
+export default async function MemberShopPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string; category?: string }>;
+}) {
   const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || "1", 10));
+  const query = params.q || "";
+  const category = params.category || "ALL";
 
   const member = (await prisma.member.findUnique({
     where: { userId: user.id },
@@ -29,34 +39,28 @@ export default async function MemberShopPage() {
     redirect("/login");
   }
 
-  // Resolve dynamic entitlement discount
-  const entitlement = await resolve(member.id, new Date());
-  const activePlanName = member.memberships[0]?.plan.name || "Standard";
-
-  // Fetch all products
-  const productsData = await prisma.product.findMany({
-    orderBy: [{ category: "asc" }, { name: "asc" }],
-  });
-
-  const products = productsData.map((p) => ({
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    price: Number(p.price),
-    stockQty: p.stockQty,
-  }));
-
-  // Fetch member's past shop orders
-  const pastOrdersData = await prisma.shopOrder.findMany({
-    where: { memberId: member.id },
-    include: {
-      items: {
-        include: { product: true },
+  // Resolve dynamic entitlement discount and fetch paginated products in parallel
+  const [entitlement, paginatedData, pastOrdersData] = await Promise.all([
+    resolve(member.id, new Date()),
+    getShopProductsPaginated({
+      page,
+      limit: 9,
+      query,
+      category,
+    }),
+    prisma.shopOrder.findMany({
+      where: { memberId: member.id },
+      include: {
+        items: {
+          include: { product: true },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  const activePlanName = member.memberships[0]?.plan?.name || "Standard";
 
   const pastOrders = pastOrdersData.map((o) => ({
     id: o.id,
@@ -72,9 +76,15 @@ export default async function MemberShopPage() {
   }));
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-8">
+    <div className="max-w-6xl mx-auto p-4 md:p-6">
       <MemberShop
-        products={products}
+        products={paginatedData.products}
+        totalProducts={paginatedData.total}
+        currentPage={paginatedData.page}
+        totalPages={paginatedData.totalPages}
+        categories={paginatedData.categories}
+        currentQuery={query}
+        currentCategory={category}
         discountPct={entitlement.shopDiscountPct}
         planName={activePlanName}
         pastOrders={pastOrders}

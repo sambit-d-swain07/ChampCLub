@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { resolve } from "@/lib/services/entitlement";
 import { Prisma } from "@prisma/client";
 
@@ -15,17 +15,25 @@ export interface PlaceOrderInput {
   fulfilment?: "PICKUP" | "DELIVERY";
   deliveryAddress?: string | null;
   paymentMethod?: "CASH" | "CARD" | "UPI" | "ONLINE";
+  clientRequestId?: string | null;
+}
+
+// In-memory idempotency cache for completed orders (5-minute TTL)
+const idempotencyCache = new Map<string, { order: any; timestamp: number }>();
+
+function cleanupIdempotencyCache() {
+  const now = Date.now();
+  for (const [key, value] of idempotencyCache.entries()) {
+    if (now - value.timestamp > 5 * 60 * 1000) {
+      idempotencyCache.delete(key);
+    }
+  }
 }
 
 /**
- * Places a shop order inside a single transaction.
- * Both COUNTER and ONLINE use this exact function.
- *
- * For each item line:
- * Runs atomic: UPDATE "Product" SET "stockQty" = "stockQty" - n WHERE "id" = ? AND "stockQty" >= n
- * Fails the entire order if any row fails to update (stock insufficient).
- * Snapshots price and discount per line.
- * Writes SHOP ledger entries (EARNED and COLLECTED).
+ * Places a shop order inside a single fast transaction.
+ * Reads are executed in parallel before entering the transaction.
+ * Writes are atomic and record StockMovement and LedgerEntry rows.
  */
 export async function placeOrder(input: PlaceOrderInput) {
   if (!input.items || input.items.length === 0) {
@@ -39,287 +47,274 @@ export async function placeOrder(input: PlaceOrderInput) {
     }
   }
 
+  // Idempotency check: if clientRequestId was already completed, return cached order
+  if (input.clientRequestId) {
+    cleanupIdempotencyCache();
+    const cached = idempotencyCache.get(input.clientRequestId);
+    if (cached) {
+      console.log(`[placeOrder] Returning cached order for idempotency key: ${input.clientRequestId}`);
+      return { success: true, order: cached.order };
+    }
+  }
+
   try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        // 1. Resolve member discount from entitlement engine
-        let discountPct = 0;
-        if (input.memberId) {
-          const ent = await resolve(input.memberId, new Date());
-          discountPct = ent.shopDiscountPct;
-        }
+    // 1. Parallel reads outside the transaction to minimize transaction hold time
+    const productIds = input.items.map((i) => i.productId);
+    const [entitlement, products] = await Promise.all([
+      input.memberId ? resolve(input.memberId, new Date()) : Promise.resolve(null),
+      prisma.product.findMany({
+        where: { id: { in: productIds }, archivedAt: null },
+      }),
+    ]);
 
-        // 2. Fetch all products to verify existence & price
-        const productIds = input.items.map((i) => i.productId);
-        const products = await tx.product.findMany({
-          where: { id: { in: productIds } },
-        });
+    const discountPct = entitlement?.shopDiscountPct || 0;
 
-        if (products.length !== productIds.length) {
-          throw new Error("One or more selected products no longer exist.");
-        }
+    if (products.length !== productIds.length) {
+      return { success: false, error: "One or more selected products are unavailable or out of stock." };
+    }
 
-        const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = new Map(products.map((p) => [p.id, p]));
 
-        // 3. Atomically decrement stock for EACH item
-        // UPDATE "Product" SET "stockQty" = "stockQty" - n WHERE "id" = ? AND "stockQty" >= n
-        const lineItemsData: Array<{
-          productId: string;
-          quantity: number;
-          priceSnapshot: number;
-          discountSnapshot: number;
-          lineTotal: number;
-        }> = [];
+    // Pre-calculate line items & total order amount
+    const lineItemsData: Array<{
+      productId: string;
+      quantity: number;
+      priceSnapshot: number;
+      discountSnapshot: number;
+      lineTotal: number;
+      costPrice: number;
+    }> = [];
 
-        let totalOrderAmount = 0;
+    let totalOrderAmount = 0;
 
-        for (const item of input.items) {
-          const product = productMap.get(item.productId)!;
+    for (const item of input.items) {
+      const product = productMap.get(item.productId)!;
+      if (product.stockQty < item.quantity) {
+        return {
+          success: false,
+          error: `Insufficient stock for "${product.name}". Requested ${item.quantity}, but only ${product.stockQty} in stock.`,
+        };
+      }
 
-          // Atomic stock decrement
-          const updateCount = await tx.$executeRaw`
-            UPDATE "Product"
-            SET "stockQty" = "stockQty" - ${item.quantity},
-                "updatedAt" = NOW()
-            WHERE "id" = ${item.productId}
-              AND "stockQty" >= ${item.quantity}
-          `;
+      const basePrice = Number(product.price);
+      const discountAmt = (basePrice * discountPct) / 100;
+      const netUnitPrice = Math.max(0, basePrice - discountAmt);
+      const lineTotal = netUnitPrice * item.quantity;
 
-          if (updateCount === 0) {
-            // Failed atomic check: insufficient stock!
-            throw new Error(
-              `Insufficient stock for "${product.name}". Available stock is less than requested quantity (${item.quantity}).`
-            );
+      totalOrderAmount += lineTotal;
+
+      lineItemsData.push({
+        productId: item.productId,
+        quantity: item.quantity,
+        priceSnapshot: basePrice,
+        discountSnapshot: discountAmt,
+        lineTotal,
+        costPrice: Number(product.costPrice || 0),
+      });
+    }
+
+    const isCounter = input.channel === "COUNTER";
+    const orderStatus = isCounter ? "COMPLETED" : "PENDING";
+    const fulfilment = input.fulfilment || "PICKUP";
+    const paymentMethod = input.paymentMethod || (isCounter ? "CASH" : "ONLINE");
+    const isCashOnline = !isCounter && paymentMethod === "CASH";
+
+    // 2. Execute short write transaction with automatic retry on connection errors only
+    const executeWriteTx = async () => {
+      return await prisma.$transaction(
+        async (tx) => {
+          // Atomic stock decrements + StockMovement recording
+          for (const item of input.items) {
+            const count = await tx.$executeRaw`
+              UPDATE "Product"
+              SET "stockQty" = "stockQty" - ${item.quantity},
+                  "updatedAt" = NOW()
+              WHERE "id" = ${item.productId}
+                AND "stockQty" >= ${item.quantity}
+            `;
+
+            if (count === 0) {
+              const p = productMap.get(item.productId);
+              throw new Error(`Insufficient stock for "${p?.name || item.productId}".`);
+            }
+
+            // Create StockMovement record
+            const smId = 'c_sm_s_' + Math.random().toString(36).substring(2, 12);
+            await tx.$executeRaw`
+              INSERT INTO "StockMovement" ("id", "itemType", "itemId", "type", "quantityChange", "unitCost", "note", "createdAt")
+              VALUES (${smId}, 'PRODUCT', ${item.productId}, 'SALE', ${-item.quantity}, ${productMap.get(item.productId)?.costPrice || 0}, ${'Order sale (' + input.channel + ')'}, NOW())
+            `;
           }
 
-          const basePrice = Number(product.price);
-          const discountAmt = (basePrice * discountPct) / 100;
-          const netUnitPrice = Math.max(0, basePrice - discountAmt);
-          const lineTotal = netUnitPrice * item.quantity;
-
-          totalOrderAmount += lineTotal;
-
-          lineItemsData.push({
-            productId: item.productId,
-            quantity: item.quantity,
-            priceSnapshot: basePrice,
-            discountSnapshot: discountAmt,
-            lineTotal,
+          // Create ShopOrder and ShopOrderItems
+          const order = await tx.shopOrder.create({
+            data: {
+              memberId: input.memberId || null,
+              channel: input.channel,
+              fulfilment,
+              status: orderStatus,
+              totalAmount: totalOrderAmount,
+              deliveryAddress: input.deliveryAddress || null,
+              paymentMethod: paymentMethod,
+              items: {
+                create: lineItemsData.map((line) => ({
+                  productId: line.productId,
+                  quantity: line.quantity,
+                  priceSnapshot: line.priceSnapshot,
+                  discountSnapshot: line.discountSnapshot,
+                })),
+              },
+            },
+            include: {
+              items: {
+                include: { product: true },
+              },
+              member: {
+                include: { user: true },
+              },
+            },
           });
-        }
 
-        // 4. Create ShopOrder and ShopOrderItems
-        const isCounter = input.channel === "COUNTER";
-        const orderStatus = isCounter ? "COMPLETED" : "PENDING";
-        const fulfilment = input.fulfilment || (isCounter ? "PICKUP" : "PICKUP");
-
-        const order = await tx.shopOrder.create({
-          data: {
-            memberId: input.memberId || null,
-            channel: input.channel,
-            fulfilment,
-            status: orderStatus,
-            totalAmount: totalOrderAmount,
-            items: {
-              create: lineItemsData.map((line) => ({
-                productId: line.productId,
-                quantity: line.quantity,
-                priceSnapshot: line.priceSnapshot,
-                discountSnapshot: line.discountSnapshot,
-              })),
-            },
-          },
-          include: {
-            items: {
-              include: { product: true },
-            },
-            member: {
-              include: { user: true },
-            },
-          },
-        });
-
-        // 5. Write SHOP Ledger Entries
-        const paymentMethod = input.paymentMethod || (isCounter ? "CASH" : "ONLINE");
-        const isCashOnline = !isCounter && paymentMethod === "CASH";
-
-        // EARNED — always written immediately
-        await tx.ledgerEntry.create({
-          data: {
-            source: "SHOP",
-            amount: totalOrderAmount,
-            method: paymentMethod,
-            kind: "EARNED",
-            refType: "SHOP_ORDER",
-            refId: order.id,
-            createdAt: new Date(),
-          },
-        });
-
-        // COLLECTED — written now for counter sales and non-CASH online payments.
-        // For CASH online orders, COLLECTED is written separately when staff marks order as handed over.
-        if (!isCashOnline) {
+          // Ledger Entry: EARNED (always recognized immediately)
           await tx.ledgerEntry.create({
             data: {
               source: "SHOP",
               amount: totalOrderAmount,
               method: paymentMethod,
-              kind: "COLLECTED",
+              kind: "EARNED",
               refType: "SHOP_ORDER",
               refId: order.id,
               createdAt: new Date(),
             },
           });
-        }
 
-        return order;
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
-        timeout: 10000,
-      }
-    );
+          // Ledger Entry: COLLECTED (recognized immediately except for cash-on-delivery online orders)
+          if (!isCashOnline) {
+            await tx.ledgerEntry.create({
+              data: {
+                source: "SHOP",
+                amount: totalOrderAmount,
+                method: paymentMethod,
+                kind: "COLLECTED",
+                refType: "SHOP_ORDER",
+                refId: order.id,
+                createdAt: new Date(),
+              },
+            });
+          }
 
-    return { success: true, order: result };
-  } catch (err: unknown) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed to place order.",
-    };
-  }
-}
-
-/**
- * Restocks a product by adding quantity.
- */
-export async function restockProduct(data: {
-  productId: string;
-  addQty: number;
-  staffUserId: string;
-}) {
-  if (data.addQty <= 0) {
-    return { success: false, error: "Restock quantity must be greater than zero." };
-  }
-
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      const product = await tx.product.update({
-        where: { id: data.productId },
-        data: {
-          stockQty: { increment: data.addQty },
+          return order;
         },
-      });
-
-      return product;
-    });
-
-    return { success: true, product: result };
-  } catch (err: unknown) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed to restock product.",
-    };
-  }
-}
-
-/**
- * Updates order status (e.g. PENDING -> COMPLETED or CANCELLED)
- */
-export async function updateOrderStatus(data: {
-  orderId: string;
-  status: "PENDING" | "COMPLETED" | "CANCELLED";
-  staffUserId?: string;
-}) {
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      const order = await tx.shopOrder.findUniqueOrThrow({
-        where: { id: data.orderId },
-        include: { items: true },
-      });
-
-      // If cancelling an order, restore product stock
-      if (data.status === "CANCELLED" && order.status !== "CANCELLED") {
-        for (const item of order.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stockQty: { increment: item.quantity } },
-          });
+        {
+          maxWait: 10000,
+          timeout: 20000,
         }
+      );
+    };
 
-        // Record refund in ledger
-        await tx.ledgerEntry.create({
-          data: {
-            source: "SHOP",
-            amount: order.totalAmount,
-            method: "ONLINE",
-            kind: "REFUNDED",
-            refType: "SHOP_ORDER",
-            refId: order.id,
-            createdAt: new Date(),
-          },
-        });
+    // Retry once automatically on transient DB connection errors only
+    let orderResult;
+    try {
+      orderResult = await executeWriteTx();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isConnError =
+        msg.includes("connection") ||
+        msg.includes("ECONNRESET") ||
+        msg.includes("ETIMEDOUT") ||
+        msg.includes("timeout") ||
+        msg.includes("timed out") ||
+        msg.includes("timeout exceeded when trying to connect");
+
+      if (isConnError) {
+        console.warn("[placeOrder] DB connection timeout, retrying once automatically:", msg);
+        orderResult = await executeWriteTx();
+      } else {
+        throw err;
       }
+    }
 
-      const updated = await tx.shopOrder.update({
-        where: { id: data.orderId },
-        data: { status: data.status },
-        include: { items: { include: { product: true } }, member: { include: { user: true } } },
+    // Cache completed order for idempotency
+    if (input.clientRequestId && orderResult) {
+      idempotencyCache.set(input.clientRequestId, {
+        order: orderResult,
+        timestamp: Date.now(),
       });
+    }
 
-      return updated;
-    });
-
-    return { success: true, order: result };
+    return { success: true, order: orderResult };
   } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Payment did not go through. Please try again.";
+    console.error("[placeOrder error]:", errorMsg);
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Failed to update order status.",
+      error: errorMsg.includes("Insufficient stock") ? errorMsg : "Payment did not go through. Please try again.",
     };
   }
 }
 
 /**
- * Returns inventory list with low-stock status and days-left estimate based on last 14 days sales.
+ * Returns paginated shop products with search and category filters.
+ * 9 products per page (3x3 grid).
  */
-export async function getShopInventory() {
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+export async function getShopProductsPaginated(params: {
+  page?: number;
+  limit?: number;
+  query?: string;
+  category?: string;
+}) {
+  const page = Math.max(1, params.page || 1);
+  const limit = params.limit || 9;
+  const skip = (page - 1) * limit;
 
-  const [products, recentSales] = await Promise.all([
+  const where: Prisma.ProductWhereInput = {
+    archivedAt: null,
+    ...(params.query
+      ? {
+          OR: [
+            { name: { contains: params.query.trim(), mode: "insensitive" } },
+            { category: { contains: params.query.trim(), mode: "insensitive" } },
+            { sku: { contains: params.query.trim(), mode: "insensitive" } },
+          ],
+        }
+      : {}),
+    ...(params.category && params.category !== "ALL"
+      ? { category: { equals: params.category, mode: "insensitive" } }
+      : {}),
+  };
+
+  const [products, total, allCategories] = await Promise.all([
     prisma.product.findMany({
+      where,
       orderBy: [{ category: "asc" }, { name: "asc" }],
+      skip,
+      take: limit,
     }),
-    prisma.shopOrderItem.groupBy({
-      by: ["productId"],
-      where: {
-        createdAt: { gte: fourteenDaysAgo },
-        order: { status: { in: ["COMPLETED", "PENDING"] } },
-      },
-      _sum: {
-        quantity: true,
-      },
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where: { archivedAt: null },
+      select: { category: true },
+      distinct: ["category"],
     }),
   ]);
 
-  const salesMap = new Map(recentSales.map((s) => [s.productId, s._sum.quantity || 0]));
-
-  return products.map((p) => {
-    const soldLast14d = salesMap.get(p.id) || 0;
-    const dailyVelocity = soldLast14d / 14;
-    const daysLeft = dailyVelocity > 0 ? Math.round(p.stockQty / dailyVelocity) : null;
-    const isLowStock = p.stockQty <= p.reorderLevel;
-
-    return {
+  return {
+    products: products.map((p) => ({
       id: p.id,
+      sku: p.sku || "",
       name: p.name,
       category: p.category,
       price: Number(p.price),
+      costPrice: Number(p.costPrice || 0),
       stockQty: p.stockQty,
       reorderLevel: p.reorderLevel,
-      isLowStock,
-      soldLast14d,
-      daysLeft,
-    };
-  });
+      isLowStock: p.stockQty <= p.reorderLevel,
+    })),
+    total,
+    page,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+    categories: Array.from(new Set(allCategories.map((c) => c.category))).sort(),
+  };
 }
 
 /**
@@ -331,7 +326,6 @@ export async function getCourtGearUpQueue() {
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
-  // Confirmed bookings today
   const bookings = await prisma.booking.findMany({
     where: {
       startsAt: { gte: startOfDay, lte: endOfDay },
@@ -380,8 +374,120 @@ export async function getGearUpItems() {
     where: {
       category: { in: ["Balls", "Accessories", "Strings"] },
       stockQty: { gt: 0 },
+      archivedAt: null,
     },
     take: 6,
     orderBy: { stockQty: "desc" },
   });
+}
+
+/**
+ * Restocks a product (legacy helper; forward to inventory or update stock)
+ */
+export async function restockProduct(data: {
+  productId: string;
+  addQty: number;
+  staffUserId: string;
+}) {
+  if (data.addQty <= 0) {
+    return { success: false, error: "Restock quantity must be greater than zero." };
+  }
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const product = await tx.product.update({
+          where: { id: data.productId },
+          data: {
+            stockQty: { increment: data.addQty },
+          },
+        });
+
+        const smId = 'c_sm_r_' + Math.random().toString(36).substring(2, 12);
+        await tx.$executeRaw`
+          INSERT INTO "StockMovement" ("id", "itemType", "itemId", "type", "quantityChange", "unitCost", "note", "createdById", "createdAt")
+          VALUES (${smId}, 'PRODUCT', ${data.productId}, 'PURCHASE', ${data.addQty}, ${product.costPrice || 0}, 'Product restock', ${data.staffUserId}, NOW())
+        `;
+
+        return product;
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      }
+    );
+
+    return { success: true, product: result };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to restock product.",
+    };
+  }
+}
+
+/**
+ * Updates order status (e.g. PENDING -> COMPLETED or CANCELLED)
+ */
+export async function updateOrderStatus(data: {
+  orderId: string;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+  staffUserId?: string;
+}) {
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const order = await tx.shopOrder.findUniqueOrThrow({
+          where: { id: data.orderId },
+          include: { items: true },
+        });
+
+        if (data.status === "CANCELLED" && order.status !== "CANCELLED") {
+          for (const item of order.items) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stockQty: { increment: item.quantity } },
+            });
+
+            const smId = 'c_sm_c_' + Math.random().toString(36).substring(2, 12);
+            await tx.$executeRaw`
+              INSERT INTO "StockMovement" ("id", "itemType", "itemId", "type", "quantityChange", "unitCost", "note", "createdAt")
+              VALUES (${smId}, 'PRODUCT', ${item.productId}, 'RETURN', ${item.quantity}, 0, 'Order cancelled restock', NOW())
+            `;
+          }
+
+          await tx.ledgerEntry.create({
+            data: {
+              source: "SHOP",
+              amount: order.totalAmount,
+              method: order.paymentMethod,
+              kind: "REFUNDED",
+              refType: "SHOP_ORDER",
+              refId: order.id,
+              createdAt: new Date(),
+            },
+          });
+        }
+
+        const updated = await tx.shopOrder.update({
+          where: { id: data.orderId },
+          data: { status: data.status },
+          include: { items: { include: { product: true } }, member: { include: { user: true } } },
+        });
+
+        return updated;
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      }
+    );
+
+    return { success: true, order: result };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to update order status.",
+    };
+  }
 }

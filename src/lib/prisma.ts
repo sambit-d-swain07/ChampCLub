@@ -40,9 +40,9 @@ export const pool =
   globalForPrisma.pool ||
   new Pool({
     connectionString,
-    max: 1, // Single connection per serverless function to prevent pool exhaustion on Vercel
-    idleTimeoutMillis: 5000, // Release idle connection quickly (5s)
-    connectionTimeoutMillis: 8000,
+    max: 5, // Allow up to 5 concurrent connections for serverless functions
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 15000, // at least 15s connection timeout
   });
 
 // Handle idle connection drops gracefully so they don't cause 500 errors
@@ -84,7 +84,10 @@ export async function withDbRetry<T>(
         msg.includes("timeout") ||
         msg.includes("closed") ||
         msg.includes("SASL") ||
-        msg.includes("EMAXCONN");
+        msg.includes("EMAXCONN") ||
+        msg.includes("timed out") ||
+        msg.includes("Connection terminated") ||
+        msg.includes("timeout exceeded when trying to connect");
 
       if (attempt > retries || !isTransient) {
         throw err;

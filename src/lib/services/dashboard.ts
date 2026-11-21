@@ -71,14 +71,16 @@ export async function getDashboardMetrics() {
       prisma.product.findMany({
         where: {
           stockQty: { lte: 10 },
+          archivedAt: null,
         },
-        take: 5,
+        take: 8,
       }),
       prisma.barItem.findMany({
         where: {
           stockQty: { lte: 25 },
+          archivedAt: null,
         },
-        take: 5,
+        take: 8,
       }),
     ]);
 

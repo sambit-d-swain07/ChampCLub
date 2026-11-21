@@ -250,12 +250,13 @@ model Membership {
 
 // ----------------- Courts & Bookings -----------------
 model Court {
-  id        String   @id @default(cuid())
-  name      String
-  sport     String // TENNIS, PADEL, BADMINTON
-  capacity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  name       String
+  sport      String // TENNIS, PADEL, BADMINTON
+  capacity   Int
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   bookings Booking[]
 }
@@ -316,14 +317,17 @@ model BookingParticipant {
 
 // ----------------- Shop / Inventory -----------------
 model Product {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
+  sku          String?   @unique
   name         String
   category     String
-  price        Decimal  @db.Decimal(10, 2)
+  price        Decimal   @db.Decimal(10, 2)
+  costPrice    Decimal   @default(0) @db.Decimal(10, 2)
   stockQty     Int
   reorderLevel Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   orderItems ShopOrderItem[]
 }
@@ -367,16 +371,49 @@ model ShopOrderItem {
 
 // ----------------- Bar / F&B -----------------
 model BarItem {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
+  sku          String?   @unique
   name         String
   category     String
-  price        Decimal  @db.Decimal(10, 2)
+  price        Decimal   @db.Decimal(10, 2)
+  costPrice    Decimal   @default(0) @db.Decimal(10, 2)
   stockQty     Int
   reorderLevel Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   orderItems BarOrderItem[]
+}
+
+enum StockItemType {
+  PRODUCT
+  BAR
+}
+
+enum StockMovementType {
+  PURCHASE
+  ADJUSTMENT
+  DAMAGE
+  RETURN
+  SALE
+  OPENING
+}
+
+model StockMovement {
+  id             String            @id @default(cuid())
+  itemType       StockItemType
+  itemId         String
+  type           StockMovementType
+  quantityChange Int
+  unitCost       Decimal?          @db.Decimal(10, 2)
+  note           String?
+  supplier       String?
+  createdById    String?
+  createdAt      DateTime          @default(now())
+
+  @@index([itemType, itemId])
+  @@index([createdAt])
 }
 
 model BarTable {

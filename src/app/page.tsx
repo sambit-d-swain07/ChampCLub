@@ -28,11 +28,13 @@ export default async function HomePage() {
     ),
     withDbRetry(() =>
       prisma.court.findMany({
+        where: { archivedAt: null },
         orderBy: [{ sport: "asc" }, { name: "asc" }],
       })
     ),
     withDbRetry(() =>
       prisma.product.findMany({
+        where: { archivedAt: null },
         select: { category: true },
         distinct: ["category"],
         orderBy: { category: "asc" },

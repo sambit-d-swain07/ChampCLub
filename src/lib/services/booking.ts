@@ -663,6 +663,7 @@ export async function getCourtAvailability(dateStr: string) {
 
   const [courts, pricingRules, bookings] = await Promise.all([
     prisma.court.findMany({
+      where: { archivedAt: null },
       orderBy: { name: "asc" },
     }),
     prisma.pricingRule.findMany(),

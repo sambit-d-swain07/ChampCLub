@@ -30,6 +30,7 @@ export async function placeCounterOrderAction(data: {
   memberId?: string | null;
   guestName?: string | null;
   paymentMethod: "CASH" | "CARD" | "UPI" | "ONLINE";
+  clientRequestId?: string | null;
 }) {
   try {
     if (data.memberId) {
@@ -51,7 +52,10 @@ export async function placeCounterOrderAction(data: {
       paymentMethod: data.paymentMethod,
     });
 
-    const result = await placeOrder(parsed);
+    const result = await placeOrder({
+      ...parsed,
+      clientRequestId: data.clientRequestId,
+    });
 
     if (result.success) {
       revalidatePath("/admin/shop");
@@ -60,9 +64,10 @@ export async function placeCounterOrderAction(data: {
 
     return result;
   } catch (error: unknown) {
+    console.error("[placeCounterOrderAction error]:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to process counter sale",
+      error: "Payment did not go through. Please try again.",
     };
   }
 }
@@ -72,6 +77,7 @@ export async function placeOnlineOrderAction(data: {
   fulfilment: "PICKUP" | "DELIVERY";
   deliveryAddress?: string | null;
   paymentMethod?: "CASH" | "CARD" | "UPI";
+  clientRequestId?: string | null;
 }) {
   try {
     const user = await getCurrentUser();
@@ -97,7 +103,10 @@ export async function placeOnlineOrderAction(data: {
       paymentMethod: data.paymentMethod || "CASH",
     });
 
-    const result = await placeOrder(parsed);
+    const result = await placeOrder({
+      ...parsed,
+      clientRequestId: data.clientRequestId,
+    });
 
     if (result.success) {
       revalidatePath("/member/shop");
@@ -107,9 +116,10 @@ export async function placeOnlineOrderAction(data: {
 
     return result;
   } catch (error: unknown) {
+    console.error("[placeOnlineOrderAction error]:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to place online order",
+      error: "Payment did not go through. Please try again.",
     };
   }
 }

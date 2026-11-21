@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { getDashboardMetrics } from "@/lib/services/dashboard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, CalendarCheck, IndianRupee, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { formatInrPrecise } from "@/lib/site-settings";
 
 // Lazy-load Recharts bundle to keep initial page payload tiny
 const RevenueChart = nextDynamic(
@@ -23,173 +23,148 @@ const RevenueChart = nextDynamic(
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  console.time("[Route: /admin] Total session + metrics");
   const user = await getCurrentUser();
   const role = (user as { role?: string })?.role || "MEMBER";
 
-  // STAFF is blocked from the Owner Dashboard (financial metrics & revenue overview)
+  // STAFF is blocked from the Owner Dashboard
   if (role !== "OWNER") {
     redirect("/admin/members");
   }
 
-  console.time("[Route: /admin] getDashboardMetrics");
   const metrics = await getDashboardMetrics();
-  console.timeEnd("[Route: /admin] getDashboardMetrics");
-  console.timeEnd("[Route: /admin] Total session + metrics");
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Club Overview & Operations</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-xl font-bold tracking-tight text-[#0F172A]">Club Overview & Operations</h1>
+        <p className="text-xs text-[#64748B] mt-0.5">
           Live pulse across court bookings, pro shop sales, Champions bar tabs, and memberships.
         </p>
       </div>
 
-      {/* Top 4 KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Active Members</CardTitle>
-            <Users className="h-4 w-4 text-emerald-600" />
+      {/* Top 3 KPI Cards - Rebalanced 3-column grid without Expiring in 7 Days */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="shadow-none border border-[#E2E8F0] bg-white">
+          <CardHeader className="pb-1 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              Active Members
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.memberCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">Across Gold, Silver & Junior plans</p>
+          <CardContent className="px-5 pb-4">
+            <div className="text-2xl font-bold text-[#0F172A]">{metrics.memberCount}</div>
+            <p className="text-xs text-[#64748B] mt-0.5">Across Gold, Silver & Junior plans</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">30-Day Revenue</CardTitle>
-            <IndianRupee className="h-4 w-4 text-emerald-600" />
+        <Card className="shadow-none border border-[#E2E8F0] bg-white">
+          <CardHeader className="pb-1 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              30-Day Revenue
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{metrics.totalRevenue.toLocaleString("en-IN")}</div>
-            <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1 font-medium">
-              <ArrowUpRight className="h-3 w-3" /> All modules aggregated
-            </p>
+          <CardContent className="px-5 pb-4">
+            <div className="text-2xl font-bold text-[#0F172A]">{formatInrPrecise(metrics.totalRevenue)}</div>
+            <p className="text-xs text-[#64748B] mt-0.5">All operating departments combined</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Recent Bookings</CardTitle>
-            <CalendarCheck className="h-4 w-4 text-blue-600" />
+        <Card className="shadow-none border border-[#E2E8F0] bg-white">
+          <CardHeader className="pb-1 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              Recent Bookings
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.activeBookingsCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">Tennis, Padel & Badminton</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Expiring in 7 Days</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.expiringMemberships.length}</div>
-            <p className="text-xs text-amber-600 mt-1 font-medium">Critical renewal alert window</p>
+          <CardContent className="px-5 pb-4">
+            <div className="text-2xl font-bold text-[#0F172A]">{metrics.activeBookingsCount}</div>
+            <p className="text-xs text-[#64748B] mt-0.5">Tennis, Padel & Badminton sessions</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Revenue Chart & Expiring Memberships */}
-      <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Revenue Distribution (Last 30 Days)</CardTitle>
-            <CardDescription className="text-xs">
-              Live ledger collections by club division: Courts, Pro Shop, Bar, Memberships.
-            </CardDescription>
+      {/* Revenue Chart & Dedicated Low Stock Watch Card */}
+      <div className="grid gap-6 lg:grid-cols-7">
+        <Card className="lg:col-span-4 shadow-none border border-[#E2E8F0] bg-white">
+          <CardHeader className="px-5 pt-4 pb-2">
+            <CardTitle className="text-sm font-semibold text-[#0F172A]">Revenue Distribution (Last 30 Days)</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 pb-4">
             <RevenueChart data={metrics.revenueChartData} />
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-3 shadow-sm flex flex-col justify-between">
+        <Card className="lg:col-span-3 shadow-none border border-[#E2E8F0] bg-white flex flex-col justify-between">
           <div>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                Expiring in 7 Days
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Members needing immediate renewal notice within 7 days.
-              </CardDescription>
+            <CardHeader className="px-5 pt-4 pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-[#0F172A]">Low Stock Watch</CardTitle>
+              <Link href="/admin/inventory" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+                Manage Inventory
+              </Link>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {metrics.expiringMemberships.map((m) => {
-                const daysLeft = Math.ceil(
-                  (new Date(m.endsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-                );
-                return (
-                  <div key={m.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-                    <div>
-                      <div className="text-xs font-semibold">{m.member.user?.name || `Member ${m.member.membershipNo}`}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {m.member.membershipNo} • <Badge variant="outline" className="text-[10px]">{m.plan.name}</Badge>
+            <CardContent className="px-5 pb-4">
+              {metrics.lowStockAlerts.length === 0 ? (
+                <div className="text-xs text-[#64748B] py-6 text-center">
+                  All inventory items are currently above their reorder thresholds.
+                </div>
+              ) : (
+                <div className="divide-y divide-[#F1F5F9]">
+                  {metrics.lowStockAlerts.slice(0, 6).map((item) => (
+                    <div key={item.id} className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0">
+                      <div>
+                        <div className="text-xs font-semibold text-[#0F172A]">{item.name}</div>
+                        <div className="text-[11px] text-[#64748B]">
+                          {item.type} • Reorder level: {item.reorderLevel}
+                        </div>
                       </div>
+                      <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                        {item.stockQty} left
+                      </span>
                     </div>
-                    <Badge variant="destructive" className="text-[10px]">
-                      {daysLeft}d remaining
-                    </Badge>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+              )}
             </CardContent>
           </div>
-
-          <div className="p-4 bg-muted/40 border-t rounded-b-lg">
-            <div className="text-xs font-medium text-foreground mb-1">Low Stock Watch</div>
-            <div className="flex flex-wrap gap-1.5">
-              {metrics.lowStockAlerts.map((alert) => (
-                <span
-                  key={alert.id}
-                  className="text-[10px] bg-background border px-2 py-0.5 rounded text-muted-foreground"
-                >
-                  {alert.name} ({alert.stockQty} left)
-                </span>
-              ))}
-            </div>
+          <div className="p-3 bg-[#F8FAFC] border-t border-[#E2E8F0] rounded-b-lg flex items-center justify-between">
+            <span className="text-xs text-[#64748B]">Restock actions and history</span>
+            <Link href="/admin/inventory" prefetch={false} className="text-xs font-semibold text-[#23513C] hover:underline">
+              Open Inventory &rarr;
+            </Link>
           </div>
         </Card>
       </div>
 
       {/* Bookings & Ledger Tables */}
-      <div className="grid gap-6 md:grid-cols-2">        {/* Recent Bookings */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Recent Court Schedule</CardTitle>
-            <CardDescription className="text-xs">Latest bookings across tennis, padel and badminton courts.</CardDescription>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Recent Bookings */}
+        <Card className="shadow-none border border-[#E2E8F0] bg-white">
+          <CardHeader className="px-5 pt-4 pb-2">
+            <CardTitle className="text-sm font-semibold text-[#0F172A]">Recent Court Schedule</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 pb-4">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Court</TableHead>
-                  <TableHead className="text-xs">Member</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-right">Price</TableHead>
+                <TableRow className="border-[#E2E8F0]">
+                  <TableHead className="text-xs text-[#64748B]">Court</TableHead>
+                  <TableHead className="text-xs text-[#64748B]">Member</TableHead>
+                  <TableHead className="text-xs text-[#64748B]">Status</TableHead>
+                  <TableHead className="text-xs text-[#64748B] text-right">Price</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {metrics.recentBookings.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell className="text-xs font-medium">{b.court.name.split(" (")[0]}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                  <TableRow key={b.id} className="border-[#F1F5F9]">
+                    <TableCell className="text-xs font-medium text-[#0F172A]">{b.court.name.split(" (")[0]}</TableCell>
+                    <TableCell className="text-xs text-[#64748B]">
                       {b.member?.user?.name || b.guestName || "Guest"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge variant="secondary" className="text-[10px] font-normal">
                         {b.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-medium text-right">
-                      ₹{(Number(b.priceSnapshot) - Number(b.discountSnapshot)).toFixed(0)}
+                    <TableCell className="text-xs font-medium text-right text-[#0F172A]">
+                      {formatInrPrecise(Number(b.priceSnapshot) - Number(b.discountSnapshot))}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -199,44 +174,41 @@ export default async function AdminDashboardPage() {
         </Card>
 
         {/* Recent Ledger Entries */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Live Financial Ledger</CardTitle>
-            <CardDescription className="text-xs">Audited transactions recorded directly to the ledger.</CardDescription>
+        <Card className="shadow-none border border-[#E2E8F0] bg-white">
+          <CardHeader className="px-5 pt-4 pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-semibold text-[#0F172A]">Live Financial Ledger</CardTitle>
+            <Link href="/admin/transactions" prefetch={false} className="text-xs font-medium text-[#23513C] hover:underline">
+              All Transactions
+            </Link>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 pb-4">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Source</TableHead>
-                  <TableHead className="text-xs">Method</TableHead>
-                  <TableHead className="text-xs">Kind</TableHead>
-                  <TableHead className="text-xs text-right">Amount</TableHead>
+                <TableRow className="border-[#E2E8F0]">
+                  <TableHead className="text-xs text-[#64748B]">Source</TableHead>
+                  <TableHead className="text-xs text-[#64748B]">Method</TableHead>
+                  <TableHead className="text-xs text-[#64748B]">Kind</TableHead>
+                  <TableHead className="text-xs text-[#64748B] text-right">Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {metrics.recentLedger.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell className="text-xs font-semibold">
-                      <Badge
-                        variant="outline"
-                        className={
-                          l.source === "COURT"
-                            ? "border-blue-500 text-blue-700"
-                            : l.source === "SHOP"
-                              ? "border-emerald-500 text-emerald-700"
-                              : l.source === "BAR"
-                                ? "border-amber-500 text-amber-700"
-                                : "border-purple-500 text-purple-700"
-                        }
-                      >
-                        {l.source}
-                      </Badge>
+                  <TableRow key={l.id} className="border-[#F1F5F9]">
+                    <TableCell className="text-xs font-medium text-[#0F172A]">
+                      {l.source}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{l.method}</TableCell>
-                    <TableCell className="text-xs">{l.kind}</TableCell>
-                    <TableCell className="text-xs font-semibold text-right">
-                      ₹{Number(l.amount).toLocaleString("en-IN")}
+                    <TableCell className="text-xs text-[#64748B]">{l.method}</TableCell>
+                    <TableCell className="text-xs">
+                      <span className={
+                        l.kind === "COLLECTED" ? "text-emerald-700 font-medium" :
+                        l.kind === "EARNED" ? "text-blue-700 font-medium" :
+                        "text-red-700 font-medium"
+                      }>
+                        {l.kind}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs font-semibold text-right text-[#0F172A]">
+                      {formatInrPrecise(Number(l.amount))}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -245,8 +217,6 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-
     </div>
   );
 }
