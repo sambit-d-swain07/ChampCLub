@@ -72,7 +72,7 @@ export default async function MemberLayout({
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="font-anton text-[22px] tracking-normal text-[#111111] uppercase hover:opacity-85 transition-opacity"
+            className="font-brand font-extrabold text-[19px] tracking-tight text-[#111111] uppercase hover:opacity-85 transition-opacity"
           >
             CHAMPIONS CLUB
           </Link>

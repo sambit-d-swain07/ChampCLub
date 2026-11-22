@@ -31,6 +31,8 @@ interface Props {
   userName: string;
   currentMembership?: CurrentMembership | null;
   memberDob?: string | null;
+  isAgeVerified?: boolean;
+  isJuniorUnverified?: boolean;
 }
 
 function fmtDate(d: string | Date) {
@@ -45,7 +47,14 @@ function calcAge(dobStr: string): number | null {
   return Math.abs(new Date(diff).getUTCFullYear() - 1970);
 }
 
-export function ChoosePlanView({ plans, userName, currentMembership, memberDob }: Props) {
+export function ChoosePlanView({
+  plans,
+  userName,
+  currentMembership,
+  memberDob,
+  isAgeVerified,
+  isJuniorUnverified: propJuniorUnverified,
+}: Props) {
   const router = useRouter();
   const [dob, setDob] = useState<string>(memberDob ? new Date(memberDob).toISOString().split("T")[0] : "");
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
@@ -54,6 +63,14 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ scheduled?: boolean; startsOn?: string; planName?: string; upgraded?: boolean; amountDue?: number; credit?: number } | null>(null);
 
+  const isJuniorUnverified =
+    propJuniorUnverified ??
+    Boolean(
+      currentMembership &&
+      currentMembership.planName.toUpperCase().includes("JUNIOR") &&
+      !isAgeVerified
+    );
+
   const currentAge = dob ? calcAge(dob) : memberDob ? calcAge(memberDob) : null;
   const isJuniorEligible = currentAge !== null && currentAge < 18;
 
@@ -61,22 +78,27 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
   const currentPlan = currentMembership ? plans.find((p) => p.id === currentMembership.planId) : null;
 
   function getPlanState(plan: PlanItem): "current" | "upgrade" | "downgrade" | "unavailable" {
+    if (currentMembership && currentMembership.planId === plan.id) return "current";
+    if (isJuniorUnverified) return "unavailable";
     const isJunior = plan.name.toUpperCase().includes("JUNIOR");
     if (isJunior && currentAge !== null && currentAge >= 18) return "unavailable";
     if (!currentMembership) return "upgrade";
-    if (currentMembership.planId === plan.id) return "current";
     if (plan.price > (currentPlan?.price ?? 0)) return "upgrade";
     return "downgrade";
   }
 
   function getUpgradeDetails(plan: PlanItem) {
-    if (!currentMembership) return { credit: 0, amountDue: plan.price };
+    if (!currentMembership || isJuniorUnverified) return { credit: 0, amountDue: plan.price };
     const credit = Number(currentMembership.pricePaid);
     const amountDue = Math.max(0, plan.price - credit);
     return { credit, amountDue };
   }
 
   function handleSelectPlan(planId: string) {
+    if (isJuniorUnverified) {
+      setError("Age verification required. You cannot renew or change plans until club staff verifies your age at the front desk.");
+      return;
+    }
     const st = getPlanState(plans.find((p) => p.id === planId)!);
     if (st === "current" || st === "unavailable") return;
     setSelectedPlanId(planId);
@@ -208,6 +230,23 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
         </div>
       )}
 
+      {isJuniorUnverified && (
+        <div className="max-w-3xl mx-auto p-5 rounded-[16px] bg-amber-50 border border-amber-300 text-amber-950">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
+            <div>
+              <h4 className="font-bold text-sm text-amber-900">Age Verification Required</h4>
+              <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                Your Junior membership is pending age verification. You cannot renew, change plans, or claim membership credit until club staff verifies your age at the front desk with a valid document (School ID, Aadhaar, or Birth Certificate).
+              </p>
+              <p className="text-xs text-amber-700 mt-1.5 font-medium">
+                Unverified Junior memberships will be automatically cancelled and refunded after 7 days.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="max-w-md mx-auto p-4 rounded-[14px] bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
@@ -306,6 +345,8 @@ export function ChoosePlanView({ plans, userName, currentMembership, memberDob }
                 >
                   {isCurrent
                     ? "Active Tier"
+                    : isJuniorUnverified
+                    ? "Verification Required"
                     : isUnavailable
                     ? "Not Eligible"
                     : state === "upgrade" && currentMembership

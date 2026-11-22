@@ -484,7 +484,7 @@ export default async function HomePage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-[#E6E6E6]">
             <Link
               href="/"
-              className="font-anton text-[28px] uppercase tracking-normal text-[#111111] select-none hover:opacity-85 transition-opacity"
+              className="font-brand font-extrabold text-[22px] tracking-tight uppercase text-[#111111] select-none hover:opacity-85 transition-opacity"
             >
               CHAMPIONS CLUB
             </Link>

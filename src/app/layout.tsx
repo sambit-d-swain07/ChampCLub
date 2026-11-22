@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { Anton, Inter } from "next/font/google";
+import { Anton, Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const anton = Anton({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-anton",
+  display: "swap",
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-brand",
   display: "swap",
 });
 
@@ -36,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${anton.variable} ${inter.variable} h-full antialiased scroll-smooth`}
+      className={`${anton.variable} ${plusJakartaSans.variable} ${inter.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col font-sans bg-white text-[#111111]">
         {children}

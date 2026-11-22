@@ -57,6 +57,12 @@ export default async function ChoosePlanPage() {
       }
     : null;
 
+  const isCurrentJunior = Boolean(
+    activeMembership && activeMembership.plan.name.toUpperCase().includes("JUNIOR")
+  );
+  const isAgeVerified = Boolean(member.ageVerifiedAt);
+  const isJuniorUnverified = isCurrentJunior && !isAgeVerified;
+
   return (
     <div className="min-h-screen bg-[#F6F5E1] text-[#1B1B1B] py-12 px-6">
       <ChoosePlanView
@@ -64,6 +70,8 @@ export default async function ChoosePlanPage() {
         userName={user.name}
         currentMembership={currentMembership}
         memberDob={member.dateOfBirth ? member.dateOfBirth.toISOString() : null}
+        isAgeVerified={isAgeVerified}
+        isJuniorUnverified={isJuniorUnverified}
       />
     </div>
   );

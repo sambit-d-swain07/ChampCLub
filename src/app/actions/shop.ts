@@ -10,20 +10,38 @@ import {
   updateOrderStatus,
 } from "@/lib/services/shop";
 
-const placeOrderSchema = z.object({
-  items: z.array(
-    z.object({
-      productId: z.string().min(1),
-      quantity: z.number().int().positive(),
-    })
-  ).min(1, "Order must contain at least one item"),
-  channel: z.enum(["COUNTER", "ONLINE"]),
-  memberId: z.string().optional().nullable(),
-  guestName: z.string().optional().nullable(),
-  fulfilment: z.enum(["PICKUP", "DELIVERY"]).optional(),
-  deliveryAddress: z.string().optional().nullable(),
-  paymentMethod: z.enum(["CASH", "CARD", "UPI", "ONLINE"]).optional(),
-});
+const placeOrderSchema = z
+  .object({
+    items: z
+      .array(
+        z.object({
+          productId: z.string().min(1),
+          quantity: z.number().int().positive(),
+        })
+      )
+      .min(1, "Order must contain at least one item"),
+    channel: z.enum(["COUNTER", "ONLINE"]),
+    memberId: z.string().optional().nullable(),
+    guestName: z.string().optional().nullable(),
+    fulfilment: z.enum(["PICKUP", "DELIVERY"]).optional(),
+    deliveryAddress: z.string().optional().nullable(),
+    paymentMethod: z.enum(["CASH", "CARD", "UPI", "ONLINE"]).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.fulfilment === "DELIVERY") {
+        return (
+          typeof data.deliveryAddress === "string" &&
+          data.deliveryAddress.trim().length > 0
+        );
+      }
+      return true;
+    },
+    {
+      message: "Delivery address is compulsory for delivery orders.",
+      path: ["deliveryAddress"],
+    }
+  );
 
 export async function placeCounterOrderAction(data: {
   items: Array<{ productId: string; quantity: number }>;
@@ -92,6 +110,10 @@ export async function placeOnlineOrderAction(data: {
 
     if (member?.user?.bannedAt) {
       return { success: false, error: "This account is banned and cannot place orders." };
+    }
+
+    if (data.fulfilment === "DELIVERY" && (!data.deliveryAddress || !data.deliveryAddress.trim())) {
+      return { success: false, error: "Delivery address is required for delivery orders." };
     }
 
     const parsed = placeOrderSchema.parse({

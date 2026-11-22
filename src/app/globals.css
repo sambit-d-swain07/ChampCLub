@@ -13,6 +13,7 @@
   --color-on-green: #FFFFFF;
 
   --font-anton: var(--font-anton), sans-serif;
+  --font-brand: var(--font-brand), sans-serif;
   --font-heading: var(--font-anton), sans-serif;
   --font-sans: var(--font-sans), sans-serif;
 

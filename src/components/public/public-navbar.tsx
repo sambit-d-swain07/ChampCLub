@@ -73,7 +73,7 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
         {/* Left: Brand Logo */}
         <Link
           href="/"
-          className={`font-anton text-[22px] tracking-normal uppercase select-none transition-colors hover:opacity-85 ${
+          className={`font-brand font-extrabold text-[19px] tracking-tight uppercase select-none transition-colors hover:opacity-85 ${
             isScrolled ? "text-[#111111]" : "text-white"
           }`}
         >

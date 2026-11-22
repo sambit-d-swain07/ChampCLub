@@ -47,19 +47,33 @@ export default async function MemberPlanPage() {
   );
 
   const scheduledChange = activeMembership?.nextPlan ?? null;
+  const isJuniorUnverified = Boolean(
+    activeMembership &&
+    activeMembership.plan.name.toUpperCase().includes("JUNIOR") &&
+    !member.ageVerifiedAt
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 p-6 text-[#1B1B1B]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-xl font-bold tracking-tight text-[#1B1B1B]">Membership</h1>
 
-        <Link
-          prefetch={false}
-          href="/member/choose-plan"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg font-semibold text-xs bg-[#23513C] text-white hover:bg-[#1a3d2d] transition-colors self-start sm:self-auto"
-        >
-          Change plan
-        </Link>
+        {isJuniorUnverified ? (
+          <span
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg font-semibold text-xs bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed self-start sm:self-auto"
+            title="Age verification required at front desk before changing plan"
+          >
+            Verification Required
+          </span>
+        ) : (
+          <Link
+            prefetch={false}
+            href="/member/choose-plan"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg font-semibold text-xs bg-[#23513C] text-white hover:bg-[#1a3d2d] transition-colors self-start sm:self-auto"
+          >
+            Change plan
+          </Link>
+        )}
       </div>
 
       {/* Junior Expired By Age Alert */}
@@ -76,9 +90,15 @@ export default async function MemberPlanPage() {
       )}
 
       {/* Junior Pending Age Verification Message */}
-      {entitlement.status === "PENDING_VERIFICATION" && (
-        <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-sm font-medium">
-          Bring a school ID or birth certificate to the front desk once to activate Junior discounts.
+      {(entitlement.status === "PENDING_VERIFICATION" || isJuniorUnverified) && (
+        <div className="p-5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-sm space-y-1.5">
+          <p className="font-bold text-amber-900">Junior Membership: Age Verification Required</p>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            Please present an accepted document (School ID, Aadhaar, or Birth Certificate) to club staff at the front desk. Your Junior member discounts, renewal, and plan upgrade privileges are locked until verified.
+          </p>
+          <p className="text-xs text-amber-700 font-medium">
+            Unverified Junior accounts will be automatically cancelled and refunded after 7 days.
+          </p>
         </div>
       )}
 

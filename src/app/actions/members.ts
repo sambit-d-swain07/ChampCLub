@@ -485,6 +485,19 @@ export async function choosePlanAction(formData: FormData) {
       orderBy: { startsAt: "desc" },
     });
 
+    // Block unverified Junior members from changing, renewing, or upgrading plan
+    if (
+      currentMembership &&
+      currentMembership.plan.name.toUpperCase().includes("JUNIOR") &&
+      !member.ageVerifiedAt
+    ) {
+      return {
+        success: false,
+        error:
+          "Your Junior membership must be age-verified by club staff before you can change or renew your plan. Please visit the front desk with a valid document (School ID, Aadhaar, or Birth Certificate). Unverified memberships are automatically cancelled and refunded after 7 days.",
+      };
+    }
+
     // ---- Case 1: Same plan + ACTIVE → reject ----
     if (currentMembership && currentMembership.planId === plan.id) {
       return { success: false, error: "You are already on this plan. Renewing is only possible after expiry or in grace." };

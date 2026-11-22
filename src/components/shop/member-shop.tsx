@@ -154,6 +154,12 @@ export function MemberShop({
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0 || isSubmitting) return;
+
+    if (fulfilment === "DELIVERY" && (!deliveryAddress || !deliveryAddress.trim())) {
+      setErrorMsg("Delivery address or court number is compulsory for delivery orders.");
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
 
@@ -466,12 +472,22 @@ export function MemberShop({
                       </div>
 
                       {fulfilment === "DELIVERY" && (
-                        <Input
-                          placeholder="Delivery address / Court number..."
-                          value={deliveryAddress}
-                          onChange={(e) => setDeliveryAddress(e.target.value)}
-                          className="text-xs h-8 bg-white border-[#E2E8F0]"
-                        />
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider flex items-center justify-between">
+                            <span>Delivery Address / Court #</span>
+                            <span className="text-red-500 font-bold">* Compulsory</span>
+                          </label>
+                          <Input
+                            placeholder="Enter delivery address or court number..."
+                            value={deliveryAddress}
+                            onChange={(e) => {
+                              setDeliveryAddress(e.target.value);
+                              if (errorMsg) setErrorMsg(null);
+                            }}
+                            className="text-xs h-8 bg-white border-[#E2E8F0] focus:border-[#23513C]"
+                            required
+                          />
+                        </div>
                       )}
                     </div>
 
