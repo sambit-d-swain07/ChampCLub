@@ -122,7 +122,8 @@ export function LoginForm() {
           <div className="relative z-20">
             <Link
               href="/"
-              className="font-anton text-lg uppercase tracking-normal text-white hover:opacity-85 transition-opacity inline-block"
+              className="font-brand font-black text-lg uppercase tracking-tight text-white hover:opacity-85 transition-opacity inline-block"
+              style={{ fontFamily: "var(--font-brand), system-ui, sans-serif" }}
             >
               CHAMPIONS CLUB
             </Link>

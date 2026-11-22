@@ -72,7 +72,8 @@ export default async function MemberLayout({
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="font-brand font-extrabold text-[19px] tracking-tight text-[#111111] uppercase hover:opacity-85 transition-opacity"
+            className="font-brand font-black text-[20px] tracking-tight text-[#111111] uppercase hover:opacity-85 transition-opacity"
+            style={{ fontFamily: "var(--font-brand), system-ui, sans-serif" }}
           >
             CHAMPIONS CLUB
           </Link>

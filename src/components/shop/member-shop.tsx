@@ -175,9 +175,9 @@ export function MemberShop({
 
     setIsSubmitting(false);
 
-    if (!res.success) {
+    if (!res.success || !("order" in res) || !res.order) {
       // Keep cart intact on failure!
-      setErrorMsg("Payment did not go through. Please try again.");
+      setErrorMsg(res.error || "Payment did not go through. Please try again.");
       return;
     }
 
@@ -314,7 +314,10 @@ export function MemberShop({
                           </span>
                         )}
                       </div>
-                      <CardTitle className="text-sm font-semibold text-[#0F172A] line-clamp-1 mt-1">
+                      <CardTitle
+                        className="text-sm font-semibold font-sans text-[#0F172A] line-clamp-1 mt-1"
+                        style={{ fontFamily: "var(--font-sans), system-ui, sans-serif" }}
+                      >
                         {product.name}
                       </CardTitle>
                     </CardHeader>
@@ -377,7 +380,10 @@ export function MemberShop({
             <Card className="sticky top-20 shadow-none border border-[#E2E8F0] bg-white">
               <CardHeader className="p-4 border-b border-[#E2E8F0] bg-[#F8FAFC]">
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-sm font-semibold text-[#0F172A]">
+                  <CardTitle
+                    className="text-sm font-semibold font-sans text-[#0F172A]"
+                    style={{ fontFamily: "var(--font-sans), system-ui, sans-serif" }}
+                  >
                     Your Cart ({cart.reduce((acc, i) => acc + i.quantity, 0)})
                   </CardTitle>
                   {cart.length > 0 && (
@@ -566,7 +572,10 @@ export function MemberShop({
       {activeTab === "orders" && (
         <Card className="shadow-none border border-[#E2E8F0] bg-white">
           <CardHeader className="p-4 border-b border-[#E2E8F0]">
-            <CardTitle className="text-sm font-semibold text-[#0F172A]">
+            <CardTitle
+              className="text-sm font-semibold font-sans text-[#0F172A]"
+              style={{ fontFamily: "var(--font-sans), system-ui, sans-serif" }}
+            >
               Your Past Orders
             </CardTitle>
           </CardHeader>

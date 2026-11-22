@@ -73,9 +73,10 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
         {/* Left: Brand Logo */}
         <Link
           href="/"
-          className={`font-brand font-extrabold text-[19px] tracking-tight uppercase select-none transition-colors hover:opacity-85 ${
+          className={`font-brand font-black text-[20px] tracking-tight uppercase select-none transition-colors hover:opacity-85 ${
             isScrolled ? "text-[#111111]" : "text-white"
           }`}
+          style={{ fontFamily: "var(--font-brand), system-ui, sans-serif" }}
         >
           CHAMPIONS CLUB
         </Link>
