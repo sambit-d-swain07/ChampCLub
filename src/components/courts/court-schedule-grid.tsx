@@ -77,7 +77,16 @@ interface CourtScheduleGridProps {
       endsAt: string;
       courts: Array<{
         courtId: string;
-        status: "FREE" | "HELD" | "CONFIRMED" | "SOCIAL";
+        state?: "AVAILABLE" | "HELD" | "BOOKED" | "OVERLAP";
+        status: "FREE" | "HELD" | "CONFIRMED" | "SOCIAL" | "OVERLAP";
+        startsAt?: string;
+        endsAt?: string;
+        bookingStartsAt?: string | null;
+        bookingEndsAt?: string | null;
+        bookingRangeStr?: string | null;
+        memberName?: string | null;
+        guestName?: string | null;
+        isOwnBooking?: boolean;
         booking: {
           id?: string;
           status?: string;
@@ -93,12 +102,15 @@ interface CourtScheduleGridProps {
           capacity?: number;
           participantCount?: number;
           participants?: Array<{ id: string; name: string }>;
+          isOwnBooking?: boolean;
         } | null;
       }>;
     }>;
   };
   members?: MemberListItem[];
   isOwner?: boolean;
+  mode?: "admin" | "member";
+  currentMemberId?: string;
   pricingBySport?: Record<string, number>;
 }
 
@@ -107,6 +119,8 @@ export function CourtScheduleGrid({
   data,
   members = [],
   isOwner = false,
+  mode = "admin",
+  currentMemberId,
   pricingBySport = { TENNIS: 1200, PADEL: 1600, BADMINTON: 600 },
 }: CourtScheduleGridProps) {
   const router = useRouter();
@@ -411,16 +425,32 @@ export function CourtScheduleGrid({
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 px-1 text-xs">
         <div className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded bg-emerald-50 border border-emerald-500"></span>
-          <span className="text-[#64748B] font-medium">Available (Click to Book)</span>
+          <span className="h-3 w-3 rounded bg-emerald-50 border border-emerald-500 border-dashed"></span>
+          <span className="text-[#64748B] font-medium">Available</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded bg-amber-50 border border-amber-500"></span>
-          <span className="text-[#64748B] font-medium">Held (5m Temporary Lock)</span>
+          <span className="text-[#64748B] font-medium">Held</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded bg-blue-50 border border-blue-500"></span>
-          <span className="text-[#64748B] font-medium">Confirmed Session</span>
+          <span className="text-[#64748B] font-medium">Confirmed</span>
+        </div>
+        {mode === "member" && (
+          <div className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded bg-[#1F4A33] border border-[#1F4A33]"></span>
+            <span className="text-[#64748B] font-medium">Your booking</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1.5">
+          <span
+            className="h-3 w-3 rounded border border-gray-300"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 3px, #e5e7eb 3px, #e5e7eb 6px)",
+            }}
+          ></span>
+          <span className="text-[#64748B] font-medium">Overlap</span>
         </div>
       </div>
 
@@ -545,7 +575,7 @@ export function CourtScheduleGrid({
                       );
                     }
 
-                    if (cell.status === "FREE") {
+                    if (cell.state === "AVAILABLE" || cell.status === "FREE") {
                       return (
                         <td
                           key={cell.courtId}
@@ -578,31 +608,74 @@ export function CourtScheduleGrid({
                       );
                     }
 
-                    if (cell.status === "HELD") {
+                    if (cell.state === "OVERLAP" || cell.status === "OVERLAP") {
+                      const rangeText = cell.bookingRangeStr || "6:00 – 7:00 am";
+                      const tooltipText = `Overlaps the booking at ${rangeText}`;
                       return (
-                        <td key={cell.courtId} className="p-2 border-r border-[#E2E8F0] last:border-r-0">
-                          <div className="h-12 rounded border border-amber-300 bg-amber-50 p-2 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold text-amber-800 flex items-center gap-1">
-                              <Clock className="h-3 w-3" /> HELD (5m Lock)
+                        <td
+                          key={cell.courtId}
+                          tabIndex={-1}
+                          aria-disabled="true"
+                          title={tooltipText}
+                          className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-not-allowed select-none"
+                        >
+                          <div
+                            className="h-12 rounded border border-gray-300 p-1.5 flex flex-col justify-between"
+                            style={{
+                              background:
+                                "repeating-linear-gradient(45deg, #f9fafb, #f9fafb 4px, #e5e7eb 4px, #e5e7eb 8px)",
+                            }}
+                          >
+                            <span className="text-[10px] font-semibold text-gray-700 leading-tight">
+                              Overlap
                             </span>
-                            <span className="text-[9px] text-[#64748B] truncate">
-                              {cell.booking?.memberName || cell.booking?.guestName || "Pending Confirm"}
+                            <span className="text-[9px] text-[#64748B] font-normal truncate">
+                              Overlaps {rangeText}
                             </span>
                           </div>
                         </td>
                       );
                     }
 
-                    // CONFIRMED
+                    if (cell.state === "HELD" || cell.status === "HELD") {
+                      const isOwn = Boolean(cell.isOwnBooking || (currentMemberId && cell.booking?.isOwnBooking));
+                      const rangeText = cell.bookingRangeStr || formatSessionRange(row.startTimeStr, row.endTimeStr);
+                      const heldName = mode === "member"
+                        ? (isOwn ? "Your booking" : "Held")
+                        : (cell.memberName || cell.booking?.memberName || cell.booking?.guestName || "Pending Confirm");
+
+                      return (
+                        <td key={cell.courtId} className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-default">
+                          <div className="h-12 rounded border border-amber-300 bg-amber-50 p-1.5 flex flex-col justify-between">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 leading-tight">
+                              <span className="truncate">{heldName}</span>
+                              <span className="text-[9px] text-amber-700 font-medium">Held</span>
+                            </div>
+                            <span className="text-[9px] text-amber-900 font-mono">
+                              {rangeText}
+                            </span>
+                          </div>
+                        </td>
+                      );
+                    }
+
+                    // START CELL - CONFIRMED / BOOKED
+                    const isOwn = Boolean(cell.isOwnBooking || (currentMemberId && cell.booking?.isOwnBooking));
+                    const isMemberMode = mode === "member";
+                    const bookedName = isMemberMode
+                      ? (isOwn ? "Your booking" : "Booked")
+                      : (cell.memberName || cell.booking?.memberName || cell.booking?.guestName || "Booked");
+                    const rangeText = cell.bookingRangeStr || formatSessionRange(row.startTimeStr, row.endTimeStr);
+
                     return (
                       <td
                         key={cell.courtId}
                         onClick={() => {
-                          if (cell.booking?.id) {
+                          if (mode === "admin" && cell.booking?.id) {
                             setInspectBooking({
                               id: cell.booking.id,
                               courtName: court.name,
-                              playerName: cell.booking.memberName || cell.booking.guestName || "Player",
+                              playerName: bookedName,
                               startTime: row.startTimeStr,
                               endTime: row.endTimeStr,
                               status: cell.booking.status || "CONFIRMED",
@@ -610,14 +683,25 @@ export function CourtScheduleGrid({
                             });
                           }
                         }}
-                        className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-pointer"
+                        className={`p-2 border-r border-[#E2E8F0] last:border-r-0 ${
+                          mode === "admin" ? "cursor-pointer" : "cursor-default"
+                        }`}
                       >
-                        <div className="h-12 rounded border border-blue-200 bg-blue-50 p-2 flex flex-col justify-between hover:border-blue-400 transition-all">
-                          <span className="text-[10px] font-bold text-blue-900 truncate">
-                            {cell.booking?.memberName || cell.booking?.guestName || "Booked"}
-                          </span>
-                          <span className="text-[9px] text-blue-700">
-                            Confirmed Session
+                        <div
+                          className={`h-12 rounded border p-1.5 flex flex-col justify-between transition-all ${
+                            isOwn && isMemberMode
+                              ? "border-[#1F4A33] bg-[#E3EEE7] text-[#1F4A33]"
+                              : "border-blue-200 bg-blue-50 text-blue-900 hover:border-blue-400"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-[10px] font-bold leading-tight">
+                            <span className="truncate">{bookedName}</span>
+                            <span className="text-[9px] font-normal text-blue-700">
+                              Confirmed Session
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-mono text-[#64748B]">
+                            {rangeText}
                           </span>
                         </div>
                       </td>

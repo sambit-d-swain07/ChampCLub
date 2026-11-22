@@ -21,7 +21,7 @@ export default async function AdminCourtsPage({
   const targetDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : formatKolkataDate(new Date());
 
   const [availability, pricingRules] = await Promise.all([
-    getCourtAvailability(targetDate),
+    getCourtAvailability(targetDate, { mode: "admin" }),
     prisma.pricingRule.findMany({
       where: { planId: null },
     }),

@@ -651,12 +651,51 @@ export async function cancelBookingByStaff(data: {
   }
 }
 
+export function formatKolkataTime12(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CLUB_CONFIG.timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(date);
+
+  const hour = parts.find((p) => p.type === "hour")?.value || "";
+  const minute = parts.find((p) => p.type === "minute")?.value || "00";
+  const dayPeriod = (parts.find((p) => p.type === "dayPeriod")?.value || "").toLowerCase();
+
+  return `${hour}:${minute} ${dayPeriod}`;
+}
+
+export function formatBookingRange(startsAt: Date, endsAt: Date): string {
+  const start12 = formatKolkataTime12(startsAt);
+  const end12 = formatKolkataTime12(endsAt);
+  const [startT, startAmPm] = start12.split(" ");
+  const [endT, endAmPm] = end12.split(" ");
+
+  if (startT === "11:00" && endT === "12:00") {
+    return "11:00 – 12:00 pm";
+  }
+  if (startAmPm === endAmPm) {
+    return `${startT} – ${endT} ${endAmPm}`;
+  }
+  return `${start12} – ${end12}`;
+}
+
 /**
  * Returns court availability matrix for a given local date (YYYY-MM-DD in Asia/Kolkata).
  */
-export async function getCourtAvailability(dateStr: string) {
+export async function getCourtAvailability(
+  dateStr: string,
+  options?: {
+    mode?: "admin" | "member";
+    memberId?: string;
+  }
+) {
   // 1. Lazy cleanup
   await lazyCleanupExpiredHolds();
+
+  const mode = options?.mode || "admin";
+  const currentMemberId = options?.memberId;
 
   const { startUtc, endUtc } = getKolkataDayRange(dateStr);
   const slots = generateDaySlots(dateStr);
@@ -695,83 +734,133 @@ export async function getCourtAvailability(dateStr: string) {
 
   // Create slot matrix
   const gridRows = slots.map((slot) => {
+    const sStart = slot.startsAt.getTime();
+    const sEnd = slot.endsAt.getTime();
+
     const courtSlots = courtColumns.map((court) => {
-      // Find overlapping booking for this court in this 60m window
-      const match = bookings.find((b) => {
+      // Find all active bookings on this court intersecting this 60m window
+      const courtBookings = bookings.filter((b) => {
         if (b.courtId !== court.id) return false;
+        if (b.status === "HELD" && b.holdExpiresAt && new Date(b.holdExpiresAt) < now) {
+          return false;
+        }
         const bStart = new Date(b.startsAt).getTime();
         const bEnd = new Date(b.endsAt).getTime();
-        const sStart = slot.startsAt.getTime();
-        const sEnd = slot.endsAt.getTime();
-        // Overlap: bStart < sEnd && bEnd > sStart
         return bStart < sEnd && bEnd > sStart;
       });
 
-      if (!match) {
+      // 1. AVAILABLE CELL
+      if (courtBookings.length === 0) {
         return {
           courtId: court.id,
+          state: "AVAILABLE" as const,
           status: "FREE" as const,
+          startsAt: slot.startsAt.toISOString(),
+          endsAt: slot.endsAt.toISOString(),
+          bookingStartsAt: null,
+          bookingEndsAt: null,
+          bookingRangeStr: null,
+          memberName: null,
+          guestName: null,
+          isOwnBooking: false,
           booking: null,
         };
       }
 
-      if (match.status === "HELD") {
-        const isExpired = match.holdExpiresAt && new Date(match.holdExpiresAt) < now;
-        if (isExpired) {
-          return {
-            courtId: court.id,
-            status: "FREE" as const,
-            booking: null,
-          };
-        }
+      // Check if a booking starts exactly at this slot's startsAt
+      const startMatch = courtBookings.find(
+        (b) => new Date(b.startsAt).getTime() === sStart
+      );
+
+      // 2. START CELL
+      if (startMatch) {
+        const isOwn = Boolean(currentMemberId && startMatch.memberId === currentMemberId);
+        const rangeStr = formatBookingRange(new Date(startMatch.startsAt), new Date(startMatch.endsAt));
+        const isHeld = startMatch.status === "HELD";
+        const state = isHeld ? ("HELD" as const) : ("BOOKED" as const);
+        const status = isHeld
+          ? ("HELD" as const)
+          : startMatch.kind === "SOCIAL"
+          ? ("SOCIAL" as const)
+          : ("CONFIRMED" as const);
+
+        // In member mode, NEVER send other members' names!
+        const memberName =
+          mode === "admin"
+            ? startMatch.member?.user?.name ||
+              (startMatch.member ? `Member ${startMatch.member.membershipNo}` : startMatch.guestName || "Guest")
+            : isOwn
+            ? startMatch.member?.user?.name || "Your booking"
+            : null;
+
+        const guestName = mode === "admin" ? startMatch.guestName : null;
+
         return {
           courtId: court.id,
-          status: "HELD" as const,
+          state,
+          status,
+          startsAt: startMatch.startsAt.toISOString(),
+          endsAt: startMatch.endsAt.toISOString(),
+          bookingStartsAt: startMatch.startsAt.toISOString(),
+          bookingEndsAt: startMatch.endsAt.toISOString(),
+          bookingRangeStr: rangeStr,
+          memberName,
+          guestName,
+          isOwnBooking: isOwn,
           booking: {
-            id: match.id,
-            status: match.status,
-            startsAt: match.startsAt,
-            endsAt: match.endsAt,
-            holdExpiresAt: match.holdExpiresAt,
-            guestName: match.guestName,
-            memberName: match.member?.user?.name || (match.member ? `Member ${match.member.membershipNo}` : null),
+            id: startMatch.id,
+            status: startMatch.status,
+            kind: startMatch.kind,
+            startsAt: startMatch.startsAt.toISOString(),
+            endsAt: startMatch.endsAt.toISOString(),
+            holdExpiresAt: startMatch.holdExpiresAt?.toISOString() || null,
+            guestName,
+            memberName,
+            membershipNo: mode === "admin" ? startMatch.member?.membershipNo || null : null,
+            priceSnapshot: Number(startMatch.priceSnapshot || court.basePrice),
+            discountSnapshot: Number(startMatch.discountSnapshot || 0),
+            pricePerPerson: Number(startMatch.priceSnapshot || 0),
+            capacity: court.capacity,
+            participantCount: startMatch.participants?.length || 0,
+            participants:
+              mode === "admin"
+                ? startMatch.participants?.map((p) => ({
+                    id: p.id,
+                    name:
+                      p.member?.user?.name ||
+                      (p.member ? `Member ${p.member.membershipNo}` : p.guestName || "Guest"),
+                  })) || []
+                : [],
+            isOwnBooking: isOwn,
           },
         };
       }
 
-      if (match.kind === "SOCIAL") {
-        return {
-          courtId: court.id,
-          status: "SOCIAL" as const,
-          booking: {
-            id: match.id,
-            status: match.status,
-            startsAt: match.startsAt,
-            endsAt: match.endsAt,
-            pricePerPerson: Number(match.priceSnapshot),
-            capacity: court.capacity,
-            participantCount: match.participants.length,
-            participants: match.participants.map((p) => ({
-              id: p.id,
-              name: p.member?.user?.name || (p.member ? `Member ${p.member.membershipNo}` : p.guestName || "Guest"),
-            })),
-          },
-        };
-      }
+      // 3. OVERLAP CELL
+      // An active booking intersects this window, but does NOT start here
+      const overlapBooking = courtBookings[0];
+      const isOwn = Boolean(currentMemberId && overlapBooking.memberId === currentMemberId);
+      const rangeStr = formatBookingRange(new Date(overlapBooking.startsAt), new Date(overlapBooking.endsAt));
 
       return {
         courtId: court.id,
-        status: "CONFIRMED" as const,
+        state: "OVERLAP" as const,
+        status: "OVERLAP" as const,
+        startsAt: overlapBooking.startsAt.toISOString(),
+        endsAt: overlapBooking.endsAt.toISOString(),
+        bookingStartsAt: overlapBooking.startsAt.toISOString(),
+        bookingEndsAt: overlapBooking.endsAt.toISOString(),
+        bookingRangeStr: rangeStr,
+        memberName: null, // NO member name!
+        guestName: null,  // NO guest name!
+        isOwnBooking: isOwn,
         booking: {
-          id: match.id,
-          status: match.status,
-          startsAt: match.startsAt,
-          endsAt: match.endsAt,
-          priceSnapshot: Number(match.priceSnapshot),
-          discountSnapshot: Number(match.discountSnapshot),
-          guestName: match.guestName,
-          memberName: match.member?.user?.name || (match.member ? `Member ${match.member.membershipNo}` : null),
-          membershipNo: match.member?.membershipNo || null,
+          id: overlapBooking.id,
+          status: overlapBooking.status,
+          kind: overlapBooking.kind,
+          startsAt: overlapBooking.startsAt.toISOString(),
+          endsAt: overlapBooking.endsAt.toISOString(),
+          isOwnBooking: isOwn,
         },
       };
     });

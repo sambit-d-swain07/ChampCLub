@@ -303,7 +303,7 @@ export function MemberCourtBooking({
           endsAt: s.endsAt,
           courtSlots: s.courts.map((cs: any) => ({
             courtId: cs.courtId,
-            status: cs.status === "SOCIAL" ? "CONFIRMED" : cs.status,
+            status: (cs.state === "AVAILABLE" || cs.status === "FREE") ? "FREE" : cs.state === "HELD" ? "HELD" : "CONFIRMED",
             bookingId: cs.booking?.id || null,
           })),
         }));

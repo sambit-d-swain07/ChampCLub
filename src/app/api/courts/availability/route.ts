@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCourtAvailability, formatKolkataDate } from "@/lib/services/booking";
+import { getCurrentUser } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const availability = await getCourtAvailability(dateParam);
+    const user = await getCurrentUser();
+    let mode: "admin" | "member" = "member";
+    let memberId: string | undefined = undefined;
+
+    if (user?.role === "OWNER" || user?.role === "STAFF") {
+      mode = "admin";
+    } else if (user) {
+      mode = "member";
+      const member = await prisma.member.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      memberId = member?.id;
+    }
+
+    const availability = await getCourtAvailability(dateParam, { mode, memberId });
 
     return NextResponse.json(availability, {
       status: 200,

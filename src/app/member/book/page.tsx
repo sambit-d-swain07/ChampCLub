@@ -55,7 +55,7 @@ export default async function MemberBookPage({
   // Single parallel server query for availability and entitlement
   const [entitlement, availability] = await Promise.all([
     resolve(member.id, targetDateObj),
-    getCourtAvailability(selectedDate),
+    getCourtAvailability(selectedDate, { mode: "member", memberId: member.id }),
   ]);
 
   const formattedSlots = availability.rows.map((s) => ({
@@ -66,8 +66,11 @@ export default async function MemberBookPage({
     endsAt: s.endsAt,
     courtSlots: s.courts.map((cs) => ({
       courtId: cs.courtId,
-      status: cs.status === "SOCIAL" ? ("CONFIRMED" as const) : cs.status,
+      status: cs.state === "AVAILABLE" ? ("FREE" as const) : cs.state === "HELD" ? ("HELD" as const) : ("CONFIRMED" as const),
+      state: cs.state,
       bookingId: cs.booking?.id || null,
+      bookingRangeStr: cs.bookingRangeStr,
+      isOwnBooking: cs.isOwnBooking,
     })),
   }));
 
