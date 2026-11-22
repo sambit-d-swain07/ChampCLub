@@ -478,6 +478,48 @@ export function CourtScheduleGrid({
                   {/* Court Cells */}
                   {row.courts.map((cell) => {
                     const court = data.courts.find((c) => c.id === cell.courtId)!;
+                    const isSelectedCourt = selectedSlot?.courtId === cell.courtId;
+                    const isSelectedStart = isSelectedCourt && selectedSlot?.startsAt === row.startsAt;
+                    const isSelectedCovered =
+                      Boolean(isSelectedCourt &&
+                      selectedSlot &&
+                      new Date(row.startsAt).getTime() ===
+                        new Date(selectedSlot.startsAt).getTime() + 30 * 60 * 1000);
+
+                    if (isSelectedStart) {
+                      return (
+                        <td
+                          key={cell.courtId}
+                          aria-label={`Selected: ${selectedSlot.startTime} to ${selectedSlot.endTime}`}
+                          className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-pointer"
+                        >
+                          <div className="h-12 rounded-t-[10px] rounded-b-none border border-[#1F4A33] border-b-0 bg-[#1F4A33] p-2 flex flex-col justify-between text-white shadow-xs z-10">
+                            <span className="text-[10px] font-bold text-white truncate">
+                              {selectedSlot.startTime} – {selectedSlot.endTime}
+                            </span>
+                            <span className="text-[9px] text-white/90 truncate">
+                              {court.name}
+                            </span>
+                          </div>
+                        </td>
+                      );
+                    }
+
+                    if (isSelectedCovered) {
+                      return (
+                        <td
+                          key={cell.courtId}
+                          aria-label={`Covered by session for ${court.name}`}
+                          className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-default"
+                        >
+                          <div className="h-12 rounded-b-[10px] rounded-t-none border border-[#1F4A33] border-t-0 bg-[#1F4A33] p-2 flex flex-col justify-end text-white shadow-xs z-10">
+                            <span className="text-[9px] font-semibold text-emerald-200 tracking-wider uppercase">
+                              60m Session
+                            </span>
+                          </div>
+                        </td>
+                      );
+                    }
 
                     if (cell.status === "FREE") {
                       return (
