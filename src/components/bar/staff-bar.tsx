@@ -311,18 +311,11 @@ export function StaffBar({ tables, menuItems }: StaffBarProps) {
             Champions Bar & Cafeteria POS
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage table tabs, seat guests, send rounds to the live kitchen board, and settle tabs.
+            Manage table tabs, seat guests, add orders, and settle tabs.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/kitchen" target="_blank">
-            <Button variant="outline" size="sm" className="text-xs font-bold border-amber-500/50 hover:bg-amber-50 dark:hover:bg-amber-950/20">
-              <ChefHat className="h-4 w-4 mr-1.5 text-amber-600" />
-              Open Kitchen Board ↗
-            </Button>
-          </Link>
-
           <Button
             size="sm"
             onClick={handleOpenShiftReport}
@@ -816,12 +809,12 @@ export function StaffBar({ tables, menuItems }: StaffBarProps) {
                   {isSubmittingOrder ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                      Sending to Kitchen...
+                      Adding to Tab...
                     </>
                   ) : (
                     <>
-                      <ChefHat className="h-4 w-4 mr-1.5" />
-                      Send to Kitchen Board
+                      <Plus className="h-4 w-4 mr-1.5" />
+                      Add Items to Tab
                     </>
                   )}
                 </Button>

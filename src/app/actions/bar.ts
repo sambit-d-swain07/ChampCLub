@@ -51,7 +51,6 @@ export async function openTabAction(data: {
 
     if (result.success) {
       revalidatePath("/admin/bar");
-      revalidatePath("/kitchen");
     }
 
     return result;
@@ -126,7 +125,6 @@ export async function freeTableAction(data: { tableId: string; tabId?: string })
     }
 
     revalidatePath("/admin/bar");
-    revalidatePath("/kitchen");
     return { success: true };
   } catch (error: unknown) {
     return {
@@ -166,7 +164,6 @@ export async function addOrderToTabAction(data: {
 
     if (result.success) {
       revalidatePath("/admin/bar");
-      revalidatePath("/kitchen");
     }
 
     return result;
@@ -191,7 +188,6 @@ export async function updateBarOrderStatusAction(data: {
     const result = await updateBarOrderStatus(data.orderId, data.status, user.id);
 
     if (result.success) {
-      revalidatePath("/kitchen");
       revalidatePath("/admin/bar");
     }
 
