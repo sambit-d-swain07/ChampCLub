@@ -58,6 +58,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       links: [
         { label: "Transactions", href: "/admin/transactions", roles: ["OWNER"] },
         { label: "Expenses", href: "/admin/expenses", roles: ["OWNER"] },
+        { label: "Staff", href: "/admin/staff", roles: ["OWNER"] },
       ],
     },
   ];

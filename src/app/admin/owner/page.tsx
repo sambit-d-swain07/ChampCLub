@@ -7,6 +7,8 @@ import { FinanceFilterBar } from "@/components/admin/finance-filter-bar";
 import { ExpenseStatusToggle } from "@/components/admin/expense-status-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatInrPrecise } from "@/lib/site-settings";
+import { prisma } from "@/lib/prisma";
+import { StaffManagement, StaffItem } from "@/components/admin/staff-management";
 
 // Lazy-load Recharts bundle to keep page bundle lightweight
 const FinanceCharts = nextDynamic(
@@ -37,8 +39,31 @@ export default async function OwnerDashboardPage({
 
   const { range, from, to } = await searchParams;
   const filter = resolveFinanceRange(range, from, to);
-  const data = await getOwnerFinancials(filter);
+  const [data, staffUsers] = await Promise.all([
+    getOwnerFinancials(filter),
+    prisma.user.findMany({
+      where: { role: "STAFF" },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        bannedAt: true,
+        createdAt: true,
+      },
+    }),
+  ]);
   const { cards, charts, lists } = data;
+
+  const formattedStaff: StaffItem[] = staffUsers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    email: s.email,
+    role: s.role,
+    bannedAt: s.bannedAt,
+    createdAt: s.createdAt,
+  }));
 
   // Build transaction filter URL helper
   function txUrl(extra: Record<string, string> = {}) {
@@ -249,6 +274,9 @@ export default async function OwnerDashboardPage({
           </div>
         </Card>
       </div>
+
+      {/* Staff Management Section */}
+      <StaffManagement staffList={formattedStaff} title="Club Staff Members" />
     </div>
   );
 }
