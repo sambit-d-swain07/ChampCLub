@@ -108,8 +108,8 @@ export function LoginForm() {
         {/* LEFT COLUMN: Rounded Image Card with "JOIN THE CHAMPIONS CLUB" in Anton */}
         <div className="lg:col-span-5 relative m-3 rounded-[20px] overflow-hidden bg-[#1F4A33] text-white p-8 sm:p-10 flex flex-col justify-between min-h-[320px] lg:min-h-[580px]">
           <ClubImage
-            src="/images/court-tennis-1.jpg"
-            alt="Champions Club Court"
+            src="/images/court-tennis-1.webp"
+            alt="Champions Club Championship Court"
             sportName="JOIN THE CHAMPIONS CLUB"
             priority={true}
             fill

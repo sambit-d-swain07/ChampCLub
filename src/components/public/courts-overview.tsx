@@ -11,9 +11,9 @@ interface CourtsOverviewProps {
 }
 
 const SPORT_IMAGES: Record<string, { src: string; caption: string }> = {
-  Tennis: { src: "/images/overview-tennis.jpg", caption: "Outdoor & Indoor Tennis Courts" },
-  Padel: { src: "/images/overview-padel.jpg", caption: "Panoramic Glass Padel Courts" },
-  Badminton: { src: "/images/overview-badminton.jpg", caption: "BWF-Standard Badminton Courts" },
+  Tennis: { src: "/images/overview-tennis.webp", caption: "Outdoor & Indoor Tennis Courts" },
+  Padel: { src: "/images/overview-padel.webp", caption: "Panoramic Glass Padel Courts" },
+  Badminton: { src: "/images/overview-badminton.webp", caption: "BWF-Standard Badminton Courts" },
 };
 
 export function CourtsOverview({ courtCount, sports, hours }: CourtsOverviewProps) {
@@ -30,7 +30,7 @@ export function CourtsOverview({ courtCount, sports, hours }: CourtsOverviewProp
 
   const currentSport = displaySports[currentIndex] || "Tennis";
   const imageInfo = SPORT_IMAGES[currentSport] || {
-    src: `/images/overview-${currentSport.toLowerCase()}.jpg`,
+    src: `/images/overview-${currentSport.toLowerCase()}.webp`,
     caption: `${currentSport} Court`,
   };
 

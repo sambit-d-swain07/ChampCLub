@@ -12,6 +12,7 @@ interface ClubImageProps {
   width?: number;
   height?: number;
   sizes?: string;
+  quality?: number;
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export function ClubImage({
   width,
   height,
   sizes,
+  quality = 80,
   className = "",
 }: ClubImageProps) {
   const [hasError, setHasError] = useState(false);
@@ -50,6 +52,7 @@ export function ClubImage({
         fill
         priority={priority}
         sizes={sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
+        quality={quality}
         onError={() => setHasError(true)}
         className={className}
       />
@@ -64,6 +67,7 @@ export function ClubImage({
       height={height || 500}
       priority={priority}
       sizes={sizes}
+      quality={quality}
       onError={() => setHasError(true)}
       className={className}
     />

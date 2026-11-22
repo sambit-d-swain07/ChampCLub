@@ -24,13 +24,16 @@ const NAV_ITEMS = [
 ];
 
 export function PublicNavbar({ currentUser }: PublicNavbarProps) {
+  const [isScrolled, setIsScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Scroll spy to detect active section
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPos = window.scrollY + 120;
+      const scrollY = window.scrollY;
+      setIsScrolled(scrollY > 40);
+
+      const scrollPos = scrollY + 120;
       const sections = NAV_ITEMS.map((item) => item.href.substring(1));
 
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -47,6 +50,7 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -58,12 +62,20 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
       : "/member";
 
   return (
-    <header className="sticky top-0 z-50 w-full h-16 bg-white border-b border-[#E6E6E6]">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 w-full h-16 transition-colors duration-200 ${
+        isScrolled
+          ? "bg-white border-b border-[#E6E6E6] shadow-2xs"
+          : "bg-transparent border-b border-transparent"
+      }`}
+    >
       <div className="max-w-[1344px] h-full mx-auto px-4 sm:px-8 flex items-center justify-between">
         {/* Left: Brand Logo */}
         <Link
           href="/"
-          className="font-anton text-[22px] tracking-normal text-[#111111] uppercase select-none hover:opacity-85 transition-opacity"
+          className={`font-anton text-[22px] tracking-normal uppercase select-none transition-colors hover:opacity-85 ${
+            isScrolled ? "text-[#111111]" : "text-white"
+          }`}
         >
           CHAMPIONS CLUB
         </Link>
@@ -78,13 +90,29 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
                 key={item.label}
                 href={item.href}
                 className={`relative flex flex-col items-center justify-center h-full text-[14px] font-medium leading-none transition-colors group ${
-                  isActive ? "text-[#111111]" : "text-[#111111]/75 hover:text-[#111111]"
+                  isScrolled
+                    ? isActive
+                      ? "text-[#111111]"
+                      : "text-[#111111]/75 hover:text-[#111111]"
+                    : isActive
+                    ? "text-white"
+                    : "text-white/80 hover:text-white"
                 }`}
               >
                 <span>{item.label}</span>
-                <span className="text-[10px] text-[#6B6B6B] mt-1 font-mono">{item.index}</span>
+                <span
+                  className={`text-[10px] mt-1 font-mono transition-colors ${
+                    isScrolled ? "text-[#6B6B6B]" : "text-white/60"
+                  }`}
+                >
+                  {item.index}
+                </span>
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#111111]" />
+                  <span
+                    className={`absolute bottom-0 left-0 right-0 h-[2px] ${
+                      isScrolled ? "bg-[#111111]" : "bg-white"
+                    }`}
+                  />
                 )}
               </a>
             );
@@ -97,7 +125,11 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
             <>
               <Link
                 href={portalHref}
-                className="h-10 px-5 rounded-full border border-[#111111] text-[#111111] text-xs font-semibold hover:bg-[#111111] hover:text-white transition-all flex items-center gap-2"
+                className={`h-10 px-5 rounded-full border text-xs font-semibold transition-all flex items-center gap-2 ${
+                  isScrolled
+                    ? "border-[#111111] text-[#111111] hover:bg-[#111111] hover:text-white"
+                    : "border-white text-white hover:bg-white hover:text-[#111111]"
+                }`}
               >
                 <User className="w-3.5 h-3.5" />
                 <span>My account</span>
@@ -107,7 +139,11 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
                   await signOut();
                   window.location.href = "/";
                 }}
-                className="text-xs font-medium text-[#6B6B6B] hover:text-[#111111] transition-colors flex items-center gap-1.5 cursor-pointer"
+                className={`text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  isScrolled
+                    ? "text-[#6B6B6B] hover:text-[#111111]"
+                    : "text-white/80 hover:text-white"
+                }`}
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign out</span>
@@ -117,13 +153,21 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
             <>
               <Link
                 href="/login"
-                className="text-xs font-medium text-[#111111] hover:text-[#1F4A33] transition-colors"
+                className={`text-xs font-medium transition-colors ${
+                  isScrolled
+                    ? "text-[#111111] hover:text-[#1F4A33]"
+                    : "text-white hover:text-white/80"
+                }`}
               >
                 Sign in
               </Link>
               <Link
                 href="/signup"
-                className="h-10 px-5 rounded-full border border-[#111111] text-[#111111] text-xs font-semibold hover:bg-[#111111] hover:text-white transition-all flex items-center gap-1.5"
+                className={`h-10 px-5 rounded-full border text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  isScrolled
+                    ? "border-[#111111] text-[#111111] hover:bg-[#111111] hover:text-white"
+                    : "border-white text-white hover:bg-white hover:text-[#111111]"
+                }`}
               >
                 <span>Become a member</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -135,7 +179,11 @@ export function PublicNavbar({ currentUser }: PublicNavbarProps) {
         {/* Mobile menu hamburger button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#111111] hover:bg-neutral-100 transition-colors"
+          className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${
+            isScrolled
+              ? "text-[#111111] hover:bg-neutral-100"
+              : "text-white hover:bg-white/10"
+          }`}
           aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

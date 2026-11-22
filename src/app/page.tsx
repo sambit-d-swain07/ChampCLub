@@ -96,51 +96,60 @@ export default async function HomePage() {
       {/* ===================== STICKY NAVIGATION ===================== */}
       <PublicNavbar currentUser={currentUser} />
 
-      <main className="max-w-[1344px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-24">
-        {/* ===================== HERO SECTION ===================== */}
-        <section id="home" className="pt-2">
-          <div className="relative w-full h-[360px] sm:h-[440px] lg:h-[520px] rounded-[20px] overflow-hidden bg-[#1F4A33] flex items-center justify-center shadow-sm">
-            {/* Background image with flat fallback */}
-            <ClubImage
-              src="/images/hero-court.jpg"
-              alt="Champions Club Championship Court"
-              sportName="CHAMPIONS CLUB"
-              priority={true}
-              fill
-              sizes="100vw"
-              className="object-cover"
-            />
-            {/* 25% Dark Overlay for optimal text contrast */}
-            <div className="absolute inset-0 bg-black/25 z-10" />
+      {/* ===================== FULL-BLEED HERO SECTION ===================== */}
+      <section
+        id="home"
+        className="relative w-full h-[100svh] min-h-[640px] overflow-hidden flex flex-col justify-center items-center bg-[#1F4A33]"
+      >
+        {/* Full-screen background image edge-to-edge */}
+        <ClubImage
+          src="/images/hero-court.webp"
+          alt="Aerial view of championship tennis court surrounded by lush trees"
+          sportName="THE CHAMPIONS CLUB"
+          priority={true}
+          fill
+          sizes="100vw"
+          quality={80}
+          className="object-cover"
+        />
 
-            {/* Hero Centered Content */}
-            <div className="relative z-20 flex flex-col items-center text-center px-4 max-w-4xl">
-              <h1 className="font-anton text-5xl sm:text-7xl md:text-8xl lg:text-[112px] leading-none text-white uppercase select-none tracking-normal">
-                THE CHAMPIONS CLUB
-              </h1>
-              <p className="mt-4 sm:mt-5 text-white/95 text-base sm:text-lg md:text-xl font-medium tracking-wide max-w-xl">
-                Tennis, padel and badminton. Book in a few taps.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                <a
-                  href="#book-court"
-                  className="h-11 px-7 rounded-full bg-white text-[#111111] text-xs sm:text-sm font-semibold hover:bg-white/90 transition-colors flex items-center justify-center shadow-md cursor-pointer"
-                >
-                  Book a court
-                </a>
-                <Link
-                  href="/signup"
-                  className="h-11 px-7 rounded-full border border-white text-white text-xs sm:text-sm font-semibold hover:bg-white/10 transition-colors flex items-center justify-center"
-                >
-                  Become a member
-                </Link>
-              </div>
-            </div>
+        {/* Contrast dark overlay: linear-gradient from 0.45 at bottom to 0.25 at top */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/35 to-black/25 z-10 pointer-events-none" />
+
+        {/* Centered Hero Content */}
+        <div className="relative z-20 flex flex-col items-center text-center px-4 max-w-5xl mx-auto pt-16">
+          <h1
+            className="font-anton text-white uppercase text-center whitespace-normal md:whitespace-nowrap [text-wrap:balance] tracking-normal leading-none"
+            style={{ fontSize: "clamp(56px, 9vw, 128px)" }}
+          >
+            THE CHAMPIONS CLUB
+          </h1>
+
+          <p className="mt-4 sm:mt-6 text-white text-base sm:text-lg md:text-xl font-normal tracking-wide max-w-xl">
+            Tennis, padel and badminton. Book in a few taps.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href="#book-court"
+              className="h-11 px-7 rounded-full bg-white text-[#111111] text-xs sm:text-sm font-semibold hover:bg-white/90 transition-colors flex items-center justify-center shadow-md cursor-pointer"
+            >
+              Book a court
+            </a>
+            <Link
+              href="/signup"
+              className="h-11 px-7 rounded-full border border-white text-white text-xs sm:text-sm font-semibold hover:bg-white/15 transition-colors flex items-center justify-center"
+            >
+              Become a member
+            </Link>
           </div>
-        </section>
+        </div>
+      </section>
 
+      {/* ===================== MAIN CONTENT CONTAINER ===================== */}
+      <main className="max-w-[1344px] mx-auto px-4 sm:px-8 py-16 sm:py-20 lg:py-24 space-y-24">
         {/* ===================== COURTS OVERVIEW ===================== */}
-        <section id="overview" className="scroll-mt-24">
+        <section id="overview" className="scroll-mt-16">
           <CourtsOverview
             courtCount={courtCount}
             sports={sports}
@@ -149,7 +158,7 @@ export default async function HomePage() {
         </section>
 
         {/* ===================== COURTS GRID ===================== */}
-        <section id="courts" className="scroll-mt-24">
+        <section id="courts" className="scroll-mt-16">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
@@ -178,7 +187,7 @@ export default async function HomePage() {
 
               const sportSlug = court.sport.toLowerCase();
               const imgVariant = (idx % 2) + 1;
-              const imgSrc = `/images/court-${sportSlug}-${imgVariant}.jpg`;
+              const imgSrc = `/images/court-${sportSlug}-${imgVariant}.webp`;
               const bookingUrl = currentUser
                 ? `/member/book?court=${court.id}`
                 : `/login?next=${encodeURIComponent(`/member/book?court=${court.id}`)}`;
@@ -189,7 +198,7 @@ export default async function HomePage() {
                   <div className="relative aspect-[4/3] w-full rounded-[14px] overflow-hidden bg-[#1F4A33] shadow-xs">
                     <ClubImage
                       src={imgSrc}
-                      alt={court.name}
+                      alt={`${court.name} - ${court.sport} court at Champions Club`}
                       sportName={court.sport}
                       priority={false}
                       fill
@@ -228,19 +237,19 @@ export default async function HomePage() {
         </section>
 
         {/* ===================== BOOK YOUR COURT BANNER ===================== */}
-        <section id="book-court" className="scroll-mt-24">
+        <section id="book-court" className="scroll-mt-16">
           <div className="relative w-full rounded-[20px] overflow-hidden bg-[#1F4A33] p-8 sm:p-12 lg:p-16 flex flex-col lg:flex-row items-center justify-between gap-12 shadow-md">
             {/* Background image & dark overlay */}
             <ClubImage
-              src="/images/banner-ball.jpg"
-              alt="Champions Club Tennis Ball and Court"
+              src="/images/banner-ball.webp"
+              alt="Macro tennis ball and racket on blue tournament court"
               sportName="BOOK YOUR COURT"
               priority={false}
               fill
               sizes="100vw"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-black/35 z-10" />
+            <div className="absolute inset-0 bg-black/35 z-10 pointer-events-none" />
 
             {/* Left Content */}
             <div className="relative z-20 flex flex-col items-start max-w-xl text-left">
@@ -273,7 +282,7 @@ export default async function HomePage() {
         </section>
 
         {/* ===================== MEMBERSHIP ===================== */}
-        <section id="membership" className="scroll-mt-24">
+        <section id="membership" className="scroll-mt-16">
           <div className="mb-10 text-center sm:text-left">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
               TIERS & PRIVILEGES
@@ -396,14 +405,14 @@ export default async function HomePage() {
         </section>
 
         {/* ===================== PRO SHOP ===================== */}
-        <section id="shop" className="scroll-mt-24">
+        <section id="shop" className="scroll-mt-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
             {/* Left: Image card */}
             <div className="lg:col-span-7">
               <div className="relative aspect-[16/10] w-full rounded-[20px] overflow-hidden bg-[#1F4A33] shadow-sm">
                 <ClubImage
-                  src="/images/shop.jpg"
-                  alt="Champions Club Pro Shop"
+                  src="/images/shop.webp"
+                  alt="Champions Club Pro Shop equipment rackets and balls"
                   sportName="PRO SHOP"
                   priority={false}
                   fill
@@ -454,7 +463,7 @@ export default async function HomePage() {
         </section>
 
         {/* ===================== FAQ ===================== */}
-        <section id="faq" className="scroll-mt-24">
+        <section id="faq" className="scroll-mt-16">
           <div className="mb-8">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
               QUESTIONS & ANSWERS
