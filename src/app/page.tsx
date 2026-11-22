@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { siteSettings, formatInr } from "@/lib/site-settings";
+import { getCourtImageBySportIndex } from "@/lib/court-images";
 import { PublicNavbar } from "@/components/public/public-navbar";
 import { ClubImage } from "@/components/public/club-image";
 import { CourtsOverview } from "@/components/public/courts-overview";
@@ -72,13 +73,22 @@ export default async function HomePage() {
     return 800;
   };
 
-  const activeCourts = dbCourts.map((c) => ({
-    id: c.id,
-    name: c.name,
-    sport: c.sport,
-    capacity: c.capacity,
-    basePrice: getSportBasePrice(c.sport),
-  }));
+  const sportCounters: Record<string, number> = {};
+  const activeCourts = dbCourts.map((c) => {
+    const sportKey = c.sport.toUpperCase();
+    const indexWithinSport = sportCounters[sportKey] || 0;
+    sportCounters[sportKey] = indexWithinSport + 1;
+    const imageItem = getCourtImageBySportIndex(c.sport, indexWithinSport);
+
+    return {
+      id: c.id,
+      name: c.name,
+      sport: c.sport,
+      capacity: c.capacity,
+      basePrice: getSportBasePrice(c.sport),
+      imageItem,
+    };
+  });
 
   const categories = distinctCategories.map((c) => c.category);
 
@@ -158,8 +168,8 @@ export default async function HomePage() {
         </section>
 
         {/* ===================== COURTS GRID ===================== */}
-        <section id="courts" className="scroll-mt-16">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+        <section id="courts" className="scroll-mt-20">
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-8 gap-4">
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">
                 FACILITIES
@@ -173,21 +183,27 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
             {activeCourts.map((court, idx) => {
-              // Row 1: spans 6, 3, 3. Subsequent rows: span 3 each.
-              const colSpanClass =
-                idx === 0
-                  ? "col-span-12 lg:col-span-6"
-                  : idx === 1
-                  ? "col-span-12 sm:col-span-6 lg:col-span-3"
-                  : idx === 2
-                  ? "col-span-12 sm:col-span-6 lg:col-span-3"
-                  : "col-span-12 sm:col-span-6 lg:col-span-3";
+              const total = activeCourts.length;
+              const desktopRemainder = total % 3;
+              const tabletRemainder = total % 2;
 
-              const sportSlug = court.sport.toLowerCase();
-              const imgVariant = (idx % 2) + 1;
-              const imgSrc = `/images/court-${sportSlug}-${imgVariant}.webp`;
+              const isLastSingleDesktop = desktopRemainder === 1 && idx === total - 1;
+              const isLastPairDesktop = desktopRemainder === 2 && idx >= total - 2;
+              const isLastSingleTablet = tabletRemainder === 1 && idx === total - 1;
+
+              const colSpanClass = `col-span-1 ${
+                isLastSingleTablet ? "md:col-span-2" : "md:col-span-1"
+              } ${
+                isLastSingleDesktop
+                  ? "lg:col-span-6"
+                  : isLastPairDesktop
+                  ? "lg:col-span-3"
+                  : "lg:col-span-2"
+              }`;
+
+              const aspectClass = isLastSingleDesktop ? "aspect-[21/9]" : "aspect-[4/3]";
               const bookingUrl = currentUser
                 ? `/member/book?court=${court.id}`
                 : `/login?next=${encodeURIComponent(`/member/book?court=${court.id}`)}`;
@@ -195,10 +211,10 @@ export default async function HomePage() {
               return (
                 <div key={court.id} className={`${colSpanClass} group flex flex-col`}>
                   {/* Card Image Container */}
-                  <div className="relative aspect-[4/3] w-full rounded-[14px] overflow-hidden bg-[#1F4A33] shadow-xs">
+                  <div className={`relative ${aspectClass} w-full rounded-[14px] overflow-hidden bg-[#1F4A33] shadow-xs`}>
                     <ClubImage
-                      src={imgSrc}
-                      alt={`${court.name} - ${court.sport} court at Champions Club`}
+                      src={court.imageItem.src}
+                      alt={court.imageItem.alt}
                       sportName={court.sport}
                       priority={false}
                       fill
@@ -292,8 +308,26 @@ export default async function HomePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {sortedPlans.map((plan) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 items-stretch">
+            {sortedPlans.map((plan, idx) => {
+              const totalPlans = sortedPlans.length;
+              const desktopRemainder = totalPlans % 3;
+              const tabletRemainder = totalPlans % 2;
+
+              const isLastSingleDesktop = desktopRemainder === 1 && idx === totalPlans - 1;
+              const isLastPairDesktop = desktopRemainder === 2 && idx >= totalPlans - 2;
+              const isLastSingleTablet = tabletRemainder === 1 && idx === totalPlans - 1;
+
+              const planColSpanClass = `col-span-1 ${
+                isLastSingleTablet ? "md:col-span-2" : "md:col-span-1"
+              } ${
+                isLastSingleDesktop
+                  ? "lg:col-span-6"
+                  : isLastPairDesktop
+                  ? "lg:col-span-3"
+                  : "lg:col-span-2"
+              }`;
+
               const isGold = plan.name.toUpperCase() === "GOLD";
               const isJunior = plan.name.toUpperCase() === "JUNIOR";
               const durationLabel =
@@ -302,7 +336,7 @@ export default async function HomePage() {
               return (
                 <div
                   key={plan.id}
-                  className={`rounded-[14px] p-8 flex flex-col justify-between transition-all ${
+                  className={`${planColSpanClass} rounded-[14px] p-8 flex flex-col justify-between transition-all ${
                     isGold
                       ? "bg-[#1F4A33] text-white shadow-xl"
                       : "bg-white border border-[#E6E6E6] text-[#111111] shadow-2xs hover:border-[#111111]/40"
