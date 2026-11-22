@@ -20,6 +20,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatInrPrecise } from "@/lib/site-settings";
+
+function format12Hour(timeStr: string): string {
+  const [hStr, mStr] = timeStr.split(":");
+  let h = parseInt(hStr, 10);
+  const m = mStr || "00";
+  const ampm = h >= 12 ? "pm" : "am";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
+}
+
+function formatSessionRange(startTimeStr: string, endTimeStr: string): string {
+  const start = format12Hour(startTimeStr);
+  const end = format12Hour(endTimeStr);
+  const [startT, startAmPm] = start.split(" ");
+  const [endT, endAmPm] = end.split(" ");
+  if (startT === "11:00" && endT === "12:00") {
+    return "11:00 – 12:00 pm";
+  }
+  if (startAmPm === endAmPm) {
+    return `${startT} – ${endT} ${endAmPm}`;
+  }
+  return `${start} – ${end}`;
+}
 import {
   CalendarDays,
   Clock,
@@ -490,12 +514,12 @@ export function CourtScheduleGrid({
                       return (
                         <td
                           key={cell.courtId}
-                          aria-label={`Selected: ${selectedSlot.startTime} to ${selectedSlot.endTime}`}
+                          aria-label={`Selected: ${formatSessionRange(selectedSlot.startTime, selectedSlot.endTime)}`}
                           className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-pointer"
                         >
-                          <div className="h-12 rounded-t-[10px] rounded-b-none border border-[#1F4A33] border-b-0 bg-[#1F4A33] p-2 flex flex-col justify-between text-white shadow-xs z-10">
+                          <div className="h-12 rounded-t-[10px] rounded-b-none border border-[#1F4A33] border-b-0 bg-[#1F4A33] p-1.5 flex flex-col justify-between text-white shadow-xs z-10">
                             <span className="text-[10px] font-bold text-white truncate">
-                              {selectedSlot.startTime} – {selectedSlot.endTime}
+                              {formatSessionRange(selectedSlot.startTime, selectedSlot.endTime)}
                             </span>
                             <span className="text-[9px] text-white/90 truncate">
                               {court.name}
@@ -512,7 +536,7 @@ export function CourtScheduleGrid({
                           aria-label={`Covered by session for ${court.name}`}
                           className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-default"
                         >
-                          <div className="h-12 rounded-b-[10px] rounded-t-none border border-[#1F4A33] border-t-0 bg-[#1F4A33] p-2 flex flex-col justify-end text-white shadow-xs z-10">
+                          <div className="h-12 rounded-b-[10px] rounded-t-none border border-[#1F4A33] border-t-0 bg-[#1F4A33] p-1.5 flex flex-col justify-end text-white shadow-xs z-10">
                             <span className="text-[9px] font-semibold text-emerald-200 tracking-wider uppercase">
                               60m Session
                             </span>
@@ -539,12 +563,15 @@ export function CourtScheduleGrid({
                           }}
                           className="p-2 border-r border-[#E2E8F0] last:border-r-0 cursor-pointer group"
                         >
-                          <div className="h-12 rounded border border-dashed border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-500 p-2 flex flex-col justify-between transition-all">
-                            <span className="text-[10px] font-semibold text-emerald-800">
-                              Available
-                            </span>
+                          <div className="h-12 rounded border border-dashed border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-500 p-1.5 flex flex-col justify-between transition-all">
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-emerald-800 leading-tight">
+                              <span>Available</span>
+                              <span className="font-mono text-[9px] text-emerald-700">
+                                {formatSessionRange(row.startTimeStr, row.endTimeStr)}
+                              </span>
+                            </div>
                             <span className="text-[9px] text-[#64748B]">
-                              {formatInrPrecise(court.basePrice)} / 60m
+                              {formatInrPrecise(court.basePrice)}
                             </span>
                           </div>
                         </td>

@@ -136,6 +136,9 @@ function formatSessionRange(startTimeStr: string, endTimeStr: string): string {
   const end = format12Hour(endTimeStr);
   const [startT, startAmPm] = start.split(" ");
   const [endT, endAmPm] = end.split(" ");
+  if (startT === "11:00" && endT === "12:00") {
+    return "11:00 – 12:00 pm";
+  }
   if (startAmPm === endAmPm) {
     return `${startT} – ${endT} ${endAmPm}`;
   }
@@ -870,89 +873,19 @@ export function MemberCourtBooking({
               </div>
             </div>
 
-            {/* Time Grid: 6 cols desktop, 4 tablet, 3 mobile */}
+            {/* Time Grid: 3 cols desktop, 2 on mobile, 44px tall */}
             {periods[activePeriod].length === 0 ? (
               <div className="p-8 text-center bg-[#EFEFEF] rounded-[14px] text-xs text-[#6B6B6B]">
                 No available time slots in the {activePeriod.toLowerCase()} on this date.
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                 {periods[activePeriod].map((slot, index) => {
                   const freeCourts = slotFreeCourtsMap[slot.slotKey] || [];
                   const isAvailable = freeCourts.length > 0 && bookingsLeft > 0;
+                  const isSelected = slot.slotKey === selectedTime;
                   const isLastCourt = freeCourts.length === 1;
-
-                  // 60-Minute Session Range Selection
-                  const coveredSlotKey = selectedTime ? getCoveredSlotKey(selectedTime) : null;
-                  const isStart = slot.slotKey === selectedTime;
-                  const isCovered = Boolean(coveredSlotKey && slot.slotKey === coveredSlotKey);
-
-                  const isCoveredInCurrentTab = periods[activePeriod].some((s) => s.slotKey === coveredSlotKey);
-                  const isStartInCurrentTab = periods[activePeriod].some((s) => s.slotKey === selectedTime);
-                  const startCrossesNextTab = isStart && !isCoveredInCurrentTab && coveredSlotKey !== null;
-
-                  const sessionEndStr = selectedTime ? getSessionEndTimeStr(selectedTime) : "";
-                  const selectedRangeLabel = selectedTime
-                    ? `Selected: ${format12Hour(selectedTime)} to ${format12Hour(sessionEndStr)}`
-                    : "";
-
-                  if (isStart) {
-                    return (
-                      <button
-                        key={slot.slotKey}
-                        ref={(el) => {
-                          gridButtonsRef.current[index] = el;
-                        }}
-                        type="button"
-                        aria-pressed="true"
-                        aria-label={selectedRangeLabel}
-                        onClick={() => handleSelectTime(slot.slotKey)}
-                        onKeyDown={(e) => handleGridKeyDown(e, index, periods[activePeriod])}
-                        className={`h-[44px] min-h-[44px] text-xs transition-all relative flex flex-col items-center justify-center focus-visible:ring-2 focus-visible:ring-[#1F4A33] focus-visible:ring-offset-2 outline-none select-none cursor-pointer bg-[#1F4A33] border border-[#1F4A33] text-white font-bold shadow-xs z-10 ${
-                          startCrossesNextTab
-                            ? "rounded-[14px]"
-                            : "rounded-l-[14px] rounded-r-none border-r-0 mr-[-8px] pr-2"
-                        }`}
-                      >
-                        <span className="leading-tight">{format12Hour(slot.startTimeStr)}</span>
-                        {startCrossesNextTab && (
-                          <span className="text-[9px] font-normal text-white/90 leading-tight">
-                            continues to {format12Hour(sessionEndStr)}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  }
-
-                  if (isCovered) {
-                    return (
-                      <button
-                        key={slot.slotKey}
-                        ref={(el) => {
-                          gridButtonsRef.current[index] = el;
-                        }}
-                        type="button"
-                        aria-pressed="false"
-                        aria-label={`Included in session: ${format12Hour(selectedTime || "")} to ${format12Hour(sessionEndStr)}`}
-                        onClick={() => {
-                          // Covered cell is not clickable as a separate choice while part of selection
-                        }}
-                        onKeyDown={(e) => handleGridKeyDown(e, index, periods[activePeriod])}
-                        className={`h-[44px] min-h-[44px] text-xs transition-all relative flex flex-col items-center justify-center focus-visible:ring-2 focus-visible:ring-[#1F4A33] focus-visible:ring-offset-2 outline-none select-none cursor-default bg-[#E3EEE7] border border-[#1F4A33] text-[#1F4A33] z-10 ${
-                          isStartInCurrentTab
-                            ? "rounded-r-[14px] rounded-l-none border-l-0 pl-2"
-                            : "rounded-[14px]"
-                        }`}
-                      >
-                        <span className="font-semibold leading-tight text-[#1F4A33]">
-                          {format12Hour(slot.startTimeStr)}
-                        </span>
-                        <span className="text-[9px] font-bold text-[#1F4A33] uppercase tracking-wider leading-tight">
-                          included
-                        </span>
-                      </button>
-                    );
-                  }
+                  const rangeStr = formatSessionRange(slot.startTimeStr, slot.endTimeStr);
 
                   return (
                     <button
@@ -962,19 +895,22 @@ export function MemberCourtBooking({
                       }}
                       type="button"
                       disabled={!isAvailable}
-                      aria-pressed="false"
+                      aria-pressed={isSelected}
+                      aria-label={`Session: ${rangeStr}, ${isAvailable ? "available" : "unavailable"}`}
                       onClick={() => handleSelectTime(slot.slotKey)}
                       onKeyDown={(e) => handleGridKeyDown(e, index, periods[activePeriod])}
-                      className={`h-[44px] min-h-[44px] rounded-[14px] text-xs transition-all relative flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[#1F4A33] focus-visible:ring-offset-2 outline-none select-none cursor-pointer ${
-                        isAvailable
+                      className={`h-[44px] min-h-[44px] rounded-[14px] text-xs transition-all relative flex items-center justify-center px-3 focus-visible:ring-2 focus-visible:ring-[#1F4A33] focus-visible:ring-offset-2 outline-none select-none cursor-pointer ${
+                        isSelected
+                          ? "bg-[#1F4A33] border border-[#1F4A33] text-white font-bold shadow-xs"
+                          : isAvailable
                           ? "bg-white border border-[#E6E6E6] text-[#111111] hover:border-[#1F4A33] font-medium"
                           : "bg-neutral-50 border border-[#E6E6E6] text-[#9CA3AF] line-through cursor-not-allowed opacity-60"
                       }`}
                     >
-                      <span>{format12Hour(slot.startTimeStr)}</span>
+                      <span className="truncate">{rangeStr}</span>
 
                       {/* Small amber dot for "Last court" */}
-                      {isAvailable && isLastCourt && (
+                      {isAvailable && isLastCourt && !isSelected && (
                         <span
                           className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-500"
                           title="Last court"
@@ -986,11 +922,7 @@ export function MemberCourtBooking({
               </div>
             )}
 
-            <p className="text-[11px] text-[#6B6B6B]">
-              {selectedSlot
-                ? `${format12Hour(selectedSlot.startTimeStr)} to ${format12Hour(selectedSlot.endTimeStr)}, 60 minutes`
-                : "Each session is 60 minutes."}
-            </p>
+            <p className="text-[11px] text-[#6B6B6B]">Each session is 60 minutes.</p>
           </section>
 
           {/* 4. COURT (Appears after time is selected) */}
