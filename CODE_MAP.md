@@ -76,11 +76,11 @@ This document maps the primary business flows, role security layers, database co
 
 ---
 
-## 10. Ban Action
+## 10. Ban and Unban Actions (Reversible by Owner)
 - **File**: `src/app/actions/members.ts`
-- **Function**: `banMemberAction`
-- **Line**: Line 115
-- **Explanation**: Executes an atomic transaction requiring explicit confirmation of the member ID, setting `bannedAt`, `bannedById`, and `bannedReason` (including "False age information") on the `User` record. In the same transaction, deletes all active sessions from the `Session` table and cancels all upcoming bookings with reason "Account banned" to release court capacity.
+- **Function**: `banMemberAction` (#L115), `unbanMemberAction` (#L213)
+- **Line**: Ban `#L115`, Unban `#L213`
+- **Explanation**: Member bans are reversible by the owner. `banMemberAction` (staff and owner) requires confirmation of the member ID, sets `bannedAt`, `bannedById`, and `bannedReason` (including "False age information") on the `User` record, revokes all active sessions, cancels upcoming bookings with reason "Account banned", and writes a "BAN" entry in `MemberAuditLog`. `unbanMemberAction` (strictly restricted to the club owner server-side) atomically clears `bannedAt`, `bannedById`, and `bannedReason` on the `User` record and appends an "UNBAN" entry in `MemberAuditLog`, instantly reinstating login access, quota, and discount entitlements without reviving cancelled bookings.
 
 ---
 

@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getMemberDetail } from "@/lib/services/members";
 import { BanMemberDialog } from "@/components/admin/ban-member-dialog";
+import { UnbanMemberDialog } from "@/components/admin/unban-member-dialog";
 import { VerifyAgeDialog } from "@/components/admin/verify-age-dialog";
 import { EditDobDialog } from "@/components/admin/edit-dob-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +35,11 @@ export default async function AdminMemberProfilePage({
 }) {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const isOwner = session?.user?.role === "OWNER";
 
   const data = await getMemberDetail(decodedId);
 
@@ -68,30 +76,40 @@ export default async function AdminMemberProfilePage({
               membershipNo={member.membershipNo}
             />
           )}
-          <BanMemberDialog
-            memberId={member.id}
-            membershipNo={member.membershipNo}
-            memberName={member.user?.name || `Member ${member.membershipNo}`}
-            isBanned={isBanned}
-          />
+          {isBanned ? (
+            isOwner ? (
+              <UnbanMemberDialog
+                memberId={member.id}
+                membershipNo={member.membershipNo}
+                memberName={member.user?.name || `Member ${member.membershipNo}`}
+              />
+            ) : null
+          ) : (
+            <BanMemberDialog
+              memberId={member.id}
+              membershipNo={member.membershipNo}
+              memberName={member.user?.name || `Member ${member.membershipNo}`}
+              isBanned={false}
+            />
+          )}
         </div>
       </div>
 
-      {/* Banned Alert Banner */}
+      {/* Banned Alert Notice */}
       {isBanned && (
-        <div className="p-4 rounded-xl bg-red-600 text-white shadow-sm flex items-start sm:items-center gap-3">
-          <ShieldAlert className="h-5 w-5 shrink-0 text-white mt-0.5 sm:mt-0" />
-          <div className="text-xs sm:text-sm font-semibold leading-relaxed">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 flex items-start sm:items-center gap-3">
+          <ShieldAlert className="h-4 w-4 shrink-0 text-red-600 mt-0.5 sm:mt-0" />
+          <div className="text-xs sm:text-sm font-medium leading-relaxed">
             Banned on{" "}
             {member.user?.bannedAt
-              ? new Date(member.user.bannedAt).toLocaleDateString("en-IN", {
-                  day: "2-digit",
+              ? new Date(member.user.bannedAt).toLocaleDateString("en-GB", {
+                  day: "numeric",
                   month: "short",
                   year: "numeric",
                 })
-              : "â€”"}{" "}
+              : "—"}{" "}
             by {bannedByName || "Staff"}. Reason:{" "}
-            <span className="font-normal opacity-95">{member.user?.bannedReason || "Account banned"}</span>
+            <span className="font-semibold text-red-950">{member.user?.bannedReason || "Account banned"}</span>
           </div>
         </div>
       )}
@@ -228,6 +246,45 @@ export default async function AdminMemberProfilePage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Ban History */}
+      {member.auditLogs && member.auditLogs.length > 0 && (
+        <Card className="shadow-sm border-gray-200">
+          <CardHeader className="py-2.5 px-4 border-b bg-gray-50/50">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <ShieldAlert className="h-3.5 w-3.5 text-gray-500" />
+              Ban History
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <ul className="space-y-1.5 text-xs">
+              {member.auditLogs.map((log) => {
+                const isUnban = log.action === "UNBAN" || log.field === "UNBAN";
+                const actionLabel = isUnban ? "Unbanned" : "Banned";
+                const dateStr = new Date(log.createdAt).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                });
+                const actor = log.changedBy || "Club Owner";
+                const reason = log.reason || log.newValue || "No reason specified";
+                return (
+                  <li key={log.id} className="flex items-center gap-2 text-gray-800">
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                        isUnban ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    <span>
+                      {actionLabel}, {dateStr}, by {actor}, {reason}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Activity History in Tabs */}
       <Card className="shadow-sm">

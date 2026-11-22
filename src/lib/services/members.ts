@@ -176,6 +176,15 @@ export async function getMemberDetail(idOrQr: string) {
         orderBy: { createdAt: "desc" },
         take: 10,
       },
+      auditLogs: {
+        where: {
+          OR: [
+            { action: { in: ["BAN", "UNBAN"] } },
+            { field: { in: ["BAN", "UNBAN"] } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 

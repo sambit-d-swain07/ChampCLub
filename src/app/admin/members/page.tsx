@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { searchMembers, getPlans } from "@/lib/services/members";
 import { MemberSearchInput } from "@/components/admin/member-search-input";
 import { RegisterMemberDialog } from "@/components/admin/register-member-dialog";
+import { MemberRowActions } from "@/components/admin/member-row-actions";
 import { Eye, ShieldCheck, Clock, AlertOctagon, ChevronLeft, ChevronRight, User } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +18,12 @@ export default async function AdminMembersPage({
   const { q, page: pageParam, status: statusParam } = await searchParams;
   const currentPage = Math.max(1, parseInt(pageParam || "1", 10) || 1);
 
-  const [{ members, total, page, totalPages }, plans] = await Promise.all([
+  const [session, { members, total, page, totalPages }, plans] = await Promise.all([
+    auth.api.getSession({ headers: await headers() }),
     searchMembers(q, currentPage, 20, statusParam),
     getPlans(),
   ]);
+  const isOwner = session?.user?.role === "OWNER";
   console.timeEnd("[Route: /admin/members] searchMembers + getPlans");
 
   return (
@@ -150,14 +155,7 @@ export default async function AdminMembersPage({
                         : "—"}
                     </td>
                     <td className="py-2.5 px-4 text-right">
-                      <Link
-                        href={`/admin/members/${m.id}`}
-                        prefetch={false}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#0B3B2C] hover:underline"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>Manage</span>
-                      </Link>
+                      <MemberRowActions member={m} isOwner={isOwner} />
                     </td>
                   </tr>
                 ))

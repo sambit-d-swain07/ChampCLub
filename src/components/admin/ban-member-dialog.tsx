@@ -35,16 +35,7 @@ export function BanMemberDialog({
   const [error, setError] = useState<string | null>(null);
 
   if (isBanned) {
-    return (
-      <Button
-        variant="destructive"
-        size="sm"
-        disabled
-        className="opacity-75 cursor-not-allowed bg-red-600/80 text-white font-semibold text-xs"
-      >
-        <ShieldAlert className="h-3.5 w-3.5 mr-1" /> Banned
-      </Button>
-    );
+    return null;
   }
 
   const isConfirmed = confirmInput.trim().toUpperCase() === membershipNo.trim().toUpperCase();
@@ -94,7 +85,7 @@ export function BanMemberDialog({
             <DialogTitle className="text-red-700">Ban Account: {memberName}</DialogTitle>
           </div>
           <DialogDescription className="text-xs text-gray-600 pt-2 leading-relaxed">
-            This will permanently revoke all active sessions for <strong>{membershipNo}</strong> and cancel all upcoming court bookings so the slots become free. Past booking and purchase history is kept. There is no unban option.
+            The member will be signed out and their upcoming bookings cancelled. You can unban later.
           </DialogDescription>
         </DialogHeader>
 

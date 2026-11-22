@@ -181,10 +181,13 @@ model MemberAuditLog {
   id        String   @id @default(cuid())
   memberId  String
   member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  field     String
+  field     String?
   oldValue  String?
   newValue  String?
-  changedBy String // User ID or Staff Name
+  changedBy String? // User ID or Staff Name
+  action    String? // BAN | UNBAN
+  reason    String?
+  actorId   String?
   createdAt DateTime @default(now())
 
   @@index([memberId])

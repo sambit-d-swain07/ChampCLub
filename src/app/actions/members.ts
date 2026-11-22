@@ -186,10 +186,25 @@ export async function banMemberAction(data: {
           cancelReason: "Account banned",
         },
       });
+
+      // 4. Ban history log
+      await tx.memberAuditLog.create({
+        data: {
+          memberId: targetMember.id,
+          action: "BAN",
+          reason: fullReason,
+          actorId: currentUser.id,
+          changedBy: currentUser.name || (currentUser.role === "OWNER" ? "Club Owner" : "Staff"),
+          field: "BAN",
+          oldValue: null,
+          newValue: fullReason,
+        },
+      });
     });
 
     revalidatePath("/admin/members");
     revalidatePath(`/admin/members/${parsed.memberId}`);
+    revalidatePath("/admin");
     revalidatePath("/admin/courts");
 
     return { success: true };
@@ -197,6 +212,75 @@ export async function banMemberAction(data: {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to ban member.",
+    };
+  }
+}
+
+const unbanMemberSchema = z.object({
+  memberId: z.string().min(1, "Member ID is required"),
+  reason: z.string().trim().min(3, "Reason must be at least 3 characters"),
+});
+
+export async function unbanMemberAction(data: {
+  memberId: string;
+  reason: string;
+}) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || currentUser.role !== "OWNER") {
+      return { success: false, error: "Unauthorized. Only the club owner can unban members." };
+    }
+
+    const parsed = unbanMemberSchema.parse(data);
+
+    const targetMember = await prisma.member.findUnique({
+      where: { id: parsed.memberId },
+      include: { user: true },
+    });
+
+    if (!targetMember || !targetMember.user) {
+      return { success: false, error: "Member account not found." };
+    }
+
+    if (!targetMember.user.bannedAt) {
+      return { success: false, error: "This member account is not banned." };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Unset User banned fields
+      await tx.user.update({
+        where: { id: targetMember.user!.id },
+        data: {
+          bannedAt: null,
+          bannedById: null,
+          bannedReason: null,
+        },
+      });
+
+      // 2. Write Ban history row
+      await tx.memberAuditLog.create({
+        data: {
+          memberId: targetMember.id,
+          action: "UNBAN",
+          reason: parsed.reason.trim(),
+          actorId: currentUser.id,
+          changedBy: currentUser.name || "Club Owner",
+          field: "UNBAN",
+          oldValue: targetMember.user!.bannedReason || "Banned",
+          newValue: parsed.reason.trim(),
+        },
+      });
+    });
+
+    revalidatePath("/admin/members");
+    revalidatePath(`/admin/members/${parsed.memberId}`);
+    revalidatePath("/admin");
+
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to unban member.",
     };
   }
 }
