@@ -191,6 +191,114 @@ export async function bookMemberCourtAction(formData: FormData) {
   }
 }
 
+export async function createMemberHoldAction(data: {
+  courtId: string;
+  startsAt: string;
+  endsAt: string;
+  kind?: "NORMAL" | "SOCIAL";
+}) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Authentication required to book a court." };
+    }
+
+    const member = await prisma.member.findUnique({
+      where: { userId: user.id },
+      include: { user: true },
+    });
+
+    if (!member) {
+      return { success: false, error: "Member profile not found." };
+    }
+
+    if (member.user?.bannedAt) {
+      return { success: false, error: "This account has been banned. Booking courts is not permitted." };
+    }
+
+    const result = await createBooking({
+      courtId: data.courtId,
+      startsAt: new Date(data.startsAt),
+      endsAt: new Date(data.endsAt),
+      memberId: member.id,
+      kind: data.kind || "NORMAL",
+    });
+
+    if (result.success && result.booking) {
+      revalidatePath("/admin/courts");
+      revalidatePath("/member/bookings");
+      revalidatePath("/member/book");
+      revalidatePath("/api/courts/availability");
+    }
+
+    return result;
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to hold slot.",
+    };
+  }
+}
+
+export async function confirmMemberBookingAction(data: {
+  bookingId: string;
+  paymentMethod: "CASH" | "CARD" | "UPI" | "ONLINE";
+}) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Authentication required." };
+    }
+
+    const result = await confirmBooking({
+      bookingId: data.bookingId,
+      paymentMethod: data.paymentMethod,
+    });
+
+    if (result.success) {
+      revalidatePath("/admin/courts");
+      revalidatePath("/member/bookings");
+      revalidatePath("/member/book");
+      revalidatePath("/member");
+      revalidatePath("/api/courts/availability");
+    }
+
+    return result;
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to confirm booking.",
+    };
+  }
+}
+
+export async function releaseMemberHoldAction(bookingId: string) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false };
+
+    await prisma.booking.updateMany({
+      where: {
+        id: bookingId,
+        status: "HELD",
+        member: { userId: user.id },
+      },
+      data: {
+        status: "CANCELLED",
+      },
+    });
+
+    revalidatePath("/admin/courts");
+    revalidatePath("/member/bookings");
+    revalidatePath("/member/book");
+    revalidatePath("/api/courts/availability");
+
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
 export async function joinSocialAction(bookingId: string) {
   try {
     const user = await getCurrentUser();

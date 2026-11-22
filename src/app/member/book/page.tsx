@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function MemberBookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ sport?: string; date?: string; time?: string; court?: string }>;
 }) {
   const user = await getCurrentUser();
 
@@ -20,18 +20,41 @@ export default async function MemberBookPage({
 
   const member = await prisma.member.findUnique({
     where: { userId: user.id },
+    include: {
+      user: true,
+      memberships: {
+        where: { replacedAt: null },
+        include: { plan: true },
+        orderBy: { startsAt: "desc" },
+        take: 1,
+      },
+    },
   });
 
   if (!member) {
     redirect("/login");
   }
 
-  const { date } = await searchParams;
+  const params = await searchParams;
   const todayStr = formatKolkataDate(new Date());
-  const selectedDate = date || todayStr;
+  const selectedDate =
+    params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : todayStr;
 
+  // Resolve member's last booking sport to default if none in URL
+  const lastBooking = await prisma.booking.findFirst({
+    where: { memberId: member.id, status: { not: "CANCELLED" } },
+    include: { court: true },
+    orderBy: { startsAt: "desc" },
+  });
+  const fallbackSport = lastBooking?.court.sport || "TENNIS";
+  const initialSport = (params.sport || fallbackSport).toUpperCase();
+
+  // Target date for entitlement calculation (computes daily quota for this specific day)
+  const targetDateObj = new Date(`${selectedDate}T12:00:00Z`);
+
+  // Single parallel server query for availability and entitlement
   const [entitlement, availability] = await Promise.all([
-    resolve(member.id, new Date()),
+    resolve(member.id, targetDateObj),
     getCourtAvailability(selectedDate),
   ]);
 
@@ -48,24 +71,27 @@ export default async function MemberBookPage({
     })),
   }));
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1B1B1B]">
-          Book a <span className="text-[#5F9E4A]">court</span>
-        </h1>
-        <p className="text-xs text-[#1B1B1B]/70">
-          Pick your sport, choose an open slot, and lock in your session.
-        </p>
-      </div>
+  const isJuniorUnverified = Boolean(
+    entitlement.plan?.name.toUpperCase().includes("JUNIOR") && !entitlement.ageVerified
+  );
 
+  const dailyLimit = entitlement.plan?.name.toUpperCase() === "GOLD" ? 4 : 2;
+
+  return (
+    <div className="max-w-[1344px] mx-auto">
       <MemberCourtBooking
+        initialSport={initialSport}
         initialDate={selectedDate}
+        initialTime={params.time || null}
+        initialCourtId={params.court || "ANY"}
         courts={availability.courts}
         slots={formattedSlots}
         discountPct={entitlement.courtDiscountPct}
+        planName={entitlement.plan?.name || null}
+        isJuniorUnverified={isJuniorUnverified}
         bookingsLeftToday={entitlement.bookingsLeftToday}
-        planName={entitlement.plan?.name}
+        dailyLimit={dailyLimit}
+        maxBookingDays={30}
       />
     </div>
   );
